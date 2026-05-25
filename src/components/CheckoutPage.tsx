@@ -16,6 +16,11 @@ export function CheckoutPage() {
   const [usersCount, setUsersCount] = useState<number>(1);
   const [paymentMethod, setPaymentMethod] = useState<'credit_card' | 'pix' | 'boleto'>('pix');
 
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [documentNumber, setDocumentNumber] = useState('');
+
   // Pricing Logic
   const getUnitPrice = () => {
     if (usersCount <= 10) {
@@ -35,8 +40,40 @@ export function CheckoutPage() {
 
   const handleCheckout = (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate checkout process
-    alert('Redirecionando para o gateway de pagamento (Asaas)...');
+    
+    const paymentMethodNames = {
+      credit_card: 'Cartão de Crédito',
+      pix: 'PIX',
+      boleto: 'Boleto'
+    };
+
+    const message = `🚨 *NOVO PEDIDO DE ASSINATURA* 🚨
+━━━━━━━━━━━━━━━━━━━━━━
+
+👤 *DADOS DO CLIENTE*
+*Nome:* ${name}
+*E-mail:* ${email}
+*WhatsApp:* ${phone}
+*Documento:* ${documentNumber}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+💼 *DETALHES DO PLANO*
+*Plano:* ${frequency === 'mensal' ? 'Mensal' : 'Semestral'}
+*Acessos:* ${usersCount}
+*Valor por Acesso:* ${formatCurrency(unitPrice)}/mês
+*Total:* ${formatCurrency(grandTotal)}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+💳 *PAGAMENTO*
+*Método:* ${paymentMethodNames[paymentMethod]}
+
+━━━━━━━━━━━━━━━━━━━━━━
+⏳ _Aguardo as instruções para finalizar._`;
+
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`https://wa.me/5567999431658?text=${encodedMessage}`, '_blank');
   };
 
   return (
@@ -165,6 +202,8 @@ export function CheckoutPage() {
                 <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1">Nome completo</label>
                 <input 
                   type="text" 
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   required
                   placeholder="Seu nome ou nome da empresa"
                   className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
@@ -175,6 +214,8 @@ export function CheckoutPage() {
                   <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1">E-mail de acesso</label>
                   <input 
                     type="email" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                     placeholder="email@empresa.com.br"
                     className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
@@ -184,6 +225,8 @@ export function CheckoutPage() {
                   <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1">WhatsApp / Telefone</label>
                   <input 
                     type="tel" 
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
                     required
                     placeholder="(00) 00000-0000"
                     className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
@@ -194,6 +237,8 @@ export function CheckoutPage() {
                 <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1">CPF ou CNPJ</label>
                 <input 
                   type="text" 
+                  value={documentNumber}
+                  onChange={(e) => setDocumentNumber(e.target.value)}
                   required
                   placeholder="000.000.000-00 ou 00.000.000/0000-00"
                   className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
@@ -255,31 +300,38 @@ export function CheckoutPage() {
 
             {/* Submit Button */}
             <div className="mt-8">
-              <button 
-                type="submit"
-                className="w-full flex items-center justify-center gap-3 bg-[#00a83e] hover:bg-[#009035] text-white px-8 py-5 rounded-xl font-black text-lg tracking-widest uppercase transition-all shadow-[0_10px_25px_rgba(0,168,62,0.3)] hover:-translate-y-1 active:translate-y-0"
-              >
-                <Lock className="w-6 h-6 text-current opacity-80" />
-                CONCLUIR ASSINATURA
-              </button>
+              <div className="relative group">
+                {/* Perpetual Glow Effect */}
+                <div className="absolute -inset-1 bg-gradient-to-r from-[#00a83e] via-[#00cf4d] to-[#00a83e] rounded-[16px] blur opacity-75 animate-pulse"></div>
+                
+                <button 
+                  type="submit"
+                  className="relative w-full flex items-center justify-center gap-3 bg-[#00a83e] hover:bg-[#009035] text-white px-8 py-5 rounded-xl font-black text-lg tracking-widest uppercase transition-all shadow-[0_10px_25px_rgba(0,168,62,0.3)] hover:-translate-y-1 active:translate-y-0"
+                >
+                  <Lock className="w-6 h-6 text-current opacity-80" />
+                  CONCLUIR ASSINATURA
+                </button>
+              </div>
               
-              <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mt-6 opacity-60">
-                <div className="flex items-center gap-1.5">
-                  <Lock className="w-4 h-4 text-neutral-600" />
-                  <span className="text-xs font-bold text-neutral-600 uppercase tracking-wide">Pagamento Seguro</span>
+              <div className="relative mt-6">
+                <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 opacity-60">
+                  <div className="flex items-center gap-1.5">
+                    <Lock className="w-4 h-4 text-neutral-600" />
+                    <span className="text-xs font-bold text-neutral-600 uppercase tracking-wide">Pagamento Seguro</span>
+                  </div>
+                  <div className="w-1.5 h-1.5 bg-neutral-300 rounded-full"></div>
+                  <div className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-neutral-600" />
+                    <span className="text-xs font-bold text-neutral-600 uppercase tracking-wide">Site Criptografado</span>
+                  </div>
+                  <div className="hidden sm:block w-1.5 h-1.5 bg-neutral-300 rounded-full"></div>
+                  <div className="hidden sm:flex items-center gap-1.5">
+                    <span className="font-black text-[11px] text-neutral-600 tracking-widest">PROCESSADO POR ASAAS</span>
+                  </div>
                 </div>
-                <div className="w-1.5 h-1.5 bg-neutral-300 rounded-full"></div>
-                <div className="flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-neutral-600" />
-                  <span className="text-xs font-bold text-neutral-600 uppercase tracking-wide">Site Criptografado</span>
-                </div>
-                <div className="hidden sm:block w-1.5 h-1.5 bg-neutral-300 rounded-full"></div>
-                <div className="hidden sm:flex items-center gap-1.5">
+                <div className="sm:hidden flex items-center justify-center mt-3 opacity-60">
                   <span className="font-black text-[11px] text-neutral-600 tracking-widest">PROCESSADO POR ASAAS</span>
                 </div>
-              </div>
-              <div className="sm:hidden flex items-center justify-center mt-3 opacity-60">
-                <span className="font-black text-[11px] text-neutral-600 tracking-widest">PROCESSADO POR ASAAS</span>
               </div>
             </div>
           </form>
