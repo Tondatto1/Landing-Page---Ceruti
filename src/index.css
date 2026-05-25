@@ -1,0 +1,608 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Playfair Display", serif;
+  --font-mono: "JetBrains Mono", monospace;
+  
+  --color-emerald-50: #FAF9F6;
+  --color-emerald-100: #E8EADF;
+  --color-emerald-500: #4A5D44;
+  --color-emerald-600: #3A4338;
+  --color-emerald-700: #2C352B;
+  --color-emerald-950: #1B221A;
+  
+  --color-agro-dark: #FAF9F6;
+  --color-agro-deep: #FAF9F6;
+  --color-agro-card: #FFFFFF;
+  --color-agro-green: #4A5D44;
+  --color-agro-accent: #3A4338;
+}
+
+/* Premium Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #FAF9F6;
+}
+::-webkit-scrollbar-thumb {
+  background: #E8EADF;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #4A5D44;
+}
+
+html, body {
+  font-family: var(--font-sans);
+  background-color: var(--color-agro-deep);
+  color: #3A4338;
+  overflow-x: hidden;
+  max-width: 100%;
+  width: 100%;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Animations helper */
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.1; }
+  50% { opacity: 0.3; }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 4s infinite ease-in-out;
+}
+
+/* --- Natural Tones Scoped Theme Styles --- */
+
+.theme-natural-tones {
+  background-color: #FAF9F6 !important;
+  color: #3A4338 !important;
+}
+
+/* Scrollbar styles to match Natural Tones */
+.theme-natural-tones ::-webkit-scrollbar-track {
+  background: #FAF9F6 !important;
+}
+.theme-natural-tones ::-webkit-scrollbar-thumb {
+  background: #E8EADF !important;
+}
+.theme-natural-tones ::-webkit-scrollbar-thumb:hover {
+  background: #4A5D44 !important;
+}
+
+/* General Typography overrides for high-contrast Natural Tones readability */
+.theme-natural-tones h1,
+.theme-natural-tones h2,
+.theme-natural-tones h3,
+.theme-natural-tones h4,
+.theme-natural-tones h5 {
+  color: #3A4338 !important;
+}
+
+/* Force standard text utility overrides inside theme container, keeping white on buttons, links and force-white elements */
+.theme-natural-tones .text-white:not(.force-white, button *, button, a[class*="bg-"] *, a[class*="bg-"]) {
+  color: #3A4338 !important;
+}
+
+.force-white, .theme-natural-tones .force-white {
+  color: #FFFFFF !important;
+}
+.theme-natural-tones .text-gray-100 {
+  color: #3A4338 !important;
+}
+.theme-natural-tones .text-gray-200 {
+  color: #4A5D44 !important;
+}
+.theme-natural-tones .text-gray-300 {
+  color: #5A6356 !important;
+}
+.theme-natural-tones .text-gray-350 {
+  color: #5A6356 !important;
+}
+.theme-natural-tones .text-gray-400 {
+  color: #6C7A68 !important;
+}
+.theme-natural-tones .text-gray-450 {
+  color: #6C7A68 !important;
+}
+.theme-natural-tones .text-gray-500 {
+  color: #8C9988 !important;
+}
+
+/* Ensure texts on dark-colored buttons or dark panels maintain their high-contrast white/cream state */
+.theme-natural-tones .bg-agro-green .text-agro-deep,
+.theme-natural-tones .bg-agro-green .text-white,
+.theme-natural-tones .bg-agro-accent .text-white,
+.theme-natural-tones .bg-red-500 .text-white,
+.theme-natural-tones .bg-green-600 .text-white,
+.theme-natural-tones .bg-emerald-600 .text-white,
+.theme-natural-tones .bg-\[\#005c4b\] .text-white,
+.theme-natural-tones .bg-[#005c4b] .text-white,
+.theme-natural-tones .bg-emerald-500 .text-white,
+.theme-natural-tones .bg-[#10b981] .text-white,
+.theme-natural-tones button .text-white,
+.theme-natural-tones .text-indigo-100,
+.theme-natural-tones .text-emerald-300,
+.theme-natural-tones .text-emerald-100 {
+  color: #FAF9F6 !important;
+}
+
+/* Secondary CTA text color inside Natural Tones theme */
+.theme-natural-tones #hero_section a.bg-agro-card\/60 {
+  color: #4A5D44 !important;
+  background-color: rgba(255, 255, 255, 0.6) !important;
+  border-color: rgba(74, 93, 68, 0.2) !important;
+}
+.theme-natural-tones #hero_section a.bg-agro-card\/60:hover {
+  background-color: #FFFFFF !important;
+}
+
+/* Secondary/outline elements */
+.theme-natural-tones .hover\:text-white:hover {
+  color: #4A5D44 !important;
+}
+
+/* Navigation items link text */
+.theme-natural-tones header nav a {
+  color: #5A6356 !important;
+}
+.theme-natural-tones header nav a:hover {
+  color: #4A5D44 !important;
+}
+
+/* Custom border overrides to sand/clay borders rather than dark-mode white lines */
+.theme-natural-tones .border-white\/5 {
+  border-color: rgba(74, 93, 68, 0.08) !important;
+}
+.theme-natural-tones .border-white\/10 {
+  border-color: rgba(74, 93, 68, 0.12) !important;
+}
+.theme-natural-tones .border-white\/20 {
+  border-color: rgba(74, 93, 68, 0.2) !important;
+}
+.theme-natural-tones .border-white\/25 {
+  border-color: rgba(74, 93, 68, 0.25) !important;
+}
+.theme-natural-tones .border-agro-green\/20 {
+  border-color: rgba(74, 93, 68, 0.2) !important;
+}
+.theme-natural-tones .border-agro-green\/35 {
+  border-color: rgba(74, 93, 68, 0.35) !important;
+}
+
+/* Highlight Quote in Hero & Spotlights */
+.theme-natural-tones .bg-agro-card\/80 {
+  background-color: #FFFFFF !important;
+  border-color: rgba(74, 93, 68, 0.2) !important;
+}
+.theme-natural-tones .text-agro-accent {
+  color: #4A5D44 !important;
+}
+
+/* Background elements and alternating sections */
+.theme-natural-tones #problema {
+  background-color: #F4F2EB !important;
+}
+.theme-natural-tones #como-funciona {
+  background-color: #FAF9F6 !important;
+}
+.theme-natural-tones #resultados {
+  background-color: #FFFFFF !important;
+}
+.theme-natural-tones #resultados-detalhes {
+  background-color: #F4F2EB !important;
+}
+.theme-natural-tones #planos {
+  background-color: #FFFFFF !important;
+  border-color: rgba(74, 93, 68, 0.1) !important;
+}
+.theme-natural-tones #cadastro {
+  background-color: #FAF9F6 !important;
+}
+
+/* Special spotlight section: THE ANECDOTE COMIC DISPLAY (#barbecue_scene_callback) */
+/* We want this section to be a high-contrast rich-green panel so it makes the comic jump out and look incredibly deliberate and artistic! */
+.theme-natural-tones #barbecue_scene_callback {
+  background-color: #FAF9F6 !important;
+}
+.theme-natural-tones #barbecue_scene_callback > div > div {
+  background-color: #3A4338 !important; /* Earth dark-olive card */
+  border-color: rgba(108, 122, 104, 0.3) !important;
+}
+.theme-natural-tones #barbecue_scene_callback h3 {
+  color: #FAF9F6 !important;
+}
+.theme-natural-tones #barbecue_scene_callback p {
+  color: #E8EADF !important;
+}
+.theme-natural-tones #barbecue_scene_callback h4 {
+  color: #FAF9F6 !important;
+}
+
+/* Make sure the comic bubble itself is properly contrasting inside the dark card */
+.theme-natural-tones #barbecue_scene_callback .bg-white {
+  background-color: #FAF9F6 !important;
+  color: #3A4338 !important;
+}
+
+/* Detailed results section inner elements: Old Scenario red borders vs New Scenario green boundaries */
+.theme-natural-tones #resultados-detalhes .bg-agro-card\/30 {
+  background-color: #FFFFFF !important;
+  box-shadow: 0 4px 20px -2px rgba(74, 93, 68, 0.05) !important;
+}
+.theme-natural-tones #resultados-detalhes .bg-\[\#111c18\] {
+  background-color: #FDFDFD !important;
+  border-color: rgba(239, 68, 68, 0.15) !important;
+}
+.theme-natural-tones #resultados-detalhes .bg-\[\#03231c\] {
+  background-color: #F5FDF6 !important;
+  border-color: rgba(74, 93, 68, 0.15) !important;
+}
+.theme-natural-tones #resultados-detalhes .text-rose-500,
+.theme-natural-tones #resultados-detalhes .text-red-500 {
+  color: #EF4444 !important;
+}
+
+/* Pricing and calculator blocks */
+.theme-natural-tones #planos .bg-agro-deep {
+  background-color: #F4F2EB !important;
+}
+.theme-natural-tones #planos .bg-agro-card\/50 {
+  background-color: #FFFFFF !important;
+  border-color: rgba(74, 93, 68, 0.1) !important;
+}
+.theme-natural-tones #planos input[type="number"] {
+  background-color: #FAF9F6 !important;
+  color: #3A4338 !important;
+  border-color: rgba(74, 93, 68, 0.2) !important;
+}
+.theme-natural-tones #planos .bg-agro-green\/5 {
+  background-color: #E8EADF !important;
+  border-color: rgba(74, 93, 68, 0.2) !important;
+}
+.theme-natural-tones #planos .bg-agro-green\/10 {
+  background-color: rgba(74, 93, 68, 0.1) !important;
+  color: #4A5D44 !important;
+}
+
+/* ROI Calculator blocks */
+.theme-natural-tones #roi-calculator .bg-agro-card\/80 {
+  background-color: #FFFFFF !important;
+  border-color: rgba(74, 93, 68, 0.1) !important;
+}
+.theme-natural-tones #roi-calculator .bg-agro-card\/45 {
+  background-color: #FAF9F6 !important;
+  border-color: rgba(74, 93, 68, 0.1) !important;
+}
+.theme-natural-tones #roi-calculator .bg-agro-card\/75 {
+  background-color: #FFFFFF !important;
+  border-color: rgba(74, 93, 68, 0.15) !important;
+}
+.theme-natural-tones #roi-calculator .text-red-300 {
+  color: #D32F2F !important;
+}
+.theme-natural-tones #roi-calculator .text-red-400 {
+  color: #C62828 !important;
+}
+.theme-natural-tones #roi-calculator .bg-slate-500\/30 {
+  background-color: #E8E8E8 !important;
+}
+.theme-natural-tones #roi-calculator .bg-agro-deep\/50 {
+  background-color: #FAF9F6 !important;
+  border-color: rgba(74, 93, 68, 0.08) !important;
+}
+.theme-natural-tones #roi-calculator .bg-agro-green\/10 {
+  background-color: #E8EADF !important;
+}
+
+/* Forms and Inputs */
+.theme-natural-tones #cadastro input {
+  background-color: #FFFFFF !important;
+  color: #3A4338 !important;
+  border-color: rgba(74, 93, 68, 0.2) !important;
+}
+.theme-natural-tones #cadastro input:focus {
+  border-color: #4A5D44 !important;
+  box-shadow: 0 0 0 1px #4A5D44 !important;
+}
+.theme-natural-tones #cadastro .bg-agro-deep\/50 {
+  background-color: #F4F2EB !important;
+  border-color: rgba(74, 93, 68, 0.15) !important;
+}
+.theme-natural-tones #cadastro .bg-agro-deep {
+  background-color: #F4F2EB !important;
+}
+.theme-natural-tones #cadastro .bg-\[\#0a201b\] {
+  background-color: #E8EADF !important;
+  border-color: rgba(74, 93, 68, 0.1) !important;
+}
+.theme-natural-tones #cadastro .bg-\[\#031d17\] {
+  background-color: #FFFFFF !important;
+  border-color: #E8EADF !important;
+}
+.theme-natural-tones #cadastro .text-agro-accent {
+  color: #4A5D44 !important;
+}
+
+/* Manifest card (#cadastro info container) */
+.theme-natural-tones .bg-indigo-950\/20 {
+  background-color: #FAF5EE !important;
+  border-color: #EADEC9 !important;
+}
+
+/* Detailed Technical pillars container */
+.theme-natural-tones .bg-\[\#031d17\] {
+  background-color: #FFFFFF !important;
+  border-color: rgba(74, 93, 68, 0.12) !important;
+}
+.theme-natural-tones .text-\[\#10b981\] {
+  color: #4A5D44 !important;
+}
+
+/* Primary buttons active hover color adjustments */
+.theme-natural-tones .bg-agro-green:hover,
+.theme-natural-tones .bg-\[\#10b981\]:hover {
+  background-color: #3D4C38 !important; /* Rich darker forest green */
+}
+
+/* Footer Section */
+.theme-natural-tones #main_footer {
+  background-color: #FAF9F6 !important;
+  border-top: 1px solid rgba(74, 93, 68, 0.12) !important;
+}
+.theme-natural-tones #main_footer .text-white {
+  color: #3A4338 !important;
+}
+.theme-natural-tones #main_footer h5 {
+  color: #4A5D44 !important;
+  font-family: var(--font-sans) !important;
+}
+.theme-natural-tones #main_footer .text-gray-400,
+.theme-natural-tones #main_footer .text-gray-500,
+.theme-natural-tones #main_footer .text-gray-600 {
+  color: #5A6356 !important;
+}
+.theme-natural-tones #main_footer a {
+  color: #5A6356 !important;
+}
+.theme-natural-tones #main_footer a:hover {
+  color: #00a83e !important;
+}
+.theme-natural-tones #main_footer .border-white\/5 {
+  border-color: rgba(74, 93, 68, 0.12) !important;
+}
+
+/* --- WHATSAPP SIMULATOR DECORATION & REALISM --- */
+.theme-natural-tones #whatsapp_simulator .bg-\[\#0b141a\] {
+  background-color: #F0EDE5 !important; /* Perfect real WhatsApp light fabric base */
+  border-color: rgba(74, 93, 68, 0.15) !important;
+}
+.theme-natural-tones #whatsapp_simulator .bg-\[\#1f2c34\] {
+  background-color: #008069 !important; /* Classic WhatsApp Teal Header */
+  border-color: #005E54 !important;
+}
+.theme-natural-tones #whatsapp_simulator .text-\[\#1f2c34\] {
+  color: #FFFFFF !important;
+}
+.theme-natural-tones #whatsapp_simulator .fill-agro-green {
+  fill: #FFFFFF !important;
+  color: #008069 !important;
+}
+.theme-natural-tones #whatsapp_simulator .text-agro-accent {
+  color: #B5EADB !important; /* Light teal text for online status */
+}
+.theme-natural-tones #whatsapp_simulator .bg-\[\#182229\] {
+  background-color: #E2EBF0 !important; /* Real encrypted code notice */
+  border-color: #D3DEE5 !important;
+  color: #516370 !important;
+}
+/* User Message Bubble: #005c4b -> Beautiful light green #E2F9CB with dark text */
+.theme-natural-tones #whatsapp_simulator .bg-\[\#005c4b\] {
+  background-color: #E2F9CB !important;
+  box-shadow: 0 1px 0.5px rgba(0,0,0,0.13) !important;
+}
+.theme-natural-tones #whatsapp_simulator .text-emerald-100 {
+  color: #008069 !important; /* The vendor prefix tag */
+}
+.theme-natural-tones #whatsapp_simulator .text-slate-100 {
+  color: #3A4338 !important; /* Message body */
+}
+.theme-natural-tones #whatsapp_simulator .text-sky-400 {
+  color: #53BDEB !important; /* Blue double check */
+}
+/* AI Response Incoming Bubble of WhatsApp: #202c33 -> Pure White bubble with nice tiny shadow */
+.theme-natural-tones #whatsapp_simulator .bg-\[\#202c33\] {
+  background-color: #FFFFFF !important;
+  box-shadow: 0 1px 0.5px rgba(0,0,0,0.13) !important;
+  color: #3A4338 !important;
+}
+.theme-natural-tones #whatsapp_simulator .border-\[\#2d3134\] {
+  border-color: #F0ECE4 !important;
+}
+.theme-natural-tones #whatsapp_simulator .text-yellow-400 {
+  color: #B8731F !important; /* Earthy orange-gold instead of screaming yellow */
+}
+.theme-natural-tones #whatsapp_simulator .bg-black\/30 {
+  background-color: #F8F6F0 !important;
+  border-color: #E3DFD5 !important;
+  color: #4A5D44 !important;
+}
+.theme-natural-tones #whatsapp_simulator .text-green-400 {
+  color: #008069 !important;
+}
+/* Footer in WhatsApp */
+.theme-natural-tones #whatsapp_simulator .bg-\[\#1f2c34\].p-3\.5 {
+  background-color: #F0EDE5 !important;
+  border-top: 1px solid rgba(74, 93, 68, 0.1) !important;
+}
+.theme-natural-tones #whatsapp_simulator .bg-\[\#2a3942\] {
+  background-color: #FFFFFF !important;
+  border: 1px solid rgba(74, 93, 68, 0.1) !important;
+  color: #5A6356 !important;
+}
+.theme-natural-tones #whatsapp_simulator .bg-\[\#2a3942\]:hover {
+  background-color: #FAF9F6 !important;
+}
+.theme-natural-tones #whatsapp_simulator .text-gray-200 {
+  color: #4A5D44 !important;
+}
+
+/* Custom LightRays styles */
+.light-rays-container {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.light-rays-container canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+/* Custom continuous subtle spinning electric light border of aggregate card */
+@keyframes electricRotate {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.electric-border-card {
+  position: relative;
+  background: transparent !important;
+  border: none !important;
+}
+
+.electric-border-glow {
+  position: absolute;
+  inset: 0px;
+  border-radius: 32px;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* A soft spinning color glow on boundary to produce running border effect */
+.electric-border-glow::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 300%;
+  height: 300%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(0, 168, 62, 0.55) 0deg,    /* agro green */
+    rgba(0, 112, 243, 0.45) 60deg,   /* brand blue */
+    transparent 120deg,
+    transparent 200deg,
+    rgba(0, 168, 62, 0.55) 240deg,
+    rgba(0, 112, 243, 0.45) 300deg,
+    transparent 360deg
+  );
+  transform: translate(-50%, -50%) rotate(0deg);
+  animation: electricRotate 14s linear infinite;
+  pointer-events: none;
+}
+
+/* Clear solid center overlay masking the spinning border, keeping a clean interior */
+.electric-border-inner {
+  position: absolute;
+  inset: 1.5px;
+  border-radius: 30.5px;
+  background: #FFFFFF;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Special high-vividness green electric border for Card 5 */
+.electric-border-glow-special {
+  position: absolute;
+  inset: 0px;
+  border-radius: 32px;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.electric-border-glow-special::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 300%;
+  height: 300%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(0, 168, 62, 0.8) 0deg,
+    rgba(16, 185, 129, 0.7) 90deg,
+    transparent 180deg,
+    rgba(0, 168, 62, 0.8) 270deg,
+    rgba(16, 185, 129, 0.7) 360deg
+  );
+  transform: translate(-50%, -50%) rotate(0deg);
+  animation: electricRotate 9s linear infinite;
+  pointer-events: none;
+}
+
+/* Continuous Cycle Animations */
+@keyframes dash {
+  to {
+    stroke-dashoffset: -40;
+  }
+}
+.animate-dash {
+  animation: dash 4s linear infinite;
+}
+.animate-dash-reverse {
+  animation: dash 4s linear infinite reverse;
+}
+.animate-spin-slow {
+  animation: electricRotate 15s linear infinite;
+}
+
+.electric-border-glow-blue {
+  position: absolute;
+  inset: 0px;
+  border-radius: 32px;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.electric-border-glow-blue::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 300%;
+  height: 300%;
+  background: conic-gradient(
+    from 180deg at 50% 50%,
+    transparent 0deg,
+    #0070f3 50deg,
+    transparent 100deg,
+    transparent 200deg,
+    #0070f3 250deg,
+    transparent 300deg,
+    transparent 360deg
+  );
+  transform: translate(-50%, -50%) rotate(0deg);
+  animation: electricRotate 4s linear infinite;
+  pointer-events: none;
+}
+
+

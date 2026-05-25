@@ -1,0 +1,6 @@
+{
+  "name": "Agro Sales Coach",
+  "description": "Landing page de alta conversão para o Agro Sales Coach, um treinador de vendas por IA integrado ao WhatsApp para equipes comerciais do agro.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

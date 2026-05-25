@@ -1,0 +1,165 @@
+/* MagicBento.css */
+
+.bento-section {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .bento-section {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .bento-section {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Magic Bento Card */
+.magic-bento-card {
+  position: relative;
+  border-radius: 28px;
+  padding: 2.25rem 2rem;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 280px;
+  background-color: #f6f8f5; /* Gorgeous premium off-white (branco ofuscado) */
+  border: 1px solid rgba(0, 168, 62, 0.08);
+  box-shadow: 0 10px 30px rgba(12, 31, 34, 0.03), 0 1px 3px rgba(12, 31, 34, 0.01);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+  z-index: 10;
+  cursor: pointer;
+}
+
+.magic-bento-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: radial-gradient(
+    circle at var(--glow-x, 50%) var(--glow-y, 50%),
+    rgba(var(--glow-color, 0, 168, 62), calc(var(--glow-intensity, 0) * 0.8)),
+    transparent var(--glow-radius, 300px)
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.magic-bento-card--border-glow::before {
+  opacity: 1;
+}
+
+/* Internal Card Shimmer spotlight background */
+.magic-bento-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at var(--glow-x, 50%) var(--glow-y, 50%),
+    rgba(var(--glow-color, 0, 168, 62), calc(var(--glow-intensity, 0) * 0.12)),
+    transparent var(--glow-radius, 300px)
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Floating Particles (Sparkles/Stars) */
+.particle {
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+/* Global spotlight follower */
+.global-spotlight {
+  position: fixed;
+  pointer-events: none;
+  z-index: 5;
+  mix-blend-mode: normal;
+  will-change: left, top, opacity;
+}
+
+/* Header & Label styling */
+.magic-bento-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  z-index: 5;
+  position: relative;
+}
+
+.magic-bento-card__label {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: #00a83e;
+  background: rgba(0, 168, 62, 0.06);
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(0, 168, 62, 0.15);
+}
+
+.magic-bento-card__icon-wrapper {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 168, 62, 0.05);
+  border: 1px solid rgba(0, 168, 62, 0.15);
+  color: #00a83e;
+  transition: transform 0.3s ease, background-color 0.3s ease;
+}
+
+.magic-bento-card:hover .magic-bento-card__icon-wrapper {
+  transform: scale(1.1) rotate(5deg);
+  background: rgba(0, 168, 62, 0.1);
+  border-color: rgba(0, 168, 62, 0.25);
+}
+
+/* Content styling */
+.magic-bento-card__content {
+  z-index: 5;
+  position: relative;
+  text-align: left;
+}
+
+.magic-bento-card__title {
+  color: #0c1f22 !important;
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 1.25rem;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+  text-transform: uppercase;
+  margin-bottom: 0.65rem;
+}
+
+.magic-bento-card__description {
+  color: #4b5563 !important; /* Beautiful soft grayish-green/slate-gray description for light card */
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+/* Custom interactive active scaling */
+.magic-bento-card:active {
+  transform: scale(0.985);
+}
