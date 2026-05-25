@@ -24,9 +24,13 @@ import {
   ClipboardList,
   MapPin,
   ShoppingBag,
-  Wrench
+  Wrench,
+  CalendarDays,
+  Rocket,
+  ShieldCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Link } from 'react-router-dom';
 import { Aurora } from './components/Aurora';
 import { MagicBento } from './components/MagicBento';
 
@@ -137,9 +141,7 @@ export default function App() {
 
           <div className="hidden md:flex items-center">
             <a 
-              href="https://wa.me/5567981246558?text=Olá! Gostaria de falar com um representante sobre o Ceruti." 
-              target="_blank"
-              rel="noopener noreferrer"
+              href="#planos" 
               className="border-[1.5px] border-[#00a83e] text-[#00a83e] hover:bg-[#00a83e]/5 px-5 py-2 rounded-lg font-bold text-xs tracking-wider uppercase transition-colors"
             >
               Quero ter acesso
@@ -195,9 +197,7 @@ export default function App() {
               </a>
               <div className="pt-4 border-t border-neutral-100">
                 <a 
-                  href="https://wa.me/5567981246558?text=Olá! Gostaria de falar com um representante sobre o Ceruti."
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="#planos"
                   onClick={() => setMobileMenuOpen(false)}
                   className="block w-full text-center border-[1.5px] border-[#00a83e] text-[#00a83e] py-2.5 rounded-lg font-bold text-xs tracking-wider uppercase"
                 >
@@ -258,9 +258,7 @@ export default function App() {
               {/* Action Button CTA */}
               <div className="pt-0.5">
                 <a 
-                  href="https://wa.me/5567981246558?text=Olá! Gostaria de falar com um representative sobre o Ceruti." 
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="#planos" 
                   className="inline-flex items-center gap-3 bg-[#00a83e] hover:bg-[#009035] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-md shadow-[#00a83e]/20 hover:scale-[1.01] active:scale-[0.99]"
                 >
                   <MessageCircle className="w-5 h-5 text-current" />
@@ -982,9 +980,7 @@ export default function App() {
           {/* CTA Button */}
           <div className="flex justify-center mt-12 relative z-20">
             <a 
-              href="https://wa.me/5567981246558?text=Olá! Gostaria de falar com um representante sobre o Ceruti." 
-              target="_blank"
-              rel="noopener noreferrer"
+              href="#planos" 
               className="inline-flex items-center gap-3 bg-[#00a83e] hover:bg-[#009035] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-md shadow-[#00a83e]/20 hover:scale-[1.01] active:scale-[0.99]"
             >
               <MessageCircle className="w-5 h-5 text-current" />
@@ -1259,9 +1255,7 @@ export default function App() {
           {/* CTA Action Button below the testimonials */}
           <div className="flex justify-center mt-12 relative z-20">
             <a 
-              href="https://wa.me/5567981246558?text=Olá! Gostaria de falar com um representante sobre o Ceruti." 
-              target="_blank"
-              rel="noopener noreferrer"
+              href="#planos" 
               className="inline-flex items-center gap-3 bg-[#00a83e] hover:bg-[#009035] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-md shadow-[#00a83e]/20 hover:scale-[1.01] active:scale-[0.99]"
             >
               <MessageCircle className="w-5 h-5 text-current" />
@@ -1492,9 +1486,7 @@ export default function App() {
           {/* CTA Button */}
           <div className="flex justify-center mt-12 relative z-20">
             <a 
-              href="https://wa.me/5567981246558?text=Olá! Gostaria de falar com um representante sobre o Ceruti." 
-              target="_blank"
-              rel="noopener noreferrer"
+              href="#planos" 
               className="inline-flex items-center gap-3 bg-[#00a83e] hover:bg-[#009035] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-md shadow-[#00a83e]/20 hover:scale-[1.01] active:scale-[0.99]"
             >
               <MessageCircle className="w-5 h-5 text-current" />
@@ -1505,6 +1497,141 @@ export default function App() {
         </div>
 
         {/* Soft elegant gradient transition divider matching previous fold transitions beautifully */}
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00a83e]/30 via-[#0070f3]/25 via-transparent to-transparent z-10" />
+        <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-[#00a83e]/10 via-[#0070f3]/10 to-transparent z-10 blur-[2px] opacity-85" />
+      </section>
+
+      {/* NEW PRICING SECTION */}
+      <section className="bg-white py-20 sm:py-24 relative overflow-hidden" id="planos">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center mb-4">
+            <h2 className="text-3xl sm:text-[44px] font-sans font-black text-[#0b1a30] tracking-tighter leading-tight uppercase">
+              ESCOLHA SUA ASSINATURA
+            </h2>
+            <p className="mt-5">
+              <span className="relative inline-block group">
+                <span className="absolute inset-0 bg-red-400/20 blur-md rounded-full transition-all duration-300 group-hover:bg-red-400/30"></span>
+                <span className="relative inline-flex items-center justify-center px-6 py-1.5 rounded-full bg-red-50/80 border border-red-100 text-red-500 text-lg sm:text-xl font-black line-through decoration-red-500/70 decoration-[3px]">
+                  R$ 397,00
+                </span>
+              </span>
+            </p>
+          </div>
+
+          <div className="flex justify-center mt-6 mb-4">
+            <div className="relative group">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-[#00a83e] to-[#0070f3] rounded-full blur opacity-60 animate-pulse"></div>
+              <div className="relative flex items-center gap-2 px-6 py-2.5 bg-white border border-neutral-100 rounded-full text-neutral-600 shadow-sm">
+                <ShieldCheck className="w-5 h-5 text-[#00a83e]" />
+                <span className="text-sm font-bold tracking-wide">
+                  Garantia Incondicional de <strong className="text-[#00a83e] font-black">14 DIAS</strong>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 mt-10 items-start justify-center max-w-4xl mx-auto">
+            {/* ATÉ 10 VENDEDORES */}
+            <div className="bg-white border-2 border-[#d9e6ff] rounded-[32px] p-6 sm:p-8 flex flex-col relative w-full pt-12 shadow-[0_12px_45px_rgba(11,26,48,0.02)]">
+              {/* Floating Badge */}
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-[#f0f7ff] border-2 border-[#d9e6ff] text-[#0070f3] w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm">
+                <Users className="w-7 h-7" />
+              </div>
+              
+              <h3 className="text-center font-black text-xl text-[#0070f3] uppercase tracking-tighter mb-8">
+                ATÉ 10 VENDEDORES
+              </h3>
+
+              <div className="grid grid-cols-2 gap-4">
+                {/* Mensal */}
+                <div className="bg-white border border-neutral-100 shadow-sm rounded-[24px] p-5 flex flex-col items-center">
+                  <div className="w-12 h-12 rounded-full bg-[#f0f7ff] text-[#0070f3] flex items-center justify-center mb-3">
+                    <CalendarDays className="w-6 h-6" />
+                  </div>
+                  <span className="font-bold text-neutral-900 text-sm mb-2">Mensal</span>
+                  <div className="flex items-baseline gap-1 mb-4">
+                    <span className="font-bold text-lg text-neutral-900 mt-1">R$</span>
+                    <span className="font-black text-3xl sm:text-4xl text-[#0b1a30] tracking-tighter leading-none">337<span className="text-xl sm:text-2xl">,45</span></span>
+                  </div>
+                  <div className="bg-[#eafdf0] text-[#00a83e] font-bold text-xs uppercase px-4 py-1.5 rounded-full mt-auto">
+                    15% OFF
+                  </div>
+                </div>
+
+                {/* Semestral */}
+                <div className="bg-white border border-neutral-100 shadow-sm rounded-[24px] p-5 flex flex-col items-center">
+                  <div className="w-12 h-12 rounded-full bg-[#f0f7ff] text-[#0070f3] flex items-center justify-center mb-3">
+                    <CalendarDays className="w-6 h-6" />
+                  </div>
+                  <span className="font-bold text-neutral-900 text-sm mb-2">Semestral</span>
+                  <div className="flex items-baseline gap-1 mb-4">
+                    <span className="font-bold text-lg text-neutral-900 mt-1">R$</span>
+                    <span className="font-black text-3xl sm:text-4xl text-[#0b1a30] tracking-tighter leading-none">297<span className="text-xl sm:text-2xl">,75</span></span>
+                  </div>
+                  <div className="bg-[#eafdf0] text-[#00a83e] font-bold text-xs uppercase px-4 py-1.5 rounded-full mt-auto">
+                    25% OFF
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ACIMA DE 10 VENDEDORES */}
+            <div className="bg-white border-[3px] border-[#00a83e] rounded-[32px] p-6 sm:p-8 flex flex-col relative w-full pt-12 shadow-[0_16px_50px_rgba(0,168,62,0.06)]">
+              {/* Floating Badge */}
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-[#eafdf0] border-[3px] border-[#00a83e] text-[#00a83e] w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm">
+                <Users className="w-7 h-7" />
+              </div>
+              
+              <h3 className="text-center font-black text-xl text-[#00a83e] uppercase tracking-tighter mb-8">
+                ACIMA DE 10 VENDEDORES
+              </h3>
+
+              <div className="grid grid-cols-2 gap-4">
+                {/* Mensal */}
+                <div className="bg-white border border-neutral-100 shadow-sm rounded-[24px] p-5 flex flex-col items-center">
+                  <div className="w-12 h-12 rounded-full bg-[#eafdf0] text-[#00a83e] flex items-center justify-center mb-3">
+                    <CalendarDays className="w-6 h-6" />
+                  </div>
+                  <span className="font-bold text-neutral-900 text-sm mb-2">Mensal</span>
+                  <div className="flex items-baseline gap-1 mb-4">
+                    <span className="font-bold text-lg text-neutral-900 mt-1">R$</span>
+                    <span className="font-black text-3xl sm:text-4xl text-[#0b1a30] tracking-tighter leading-none">297<span className="text-xl sm:text-2xl">,75</span></span>
+                  </div>
+                  <div className="bg-[#eafdf0] text-[#00a83e] font-bold text-xs uppercase px-4 py-1.5 rounded-full mt-auto">
+                    25% OFF
+                  </div>
+                </div>
+
+                {/* Semestral */}
+                <div className="bg-white border border-neutral-100 shadow-sm rounded-[24px] p-5 flex flex-col items-center">
+                  <div className="w-12 h-12 rounded-full bg-[#eafdf0] text-[#00a83e] flex items-center justify-center mb-3">
+                    <CalendarDays className="w-6 h-6" />
+                  </div>
+                  <span className="font-bold text-neutral-900 text-sm mb-2">Semestral</span>
+                  <div className="flex items-baseline gap-1 mb-4">
+                    <span className="font-bold text-lg text-neutral-900 mt-1">R$</span>
+                    <span className="font-black text-3xl sm:text-4xl text-[#0b1a30] tracking-tighter leading-none">258<span className="text-xl sm:text-2xl">,05</span></span>
+                  </div>
+                  <div className="bg-[#eafdf0] text-[#00a83e] font-bold text-xs uppercase px-4 py-1.5 rounded-full mt-auto">
+                    35% OFF
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex justify-center mt-12 pb-8">
+            <Link 
+              to="/checkout"
+              className="inline-flex items-center gap-3 bg-[#00a83e] hover:bg-[#009035] text-white px-8 sm:px-10 py-4 sm:py-4.5 rounded-2xl font-black text-sm sm:text-[15px] tracking-widest uppercase transition-all shadow-[0_8px_25px_rgba(0,168,62,0.3)] hover:-translate-y-1"
+            >
+              <Rocket className="w-6 h-6" />
+              ASSINAR AGORA
+            </Link>
+          </div>
+        </div>
+
+        {/* Soft elegant gradient transition divider */}
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00a83e]/30 via-[#0070f3]/25 via-transparent to-transparent z-10" />
         <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-[#00a83e]/10 via-[#0070f3]/10 to-transparent z-10 blur-[2px] opacity-85" />
       </section>
@@ -1758,9 +1885,7 @@ export default function App() {
           {/* CTA Button */}
           <div className="flex justify-center mt-12 relative z-20">
             <a 
-              href="https://wa.me/5567981246558?text=Olá! Gostaria de falar com um representante sobre o Ceruti." 
-              target="_blank"
-              rel="noopener noreferrer"
+              href="#planos" 
               className="inline-flex items-center gap-3 bg-[#00a83e] hover:bg-[#009035] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-md shadow-[#00a83e]/20 hover:scale-[1.01] active:scale-[0.99]"
             >
               <MessageCircle className="w-5 h-5 text-current" />
@@ -1862,7 +1987,6 @@ export default function App() {
           Chamar no WhatsApp
         </span>
       </a>
-
     </div>
   );
 }
