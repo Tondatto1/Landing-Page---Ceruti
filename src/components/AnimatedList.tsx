@@ -23,7 +23,7 @@ const AnimatedItem: React.FC<AnimatedItemProps> = ({ children, delay = 0, index,
       initial={{ scale: 0.8, opacity: 0, y: 20 }}
       animate={inView ? { scale: 1, opacity: 1, y: 0 } : { scale: 0.8, opacity: 0, y: 20 }}
       transition={{ duration: 0.5, delay: delay, ease: "easeOut" }}
-      style={{ marginBottom: '1.25rem', cursor: 'pointer' }}
+      style={{ marginBottom: '1.25rem', cursor: 'pointer', willChange: 'transform, opacity' }}
     >
       {children}
     </motion.div>
@@ -72,12 +72,13 @@ const AnimatedList: React.FC<AnimatedListProps> = ({
   );
 
   const handleScroll = useCallback((e: UIEvent<HTMLDivElement>) => {
+    if (!showGradients) return;
     const target = e.target as HTMLDivElement;
     const { scrollTop, scrollHeight, clientHeight } = target;
     setTopGradientOpacity(Math.min(scrollTop / 50, 1));
     const bottomDistance = scrollHeight - (scrollTop + clientHeight);
     setBottomGradientOpacity(scrollHeight <= clientHeight ? 0 : Math.min(bottomDistance / 50, 1));
-  }, []);
+  }, [showGradients]);
 
   useEffect(() => {
     if (!enableArrowNavigation) return;
@@ -128,7 +129,7 @@ const AnimatedList: React.FC<AnimatedListProps> = ({
 
   return (
     <div className={`scroll-list-container ${className}`}>
-      <div ref={listRef} className={`scroll-list ${!displayScrollbar ? 'no-scrollbar' : ''}`} onScroll={handleScroll}>
+      <div ref={listRef} className={`scroll-list ${!displayScrollbar ? 'no-scrollbar' : ''}`} onScroll={showGradients ? handleScroll : undefined}>
         {items.map((item, index) => (
           <AnimatedItem
             key={index}

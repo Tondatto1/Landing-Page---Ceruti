@@ -121,9 +121,9 @@ export default function App() {
     <div className="bg-agro-deep text-gray-100 min-h-screen font-sans selection:bg-agro-green selection:text-agro-deep theme-natural-tones w-full overflow-x-clip relative" id="top_container">
       
       {/* Background ambient light effects */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-agro-green opacity-10 rounded-full blur-3xl pointer-events-none animate-pulse-glow" />
-      <div className="absolute top-1/2 right-1/4 w-96 h-96 bg-emerald-600 opacity-5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 left-1/3 w-80 h-80 bg-agro-accent opacity-5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-0 left-1/4 w-96 h-96 pointer-events-none animate-pulse-glow bg-[radial-gradient(circle_at_center,rgba(0,168,62,0.1)_0%,transparent_70%)]" />
+      <div className="absolute top-1/2 right-1/4 w-96 h-96 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(5,150,105,0.05)_0%,transparent_70%)]" />
+      <div className="absolute bottom-1/4 left-1/3 w-80 h-80 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(34,197,94,0.05)_0%,transparent_70%)]" />
 
       {/* HEADER / NAVIGATION BAR */}
       <header className="sticky top-0 z-50 backdrop-blur-md bg-white/85 border-b border-neutral-200/50" id="nav_header">
@@ -316,6 +316,7 @@ export default function App() {
                     repeat: Infinity, 
                     ease: "easeInOut" 
                   }}
+                  style={{ willChange: 'transform' }}
                   className="relative mx-auto w-full max-w-[280px] min-[360px]:max-w-[320px] min-[400px]:max-w-[340px] sm:max-w-[370px] bg-neutral-900 rounded-[56px] p-3 shadow-2xl border-[5px] border-neutral-800/90 ring-1 ring-white/10 z-10"
                 >
                   {/* Physical buttons deco */}
@@ -582,8 +583,8 @@ export default function App() {
       <section className="bg-gradient-to-b from-[#FAF9F6] via-white to-white py-24 sm:py-28 relative overflow-hidden" id="quem-treinar">
         {/* Decorative background grid and elements */}
         <div className="absolute inset-0 opacity-[0.02] pointer-events-none bg-[radial-gradient(#00a83e_1px,transparent_1px)] [background-size:24px_24px] z-0"></div>
-        <div className="absolute top-1/3 -left-48 w-96 h-96 bg-[#0070f3]/5 rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute bottom-1/3 -right-48 w-96 h-96 bg-[#00a83e]/5 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute top-1/3 -left-48 w-96 h-96 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(0,112,243,0.08)_0%,transparent_70%)]" />
+        <div className="absolute bottom-1/3 -right-48 w-96 h-96 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(0,168,62,0.08)_0%,transparent_70%)]" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           
@@ -1278,7 +1279,7 @@ export default function App() {
       <section className="bg-gradient-to-b from-[#FAF9F6] via-white to-white py-24 sm:py-28 relative overflow-visible" id="beneficios">
         {/* Decorative background elements */}
         <div className="absolute inset-0 opacity-[0.015] pointer-events-none bg-[radial-gradient(#00a83e_1px,transparent_1px)] [background-size:24px_24px] z-0"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#00a83e]/5 rounded-full blur-[120px] pointer-events-none -z-10" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] pointer-events-none -z-10 bg-[radial-gradient(circle_at_center,rgba(0,168,62,0.06)_0%,transparent_70%)]" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           
@@ -1387,7 +1388,7 @@ export default function App() {
       {/* NEW SECTION: TREINAMENTO VIRA ROTINA (CONTINUOUS CYCLE) */}
       <section className="bg-gradient-to-b from-[#FAF9F6] via-white to-white py-20 sm:py-24 relative overflow-hidden" id="treinamento-rotina">
         <div className="absolute inset-0 opacity-[0.015] pointer-events-none bg-[radial-gradient(#00a83e_1px,transparent_1px)] [background-size:24px_24px] z-0"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#00a83e]/5 rounded-full blur-[120px] pointer-events-none -z-10" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] pointer-events-none -z-10 bg-[radial-gradient(circle_at_center,rgba(0,168,62,0.06)_0%,transparent_70%)]" />
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 animate-fade-in-up">
           
@@ -1676,7 +1677,7 @@ export default function App() {
       <section className="bg-gradient-to-b from-white via-neutral-50/10 to-neutral-50 py-20 sm:py-24 relative overflow-hidden" id="custo-status-quo">
         {/* Abstract background decorative architecture */}
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#00a83e_1px,transparent_1px)] [background-size:24px_24px] z-0"></div>
-        <div className="absolute top-1/4 right-0 w-[500px] h-[500px] bg-green-50/20 rounded-full blur-[120px] pointer-events-none -z-10"></div>
+        <div className="absolute top-1/4 right-0 w-[500px] h-[500px] pointer-events-none -z-10 bg-[radial-gradient(circle_at_center,rgba(240,253,244,0.4)_0%,transparent_70%)]"></div>
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 flex flex-col items-center">
           
