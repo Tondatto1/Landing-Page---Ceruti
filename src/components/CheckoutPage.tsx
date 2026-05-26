@@ -20,6 +20,19 @@ export function CheckoutPage() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [documentNumber, setDocumentNumber] = useState('');
+  const [accessNumbers, setAccessNumbers] = useState<string[]>(['']);
+
+  useEffect(() => {
+    setAccessNumbers(prev => {
+      const newArr = [...prev];
+      if (newArr.length < usersCount) {
+        while(newArr.length < usersCount) newArr.push('');
+      } else if (newArr.length > usersCount) {
+        newArr.length = usersCount;
+      }
+      return newArr;
+    });
+  }, [usersCount]);
 
   // Pricing Logic
   const getUnitPrice = () => {
@@ -47,6 +60,10 @@ export function CheckoutPage() {
       boleto: 'Boleto'
     };
 
+    const accessNumbersText = usersCount > 1 
+      ? `\n\n━━━━━━━━━━━━━━━━━━━━━━\n\n📱 *NÚMEROS COM ACESSO*\n${accessNumbers.map((n, i) => `*${i + 1}º Acesso:* ${n}`).join('\n')}` 
+      : '';
+
     const message = `🚨 *NOVO PEDIDO DE ASSINATURA* 🚨
 ━━━━━━━━━━━━━━━━━━━━━━
 
@@ -62,7 +79,7 @@ export function CheckoutPage() {
 *Plano:* ${frequency === 'mensal' ? 'Mensal' : 'Semestral'}
 *Acessos:* ${usersCount}
 *Valor por Acesso:* ${formatCurrency(unitPrice)}/mês
-*Total:* ${formatCurrency(grandTotal)}
+*Total:* ${formatCurrency(grandTotal)}${accessNumbersText}
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
@@ -245,6 +262,35 @@ export function CheckoutPage() {
                 />
               </div>
             </div>
+
+            {/* Additional Access Numbers */}
+            {usersCount > 1 && (
+              <div className="mt-4 pt-6 border-t border-neutral-200">
+                <div className="mb-4">
+                  <h3 className="block text-base font-bold text-neutral-900 mb-1">Números com Acesso Liberado</h3>
+                  <p className="text-sm font-medium text-neutral-500">Informe o WhatsApp de cada atendente que terá acesso ao treinador.</p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {accessNumbers.map((num, idx) => (
+                    <div key={idx}>
+                      <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1">{idx + 1}º Acesso</label>
+                      <input 
+                        type="tel"
+                        value={num}
+                        onChange={(e) => {
+                          const newArr = [...accessNumbers];
+                          newArr[idx] = e.target.value;
+                          setAccessNumbers(newArr);
+                        }}
+                        required
+                        placeholder="(00) 00000-0000"
+                        className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Payment Method Selection */}
             <div className="mt-4 pt-6 border-t border-neutral-200">
