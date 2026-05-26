@@ -13,7 +13,8 @@ import {
 export function CheckoutPage() {
   const navigate = useNavigate();
   const [frequency, setFrequency] = useState<'mensal' | 'semestral'>('mensal');
-  const [usersCount, setUsersCount] = useState<number>(1);
+  const [usersCountStr, setUsersCountStr] = useState<string>('1');
+  const usersCount = Math.max(1, parseInt(usersCountStr) || 1);
   const [paymentMethod, setPaymentMethod] = useState<'credit_card' | 'pix' | 'boleto'>('pix');
 
   const [name, setName] = useState('');
@@ -21,6 +22,14 @@ export function CheckoutPage() {
   const [phone, setPhone] = useState('');
   const [documentNumber, setDocumentNumber] = useState('');
   const [accessNumbers, setAccessNumbers] = useState<string[]>(['']);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    const scrollTimer = setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }, 100);
+    return () => clearTimeout(scrollTimer);
+  }, []);
 
   useEffect(() => {
     setAccessNumbers(prev => {
@@ -94,7 +103,8 @@ export function CheckoutPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+    <>
+      <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
       {/* Top Header */}
       <header className="w-full bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between shadow-sm sticky top-0 z-30">
         <div className="flex items-center gap-4">
@@ -120,8 +130,12 @@ export function CheckoutPage() {
       <div className="flex-1 w-full max-w-6xl mx-auto flex flex-col lg:flex-row items-stretch overflow-hidden px-4 py-8 sm:px-6 gap-6 sm:gap-8">
         
         {/* Left Side: Product Summary */}
-        <div className="w-full lg:w-5/12 bg-white rounded-3xl shadow-sm border border-neutral-200 p-6 sm:p-10 flex flex-col h-fit">
-          <div className="flex items-center gap-3 mb-8">
+        <div className="w-full lg:w-5/12 relative z-10 flex flex-col h-fit rounded-[24px] overflow-hidden shadow-sm border border-neutral-100/50">
+          <div className="absolute top-1/2 left-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,#00a83e,rgba(0,112,243,0.8),#00a83e,rgba(0,112,243,0.8),#00a83e)] opacity-100 animate-spin-slow -z-20 -translate-x-1/2 -translate-y-1/2"></div>
+          <div className="absolute inset-[2.5px] bg-white rounded-[21.5px] -z-10"></div>
+          <div className="w-full h-full bg-transparent p-6 sm:p-10 flex flex-col relative z-0">
+
+            <div className="flex items-center gap-3 mb-8">
             <div className="w-12 h-12 bg-[#00a83e] rounded-xl flex items-center justify-center shadow-md">
               <ShieldCheck className="w-7 h-7 text-white" />
             </div>
@@ -158,22 +172,27 @@ export function CheckoutPage() {
             </div>
           </div>
 
-          <div className="mb-8">
-            <h4 className="font-bold text-neutral-900 flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-              Quantidade de acessos:
-              <span className="text-[#0070f3] bg-[#f0f7ff] px-3 py-1 rounded-full text-xs self-start sm:self-auto w-fit">
+          <div className="mb-6 relative z-10 p-5 sm:p-6 rounded-[24px] overflow-hidden shadow-[0_4px_20px_rgba(0,112,243,0.05)] border border-neutral-100/50">
+            <div className="absolute top-1/2 left-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,#00a83e,rgba(0,112,243,0.8),#00a83e,rgba(0,112,243,0.8),#00a83e)] opacity-100 animate-spin-slow -z-20 -translate-x-1/2 -translate-y-1/2"></div>
+            <div className="absolute inset-[2.5px] bg-[#fafcff] rounded-[21.5px] -z-10"></div>
+            
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 relative z-0">
+              <h4 className="font-bold text-[#0b1a30] text-sm sm:text-base">
+                Quantidade de acessos:
+              </h4>
+              <span className="text-[#0070f3] bg-white border border-[#0070f3]/20 px-3 py-1 rounded-full text-[11px] sm:text-xs font-bold w-fit shadow-sm">
                 {usersCount <= 10 ? 'Até 10 acessos' : 'Acima de 10 acessos'}
               </span>
-            </h4>
-            <div className="flex items-center">
+            </div>
+            <div className="flex items-center relative z-0">
               <div className="relative flex-1">
                 <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#0070f3]" />
                 <input 
                   type="number" 
                   min="1"
-                  value={usersCount}
-                  onChange={(e) => setUsersCount(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-full pl-12 pr-4 py-4 bg-gray-50 border-2 border-neutral-200 rounded-xl focus:outline-none focus:border-[#0070f3] focus:bg-white focus:ring-4 ring-[#0070f3]/10 font-black text-xl text-neutral-900 transition-all"
+                  value={usersCountStr}
+                  onChange={(e) => setUsersCountStr(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 sm:py-4 bg-white border-2 border-[#0070f3]/20 rounded-xl focus:outline-none focus:border-[#0070f3] focus:ring-4 ring-[#0070f3]/10 font-black text-xl text-neutral-900 transition-all cursor-text text-center sm:text-left shadow-inner"
                 />
               </div>
             </div>
@@ -191,23 +210,32 @@ export function CheckoutPage() {
               </div>
             )}
             
-            <div className="flex justify-between items-end mt-4 pt-4 border-t border-neutral-200">
-              <span className="font-black text-neutral-900 text-lg uppercase">Total {frequency === 'mensal' ? 'Mensal' : 'Semestral'}:</span>
-              <div className="text-right">
-                <div className="font-black text-4xl text-[#0b1a30] leading-none mb-1">{formatCurrency(grandTotal)}</div>
-                {frequency === 'semestral' && (
-                  <div className="text-sm font-bold text-[#00a83e] mt-1 line-clamp-1 bg-[#eafdf0] px-3 py-1 rounded-md inline-block">
-                     Em 1x de {formatCurrency(grandTotal)}
-                  </div>
-                )}
+            <div className="flex flex-col items-center mt-6 pt-6 border-t border-neutral-200 gap-2 sm:gap-3 pb-2 text-center">
+              <span className="font-black text-neutral-500 text-xs sm:text-sm uppercase tracking-widest">
+                Total {frequency === 'mensal' ? 'Mensal' : 'Semestral'}
+              </span>
+              <div className="flex items-baseline gap-1 sm:gap-1.5 justify-center">
+                <span className="font-bold text-lg sm:text-xl text-[#0b1a30]">R$</span>
+                <span className="font-black text-[32px] sm:text-[40px] text-[#0b1a30] leading-none tracking-tight truncate">
+                  {formatCurrency(grandTotal).replace('R$', '').trim()}
+                </span>
               </div>
+              {frequency === 'semestral' && (
+                <div className="text-[11px] sm:text-sm font-bold text-[#00a83e] bg-[#eafdf0] px-3 py-1.5 sm:px-4 sm:py-1.5 rounded-full inline-block mt-1 sm:mt-1.5">
+                   Em 1x de R$ {formatCurrency(grandTotal).replace('R$', '').trim()}
+                </div>
+              )}
             </div>
+          </div>
           </div>
         </div>
 
         {/* Right Side: Payment Form */}
-        <div className="w-full lg:w-7/12 bg-white rounded-3xl shadow-sm border border-neutral-200 p-6 sm:p-10 flex flex-col lg:order-last order-first">
-          <div className="mb-8">
+        <div className="w-full lg:w-7/12 relative z-10 flex flex-col h-fit rounded-[24px] overflow-hidden shadow-sm border border-neutral-100/50">
+          <div className="absolute top-1/2 left-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,rgba(0,112,243,0.8),#00a83e,rgba(0,112,243,0.8),#00a83e,rgba(0,112,243,0.8))] opacity-100 animate-spin-slow [animation-direction:reverse] -z-20 -translate-x-1/2 -translate-y-1/2 transform"></div>
+          <div className="absolute inset-[2.5px] bg-white rounded-[21.5px] -z-10"></div>
+          <div className="w-full h-full bg-transparent p-6 sm:p-10 flex flex-col relative z-0">
+            <div className="mb-8">
             <h2 className="text-3xl font-black text-[#0b1a30] mb-2 tracking-tight">Finalizar Assinatura</h2>
             <p className="text-neutral-500 font-medium">Preencha seus dados para liberar seu acesso instantaneamente.</p>
           </div>
@@ -334,18 +362,75 @@ export function CheckoutPage() {
                 </button>
               </div>
 
-              {/* Supported Card Flags (visible conditionally but nice to show for asaas integration) */}
-              <div className="flex flex-wrap items-center gap-3 mt-5 opacity-50 grayscale mx-1">
-                {/* Simulated Flags for Visa, Mastercard, Elo, Amex - visually represented with text for now, but commonly icon svgs are used */}
-                <span className="text-[10px] font-bold border px-2 py-0.5 rounded uppercase font-mono tracking-widest">Visa</span>
-                <span className="text-[10px] font-bold border px-2 py-0.5 rounded uppercase font-mono tracking-widest">Mastercard</span>
-                <span className="text-[10px] font-bold border px-2 py-0.5 rounded uppercase font-mono tracking-widest">Elo</span>
-                <span className="text-[10px] font-bold border px-2 py-0.5 rounded uppercase font-mono tracking-widest">Amex</span>
+              {/* Supported Card Flags */}
+              <div className="flex flex-wrap items-center gap-3 mt-5 mx-1">
+                <svg className="h-5" viewBox="0 0 38 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M14.532 0L9.467 11.968h3.298l1.01-2.825h4.153l.394 2.825h2.89L18.006 0h-3.474zm2.148 2.052l1.353 4.542h-3.324l1.971-4.542zM4.148 0L2.709 8.163l-1.32-6.52A1.895 1.895 0 0 0 .11 0H.001L.004.147l2.868 11.821h3.407L10.384 0H6.945L4.148 0z" fill="#1434CB"/>
+                  <path d="M29.627 0h-2.906v11.968h2.906V0zM38.001 0h-3.153a1.9 1.9 0 0 0-1.638 1.052l-2.866 6.843L28.164.004H25.26l3.418 11.968h2.906L38.001 0z" fill="#F5A623"/>
+                </svg>
+                {/* Mastercard-like overlapping circles */}
+                <svg className="h-5" viewBox="0 0 32 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="10" cy="10" r="10" fill="#EB001B"/>
+                  <circle cx="22" cy="10" r="10" fill="#F79E1B" fillOpacity="0.8"/>
+                </svg>
+                {/* Generic Amex-like minimal */}
+                <div className="text-[10px] font-bold border border-blue-600 text-blue-600 bg-white px-1.5 py-0.5 rounded-sm uppercase tracking-wider">AMEX</div>
+                {/* Generic Elo-like minimal */}
+                <div className="text-[10px] items-center justify-center font-bold border border-black bg-black text-white px-2 py-0.5 rounded-sm uppercase tracking-wider">elo</div>
               </div>
+
+              {/* Credit Card Expanded Form */}
+              {paymentMethod === 'credit_card' && (
+                <div className="mt-6 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div>
+                    <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1">Número do Cartão</label>
+                    <input 
+                      type="text" 
+                      placeholder="0000 0000 0000 0000" 
+                      className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1">Validade</label>
+                      <input 
+                        type="text" 
+                        placeholder="MM/AA" 
+                        maxLength={5}
+                        className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1">CVV</label>
+                      <input 
+                        type="text" 
+                        placeholder="123" 
+                        maxLength={4}
+                        className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1">Nome no Cartão</label>
+                    <input 
+                      type="text" 
+                      placeholder="Como impresso no cartão" 
+                      className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Submit Button */}
             <div className="mt-8">
+              <div className="flex justify-center mb-6">
+                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-full border border-emerald-200 shadow-sm">
+                   <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                   <span className="text-sm font-bold text-emerald-800">Garantia incondicional de 14 dias</span>
+                 </div>
+              </div>
+
               <div className="relative group">
                 {/* Perpetual Glow Effect */}
                 <div className="absolute -inset-1 bg-gradient-to-r from-[#00a83e] via-[#00cf4d] to-[#00a83e] rounded-[16px] blur opacity-75 animate-pulse"></div>
@@ -359,30 +444,48 @@ export function CheckoutPage() {
                 </button>
               </div>
               
-              <div className="relative mt-6">
+              <div className="relative mt-6 pb-2">
                 <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 opacity-60">
                   <div className="flex items-center gap-1.5">
                     <Lock className="w-4 h-4 text-neutral-600" />
                     <span className="text-xs font-bold text-neutral-600 uppercase tracking-wide">Pagamento Seguro</span>
                   </div>
-                  <div className="w-1.5 h-1.5 bg-neutral-300 rounded-full"></div>
+                  <div className="w-1.5 h-1.5 bg-neutral-300 rounded-full hidden sm:block"></div>
                   <div className="flex items-center gap-1.5">
                     <ShieldCheck className="w-4 h-4 text-neutral-600" />
                     <span className="text-xs font-bold text-neutral-600 uppercase tracking-wide">Site Criptografado</span>
                   </div>
-                  <div className="hidden sm:block w-1.5 h-1.5 bg-neutral-300 rounded-full"></div>
-                  <div className="hidden sm:flex items-center gap-1.5">
-                    <span className="font-black text-[11px] text-neutral-600 tracking-widest">PROCESSADO POR ASAAS</span>
-                  </div>
                 </div>
-                <div className="sm:hidden flex items-center justify-center mt-3 opacity-60">
-                  <span className="font-black text-[11px] text-neutral-600 tracking-widest">PROCESSADO POR ASAAS</span>
+                <div className="flex items-center justify-center mt-6">
+                  <div className="bg-[#f0f3f6] px-5 py-2.5 rounded-full border border-[#dce3ec] shadow-sm">
+                     <span className="font-black text-xs text-[#061c3a] tracking-widest flex items-center gap-2">
+                        <Lock className="w-3.5 h-3.5" /> PROCESSADO POR ASAAS
+                     </span>
+                  </div>
                 </div>
               </div>
             </div>
           </form>
+          </div>
         </div>
       </div>
     </div>
+      
+    {/* Floating WhatsApp Button */}
+      <a 
+        href="https://wa.me/554999993352?text=Ol%C3%A1%2C%20Ceruti%21%20Gostaria%20de%20saber%20mais%20sobre%20o%20Treinador%20Comercial%20IA."
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 bg-[#25D366] text-white rounded-full shadow-lg hover:bg-[#20bd5a] hover:scale-110 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[#25D366]/50 group"
+        aria-label="Fale conosco no WhatsApp"
+      >
+        <svg viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 relative z-10">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.82 9.82 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
+        </svg>
+        <span className="absolute right-16 bg-black text-white text-sm font-medium px-3 py-1.5 rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap">
+          Chamar no WhatsApp
+        </span>
+      </a>
+    </>
   );
 }
