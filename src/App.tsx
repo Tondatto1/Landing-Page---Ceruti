@@ -33,6 +33,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { Aurora } from './components/Aurora';
 import { MagicBento } from './components/MagicBento';
+import ScrollStack, { ScrollStackItem } from './components/ScrollStack';
+
+import AnimatedList from './components/AnimatedList';
 
 const CONVERSATION_THREADS: Record<string, Array<{ sender: 'user' | 'ceruti', text: string, time: string }>> = {
   'preco-saca': [
@@ -115,7 +118,7 @@ export default function App() {
   };
 
   return (
-    <div className="bg-agro-deep text-gray-100 min-h-screen font-sans selection:bg-agro-green selection:text-agro-deep theme-natural-tones w-full overflow-x-hidden relative" id="top_container">
+    <div className="bg-agro-deep text-gray-100 min-h-screen font-sans selection:bg-agro-green selection:text-agro-deep theme-natural-tones w-full overflow-x-clip relative" id="top_container">
       
       {/* Background ambient light effects */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-agro-green opacity-10 rounded-full blur-3xl pointer-events-none animate-pulse-glow" />
@@ -1007,11 +1010,11 @@ export default function App() {
           </div>
 
           {/* Scroll Stack of Cards (6 Cards) */}
-          <div className="flex flex-col gap-8 max-w-4xl mx-auto mt-12 relative pb-8">
+          <ScrollStack className="max-w-4xl mx-auto mt-12 mb-12" useWindowScroll={true} itemDistance={32} blurAmount={2} rotationAmount={0.5}>
             
             {/* Card 1: Aprendizado 24/7 */}
-            <div 
-              className="relative md:sticky bg-white border border-neutral-100/60 rounded-[32px] p-6 sm:p-8 md:p-12 shadow-[0_25px_50px_-12px_rgba(12,31,34,0.05)] hover:shadow-[0_35px_60px_-15px_rgba(0,168,62,0.1)] flex flex-col md:flex-row items-center gap-8 md:gap-12 transition-all duration-300 group hover:scale-[1.005] md:top-[100px] z-[10]"
+            <ScrollStackItem 
+              itemClassName="relative bg-white border border-neutral-100/60 rounded-[32px] p-6 sm:p-8 md:p-12 shadow-[0_25px_50px_-12px_rgba(12,31,34,0.05)] hover:shadow-[0_35px_60px_-15px_rgba(0,168,62,0.1)] flex flex-col md:flex-row items-center gap-8 md:gap-12 transition-shadow duration-300 group"
             >
               <div 
                 translate="no"
@@ -1034,11 +1037,11 @@ export default function App() {
                   Aprendizado 24/7
                 </h3>
               </div>
-            </div>
+            </ScrollStackItem>
 
             {/* Card 2: Treinamento individual personalizado */}
-            <div 
-              className="relative md:sticky bg-[#fafcff] border border-[#e4efff] rounded-[32px] p-6 sm:p-8 md:p-12 shadow-[0_25px_50px_-12px_rgba(12,31,34,0.05)] hover:shadow-[0_35px_60px_-15px_rgba(0,112,243,0.1)] flex flex-col md:flex-row items-center gap-8 md:gap-12 transition-all duration-300 group hover:scale-[1.005] md:top-[120px] z-[15]"
+            <ScrollStackItem 
+              itemClassName="relative bg-[#fafcff] border border-[#e4efff] rounded-[32px] p-6 sm:p-8 md:p-12 shadow-[0_25px_50px_-12px_rgba(12,31,34,0.05)] hover:shadow-[0_35px_60px_-15px_rgba(0,112,243,0.1)] flex flex-col md:flex-row items-center gap-8 md:gap-12 transition-shadow duration-300 group"
             >
               <div 
                 translate="no"
@@ -1061,11 +1064,11 @@ export default function App() {
                   Treinamento individual personalizado
                 </h3>
               </div>
-            </div>
+            </ScrollStackItem>
 
             {/* Card 3: Padronização da Operação */}
-            <div 
-              className="relative md:sticky bg-white border border-[#e2eed4]/70 rounded-[32px] p-6 sm:p-8 md:p-12 shadow-[0_25px_50px_-12px_rgba(12,31,34,0.05)] hover:shadow-[0_35px_60px_-15px_rgba(12,31,34,0.1)] flex flex-col md:flex-row items-center gap-8 md:gap-12 transition-all duration-300 group hover:scale-[1.005] md:top-[140px] z-[20]"
+            <ScrollStackItem 
+              itemClassName="relative bg-white border border-[#e2eed4]/70 rounded-[32px] p-6 sm:p-8 md:p-12 shadow-[0_25px_50px_-12px_rgba(12,31,34,0.05)] hover:shadow-[0_35px_60px_-15px_rgba(12,31,34,0.1)] flex flex-col md:flex-row items-center gap-8 md:gap-12 transition-shadow duration-300 group"
             >
               <div className="flex flex-col items-center justify-center shrink-0 w-32 h-32 md:w-36 md:h-36 rounded-[24px] bg-[#eefaf2] border border-[#cbeed4] relative overflow-hidden shadow-inner font-sans">
                 <span className="text-4xl sm:text-5xl font-sans font-black text-[#00a83e] tracking-tight relative z-10">
@@ -1085,11 +1088,11 @@ export default function App() {
                   Padronização da Operação
                 </h3>
               </div>
-            </div>
+            </ScrollStackItem>
 
             {/* Card 4: Redução de até 95% do tempo de treinamento */}
-            <div 
-              className="relative md:sticky bg-[#fafcff] border border-[#e4efff] rounded-[32px] p-6 sm:p-8 md:p-12 shadow-[0_25px_50px_-12px_rgba(12,31,34,0.05)] hover:shadow-[0_35px_60px_-15px_rgba(0,112,243,0.1)] flex flex-col md:flex-row items-center gap-8 md:gap-12 transition-all duration-300 group hover:scale-[1.005] md:top-[160px] z-[25]"
+            <ScrollStackItem 
+              itemClassName="relative bg-[#fafcff] border border-[#e4efff] rounded-[32px] p-6 sm:p-8 md:p-12 shadow-[0_25px_50px_-12px_rgba(12,31,34,0.05)] hover:shadow-[0_35px_60px_-15px_rgba(0,112,243,0.1)] flex flex-col md:flex-row items-center gap-8 md:gap-12 transition-shadow duration-300 group"
             >
               <div className="flex flex-col items-center justify-center shrink-0 w-32 h-32 md:w-36 md:h-36 rounded-[24px] bg-[#f0f7ff] border border-[#d6ebff] relative overflow-hidden shadow-inner font-sans">
                 <span className="text-4xl sm:text-5xl font-sans font-black text-[#0070f3] tracking-tight relative z-10">
@@ -1109,11 +1112,11 @@ export default function App() {
                   Redução de até 95% do tempo de treinamento
                 </h3>
               </div>
-            </div>
+            </ScrollStackItem>
 
             {/* Card 5: Corte de até 80% nos erros comerciais */}
-            <div 
-              className="relative md:sticky bg-white border border-[#e2eed4]/70 rounded-[32px] p-6 sm:p-8 md:p-12 shadow-[0_25px_50px_-12px_rgba(12,31,34,0.05)] hover:shadow-[0_35px_60px_-15px_rgba(12,31,34,0.1)] flex flex-col md:flex-row items-center gap-8 md:gap-12 transition-all duration-300 group hover:scale-[1.005] md:top-[180px] z-[30]"
+            <ScrollStackItem 
+              itemClassName="relative bg-white border border-[#e2eed4]/70 rounded-[32px] p-6 sm:p-8 md:p-12 shadow-[0_25px_50px_-12px_rgba(12,31,34,0.05)] hover:shadow-[0_35px_60px_-15px_rgba(12,31,34,0.1)] flex flex-col md:flex-row items-center gap-8 md:gap-12 transition-shadow duration-300 group"
             >
               <div className="flex flex-col items-center justify-center shrink-0 w-32 h-32 md:w-36 md:h-36 rounded-[24px] bg-[#eefaf2] border border-[#cbeed4] relative overflow-hidden shadow-inner font-sans">
                 <span className="text-4xl sm:text-5xl font-sans font-black text-[#00a83e] tracking-tight relative z-10">
@@ -1133,11 +1136,11 @@ export default function App() {
                   Corte de até 80% nos erros comerciais
                 </h3>
               </div>
-            </div>
+            </ScrollStackItem>
 
             {/* Card 6: Time mais preparado, rápido e vendendo mais! */}
-            <div 
-              className="relative md:sticky bg-transparent border-none rounded-[32px] shadow-[0_25px_50px_-12px_rgba(12,31,34,0.06)] hover:shadow-[0_35px_60px_-15px_rgba(0,112,243,0.15)] group transition-all duration-300 hover:scale-[1.005] md:top-[200px] z-[35] overflow-visible"
+            <ScrollStackItem 
+              itemClassName="relative bg-transparent border-none rounded-[32px] shadow-[0_25px_50px_-12px_rgba(12,31,34,0.06)] hover:shadow-[0_35px_60px_-15px_rgba(0,112,243,0.15)] transition-shadow duration-300 group overflow-visible"
             >
               <div className="electric-border-glow-blue" />
               <div className="absolute inset-[1.5px] rounded-[30.5px] bg-[#fafcff] z-[1] pointer-events-none" />
@@ -1162,9 +1165,9 @@ export default function App() {
                   </h3>
                 </div>
               </div>
-            </div>
+            </ScrollStackItem>
 
-          </div>
+          </ScrollStack>
 
         </div>
         {/* Soft elegant gradient transition divider */}
@@ -1307,48 +1310,45 @@ export default function App() {
           </div>
 
           {/* Perfect vertical stack that nests sticky cards smoothly - with tight balanced pb */}
-          <div className="flex flex-col gap-6 max-w-3xl mx-auto mt-0 relative pb-12 overflow-visible">
-            {[
+          <div className="flex flex-col max-w-3xl mx-auto mt-0 relative rounded-3xl pb-6">
+            <AnimatedList
+              displayScrollbar={false}
+              showGradients={false}
+              items={[
               { 
                 num: "01", 
                 title: "Aumento significativo nas vendas", 
                 accent: "#00a83e",
-                stickyClass: "md:top-[120px]"
               },
               { 
                 num: "02", 
                 title: "Redução drástica no tempo de fechamento das negociações", 
                 accent: "#0070f3",
-                stickyClass: "md:top-[144px]"
               },
               { 
                 num: "03", 
                 title: "Aumento na recuperação de vendas que seriam perdidas", 
                 accent: "#00a83e",
-                stickyClass: "md:top-[168px]"
               },
               { 
                 num: "04", 
                 title: "Redução drástica do tempo para novos vendedores darem resultado", 
                 accent: "#0070f3",
-                stickyClass: "md:top-[192px]"
               },
               { 
                 num: "05", 
                 title: "Aumento considerável no valor médio das vendas", 
                 accent: "#00a83e",
-                stickyClass: "md:top-[216px]"
               },
               { 
                 num: "06", 
                 title: "Redução drástica na rotatividade do time comercial", 
                 accent: "#0070f3",
-                stickyClass: "md:top-[240px]"
               },
             ].map((benefit, idx) => (
               <div 
                 key={idx}
-                className={`relative md:sticky ${benefit.stickyClass} bg-white border border-neutral-100 rounded-2xl md:rounded-[24px] p-4 sm:p-5 shadow-[0_12px_32px_rgba(11,26,48,0.03)] hover:shadow-[0_20px_48px_rgba(11,26,48,0.08)] flex items-center gap-4 sm:gap-6 transition-all duration-300 group hover:scale-[1.005] select-none`}
+                className={`relative w-full bg-white border border-neutral-100 rounded-2xl md:rounded-[24px] p-4 sm:p-5 shadow-[0_12px_32px_rgba(11,26,48,0.03)] hover:shadow-[0_20px_48px_rgba(11,26,48,0.08)] flex items-center gap-4 sm:gap-6 transition-all duration-300 group hover:scale-[1.005] select-none mx-auto max-w-[95%] sm:max-w-full`}
                 style={{ 
                   zIndex: (idx + 1) * 10 
                 }}
@@ -1374,6 +1374,7 @@ export default function App() {
                 </div>
               </div>
             ))}
+            />
           </div>
 
         </div>
