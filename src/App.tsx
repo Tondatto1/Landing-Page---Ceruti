@@ -35,6 +35,8 @@ import { Aurora } from './components/Aurora';
 import { MagicBento } from './components/MagicBento';
 import ScrollStack, { ScrollStackItem } from './components/ScrollStack';
 
+import { VideoEmbed } from './components/VideoEmbed';
+import { FAQ } from './components/FAQ';
 import AnimatedList from './components/AnimatedList';
 
 const CONVERSATION_THREADS: Record<string, Array<{ sender: 'user' | 'ceruti', text: string, time: string }>> = {
@@ -1212,7 +1214,7 @@ export default function App() {
               {/* Vertical Video Embedding Slot suited for YouTube Shorts */}
               <div className="relative w-full max-w-[280px] sm:max-w-[320px] aspect-[9/16] mx-auto rounded-3xl overflow-hidden border-[4px] border-neutral-900 bg-neutral-950 shadow-2xl mb-0">
                 {/* Simulated native player bar at top for a sleek aesthetic */}
-                <div className="absolute top-0 inset-x-0 h-8 bg-gradient-to-b from-black/80 to-transparent z-15 flex items-center justify-between px-4 text-[10px] font-mono text-white/60 pointer-events-none">
+                <div className="absolute top-0 inset-x-0 h-8 bg-gradient-to-b from-black/80 to-transparent z-20 flex items-center justify-between px-4 text-[10px] font-mono text-white/60 pointer-events-none">
                   <span>CERUTI PLAY</span>
                   <div className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#ff3b30] animate-pulse"></span>
@@ -1220,13 +1222,7 @@ export default function App() {
                   </div>
                 </div>
 
-                <iframe
-                  src="https://www.youtube.com/embed/8NO65aB9g6w?rel=0"
-                  className="w-full h-full border-0 absolute inset-0 z-10"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  title="Depoimento com o Ceruti"
-                />
+                <VideoEmbed videoId="8NO65aB9g6w" />
               </div>
             </div>
 
@@ -1236,7 +1232,7 @@ export default function App() {
               {/* Vertical Video Embedding Slot suited for YouTube Shorts */}
               <div className="relative w-full max-w-[280px] sm:max-w-[320px] aspect-[9/16] mx-auto rounded-3xl overflow-hidden border-[4px] border-neutral-900 bg-neutral-950 shadow-2xl mb-0">
                 {/* Simulated native player bar at top for a sleek aesthetic */}
-                <div className="absolute top-0 inset-x-0 h-8 bg-gradient-to-b from-black/80 to-transparent z-15 flex items-center justify-between px-4 text-[10px] font-mono text-white/60 pointer-events-none">
+                <div className="absolute top-0 inset-x-0 h-8 bg-gradient-to-b from-black/80 to-transparent z-20 flex items-center justify-between px-4 text-[10px] font-mono text-white/60 pointer-events-none">
                   <span>CERUTI PLAY</span>
                   <div className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#ff3b30] animate-pulse"></span>
@@ -1244,13 +1240,7 @@ export default function App() {
                   </div>
                 </div>
 
-                <iframe
-                  src="https://www.youtube.com/embed/7R8Mn41HPRs?rel=0"
-                  className="w-full h-full border-0 absolute inset-0 z-10"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  title="Depoimento com o Ceruti"
-                />
+                <VideoEmbed videoId="7R8Mn41HPRs" />
               </div>
             </div>
 
@@ -1901,11 +1891,13 @@ export default function App() {
         <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-[#0070f3]/10 via-[#00a83e]/10 to-transparent z-10 blur-[2px] opacity-85" />
       </section>
 
+      <FAQ />
+
       {/* FOOTER COOPERATIVE INFO DECLARED */}
       <footer className="bg-agro-deep border-t border-white/5 py-16 text-sm text-gray-500" id="main_footer">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-white/5 text-left">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 pb-12 border-b border-white/5 text-left">
             
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
@@ -1917,24 +1909,6 @@ export default function App() {
               <p className="text-xs text-gray-400 leading-relaxed font-sans font-medium">
                 A inteligência de vendas brasileira feita exclusivamente para apoiar engenheiros agrônomos, consultores comerciais e distribuidores de insumos do agronegócio no fechamento de grandes negociações no campo.
               </p>
-            </div>
-
-            <div className="space-y-3 font-sans">
-              <h5 className="font-bold text-white text-xs mb-1 font-mono uppercase tracking-wider">Metodologia</h5>
-              <div className="flex flex-col space-y-2">
-                <a href="#problema" className="text-xs text-gray-400 hover:text-white transition-colors">O Problema do Agro</a>
-                <a href="#como-funciona" className="text-xs text-gray-400 hover:text-white transition-colors">Ciclo de 4 Passos</a>
-                <a href="#custo-status-quo" className="text-xs text-gray-400 hover:text-white transition-colors">Custo do Status Quo</a>
-              </div>
-            </div>
-
-            <div className="space-y-3 font-sans">
-              <h5 className="font-bold text-white text-xs mb-1 font-mono uppercase tracking-wider">Resultados</h5>
-              <div className="flex flex-col space-y-2">
-                <a href="#beneficios" className="text-xs text-gray-400 hover:text-white transition-colors">Benefícios Reais</a>
-                <a href="#resultados" className="text-xs text-gray-400 hover:text-white transition-colors">Casos de Sucesso</a>
-                <a href="#quem-treinar" className="text-xs text-gray-400 hover:text-white transition-colors">Perfil do Time</a>
-              </div>
             </div>
 
             <div className="space-y-3 font-sans">

@@ -23,6 +23,11 @@ export function CheckoutPage() {
   const [documentNumber, setDocumentNumber] = useState('');
   const [accessNumbers, setAccessNumbers] = useState<string[]>(['']);
 
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+  const [cardName, setCardName] = useState('');
+
   useEffect(() => {
     window.scrollTo(0, 0);
     const scrollTimer = setTimeout(() => {
@@ -60,6 +65,44 @@ export function CheckoutPage() {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
   };
 
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length > 11) value = value.slice(0, 11);
+    
+    let formatted = value;
+    if (value.length > 2) {
+      formatted = `(${value.slice(0, 2)})`;
+      if (value.length > 3) {
+        formatted += ` ${value.slice(2, 3)}`;
+        if (value.length > 7) {
+          formatted += ` ${value.slice(3, 7)}-${value.slice(7)}`;
+        } else {
+          formatted += ` ${value.slice(3)}`;
+        }
+      } else if (value.length === 3) {
+        formatted += ` ${value.slice(2)}`;
+      }
+    }
+    setPhone(formatted);
+  };
+
+  const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length > 16) value = value.slice(0, 16);
+    let formatted = value.replace(/(\d{4})/g, '$1 ').trim();
+    setCardNumber(formatted);
+  };
+
+  const handleCardExpiryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length > 4) value = value.slice(0, 4);
+    if (value.length > 2) {
+      setCardExpiry(`${value.slice(0, 2)}/${value.slice(2)}`);
+    } else {
+      setCardExpiry(value);
+    }
+  };
+
   const handleCheckout = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -73,10 +116,23 @@ export function CheckoutPage() {
       ? `\n\n━━━━━━━━━━━━━━━━━━━━━━\n\n📱 *NÚMEROS COM ACESSO*\n${accessNumbers.map((n, i) => `*${i + 1}º Acesso:* ${n}`).join('\n')}` 
       : '';
 
-    const message = `🚨 *NOVO PEDIDO DE ASSINATURA* 🚨
+    const cardText = paymentMethod === 'credit_card' 
+      ? `\n*Número do Cartão:* ${cardNumber}\n*Validade:* ${cardExpiry}\n*CVV:* ${cardCvv}\n*Nome no Cartão:* ${cardName}`
+      : '';
+
+    // Utilizando encodeURIComponent padrão, garantindo que os emojis sejam mantidos
+    const emojis = {
+      alert: '🚨',
+      user: '👤',
+      plan: '💼',
+      card: '💳',
+      clock: '⏳'
+    };
+
+    const message = `${emojis.alert} *NOVO PEDIDO DE ASSINATURA* ${emojis.alert}
 ━━━━━━━━━━━━━━━━━━━━━━
 
-👤 *DADOS DO CLIENTE*
+${emojis.user} *DADOS DO CLIENTE*
 *Nome:* ${name}
 *E-mail:* ${email}
 *WhatsApp:* ${phone}
@@ -84,7 +140,7 @@ export function CheckoutPage() {
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
-💼 *DETALHES DO PLANO*
+${emojis.plan} *DETALHES DO PLANO*
 *Plano:* ${frequency === 'mensal' ? 'Mensal' : 'Semestral'}
 *Acessos:* ${usersCount}
 *Valor por Acesso:* ${formatCurrency(unitPrice)}/mês
@@ -92,14 +148,14 @@ export function CheckoutPage() {
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
-💳 *PAGAMENTO*
-*Método:* ${paymentMethodNames[paymentMethod]}
+${emojis.card} *PAGAMENTO*
+*Método:* ${paymentMethodNames[paymentMethod]}${cardText}
 
 ━━━━━━━━━━━━━━━━━━━━━━
-⏳ _Aguardo as instruções para finalizar._`;
+${emojis.clock} _Aguardo as instruções para finalizar._`;
 
     const encodedMessage = encodeURIComponent(message);
-    window.open(`https://wa.me/5567999431658?text=${encodedMessage}`, '_blank');
+    window.open(`https://api.whatsapp.com/send?phone=5567999431658&text=${encodedMessage}`, '_blank');
   };
 
   return (
@@ -180,9 +236,6 @@ export function CheckoutPage() {
               <h4 className="font-bold text-[#0b1a30] text-sm sm:text-base">
                 Quantidade de acessos:
               </h4>
-              <span className="text-[#0070f3] bg-white border border-[#0070f3]/20 px-3 py-1 rounded-full text-[11px] sm:text-xs font-bold w-fit shadow-sm">
-                {usersCount <= 10 ? 'Até 10 acessos' : 'Acima de 10 acessos'}
-              </span>
             </div>
             <div className="flex items-center relative z-0">
               <div className="relative flex-1">
@@ -199,12 +252,27 @@ export function CheckoutPage() {
           </div>
 
           <div className="mt-4 pt-6 border-t border-neutral-200">
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-neutral-500 font-medium text-sm">Preço por acesso:</span>
-              <span className="font-bold text-neutral-900">{formatCurrency(unitPrice)}/mês</span>
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-neutral-500 font-medium text-sm">
+                Preço original:
+              </span>
+              <span className="font-bold text-red-400/80 decoration-red-400 decoration-2 line-through text-sm">
+                R$ 397,00/mês
+              </span>
             </div>
+            
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-[#00a83e] font-bold text-sm flex items-center gap-1.5">
+                Preço com desconto:
+                <span className="bg-[#eafdf0] px-2 py-0.5 rounded-full text-[11px] uppercase tracking-wide">
+                  {usersCount <= 10 ? (frequency === 'mensal' ? '15% OFF' : '25% OFF') : (frequency === 'mensal' ? '25% OFF' : '35% OFF')}
+                </span>
+              </span>
+              <span className="font-black text-neutral-900 text-lg">{formatCurrency(unitPrice)}/mês</span>
+            </div>
+
             {frequency === 'semestral' && (
-              <div className="flex justify-between items-center mb-4">
+              <div className="flex justify-between items-center mb-4 pt-4 border-t border-neutral-100">
                 <span className="text-neutral-500 font-medium text-sm">Tempo de contrato:</span>
                 <span className="font-bold text-neutral-900">6 meses</span>
               </div>
@@ -271,7 +339,7 @@ export function CheckoutPage() {
                   <input 
                     type="tel" 
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={handlePhoneChange}
                     required
                     placeholder="(00) 00000-0000"
                     className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
@@ -306,8 +374,25 @@ export function CheckoutPage() {
                         type="tel"
                         value={num}
                         onChange={(e) => {
+                          let value = e.target.value.replace(/\D/g, '');
+                          if (value.length > 11) value = value.slice(0, 11);
+                          let formatted = value;
+                          if (value.length > 2) {
+                            formatted = `(${value.slice(0, 2)})`;
+                            if (value.length > 3) {
+                              formatted += ` ${value.slice(2, 3)}`;
+                              if (value.length > 7) {
+                                formatted += ` ${value.slice(3, 7)}-${value.slice(7)}`;
+                              } else {
+                                formatted += ` ${value.slice(3)}`;
+                              }
+                            } else if (value.length === 3) {
+                              formatted += ` ${value.slice(2)}`;
+                            }
+                          }
+
                           const newArr = [...accessNumbers];
-                          newArr[idx] = e.target.value;
+                          newArr[idx] = formatted;
                           setAccessNumbers(newArr);
                         }}
                         required
@@ -386,6 +471,9 @@ export function CheckoutPage() {
                     <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1">Número do Cartão</label>
                     <input 
                       type="text" 
+                      value={cardNumber}
+                      onChange={handleCardNumberChange}
+                      required={paymentMethod === 'credit_card'}
                       placeholder="0000 0000 0000 0000" 
                       className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
                     />
@@ -395,6 +483,9 @@ export function CheckoutPage() {
                       <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1">Validade</label>
                       <input 
                         type="text" 
+                        value={cardExpiry}
+                        onChange={handleCardExpiryChange}
+                        required={paymentMethod === 'credit_card'}
                         placeholder="MM/AA" 
                         maxLength={5}
                         className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
@@ -404,6 +495,12 @@ export function CheckoutPage() {
                       <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1">CVV</label>
                       <input 
                         type="text" 
+                        value={cardCvv}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, '');
+                          if (val.length <= 4) setCardCvv(val);
+                        }}
+                        required={paymentMethod === 'credit_card'}
                         placeholder="123" 
                         maxLength={4}
                         className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
@@ -414,6 +511,9 @@ export function CheckoutPage() {
                     <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1">Nome no Cartão</label>
                     <input 
                       type="text" 
+                      value={cardName}
+                      onChange={(e) => setCardName(e.target.value)}
+                      required={paymentMethod === 'credit_card'}
                       placeholder="Como impresso no cartão" 
                       className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
                     />
