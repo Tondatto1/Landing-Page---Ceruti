@@ -142,7 +142,8 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
       const rotation = rotationAmount ? i * rotationAmount * scaleProgress : 0;
 
       let blur = 0;
-      if (blurAmount) {
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      if (blurAmount && !isMobile) {
         let topCardIndex = 0;
         for (let j = 0; j < cardsRef.current.length; j++) {
           const jCardTop = offsetsCacheRef.current.cards.get(cardsRef.current[j]) || 0;
@@ -221,11 +222,7 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
   ]);
 
   const handleScroll = useCallback(() => {
-    if (!isUpdatingRef.current) {
-      animationFrameRef.current = requestAnimationFrame(() => {
-        updateCardTransforms();
-      });
-    }
+    updateCardTransforms();
   }, [updateCardTransforms]);
 
   const setupLenis = useCallback(() => {
@@ -237,9 +234,7 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
         touchMultiplier: 2,
         infinite: false,
         wheelMultiplier: 1,
-        lerp: 0.1,
-        syncTouch: true,
-        syncTouchLerp: 0.075
+        lerp: 0.1
       });
 
       lenis.on('scroll', handleScroll);
@@ -266,9 +261,7 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
         infinite: false,
         gestureOrientation: 'vertical',
         wheelMultiplier: 1,
-        lerp: 0.1,
-        syncTouch: true,
-        syncTouchLerp: 0.075
+        lerp: 0.1
       });
 
       lenis.on('scroll', handleScroll);
@@ -316,6 +309,13 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
     };
 
     window.addEventListener('resize', onResize);
+    
+    if (useWindowScroll) {
+      window.addEventListener('scroll', handleScroll, { passive: true });
+    } else if (scroller) {
+      scroller.addEventListener('scroll', handleScroll, { passive: true });
+    }
+    
     // Initial calculate before first update
     calculateOffsets();
 
@@ -325,6 +325,11 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
 
     return () => {
       window.removeEventListener('resize', onResize);
+      if (useWindowScroll) {
+        window.removeEventListener('scroll', handleScroll);
+      } else if (scroller) {
+        scroller.removeEventListener('scroll', handleScroll);
+      }
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
