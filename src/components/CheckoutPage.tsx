@@ -131,8 +131,8 @@ export function CheckoutPage() {
         
         {/* Left Side: Product Summary */}
         <div className="w-full lg:w-5/12 relative z-10 flex flex-col h-fit rounded-[24px] overflow-hidden shadow-sm border border-neutral-100/50">
-          <div className="absolute top-1/2 left-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,#00a83e,rgba(0,112,243,0.8),#00a83e,rgba(0,112,243,0.8),#00a83e)] opacity-100 animate-spin-slow -z-20 -translate-x-1/2 -translate-y-1/2"></div>
-          <div className="absolute inset-[2.5px] bg-white rounded-[21.5px] -z-10"></div>
+          <div className="absolute top-1/2 left-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0%,rgba(0,168,62,0.8)_25%,transparent_50%,rgba(0,112,243,0.8)_75%,transparent_100%)] opacity-70 blur-xl animate-[spin_20s_linear_infinite] -z-20 -translate-x-1/2 -translate-y-1/2"></div>
+          <div className="absolute inset-[1px] bg-[#fafcff] rounded-[23px] -z-10"></div>
           <div className="w-full h-full bg-transparent p-6 sm:p-10 flex flex-col relative z-0">
 
             <div className="flex items-center gap-3 mb-8">
@@ -173,8 +173,8 @@ export function CheckoutPage() {
           </div>
 
           <div className="mb-6 relative z-10 p-5 sm:p-6 rounded-[24px] overflow-hidden shadow-[0_4px_20px_rgba(0,112,243,0.05)] border border-neutral-100/50">
-            <div className="absolute top-1/2 left-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,#00a83e,rgba(0,112,243,0.8),#00a83e,rgba(0,112,243,0.8),#00a83e)] opacity-100 animate-spin-slow -z-20 -translate-x-1/2 -translate-y-1/2"></div>
-            <div className="absolute inset-[2.5px] bg-[#fafcff] rounded-[21.5px] -z-10"></div>
+            <div className="absolute top-1/2 left-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0%,rgba(0,168,62,0.8)_25%,transparent_50%,rgba(0,112,243,0.8)_75%,transparent_100%)] opacity-70 blur-xl animate-[spin_20s_linear_infinite] -z-20 -translate-x-1/2 -translate-y-1/2"></div>
+            <div className="absolute inset-[1px] bg-[#fafcff] rounded-[23px] -z-10"></div>
             
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 relative z-0">
               <h4 className="font-bold text-[#0b1a30] text-sm sm:text-base">
@@ -231,9 +231,9 @@ export function CheckoutPage() {
         </div>
 
         {/* Right Side: Payment Form */}
-        <div className="w-full lg:w-7/12 relative z-10 flex flex-col h-fit rounded-[24px] overflow-hidden shadow-sm border border-neutral-100/50">
-          <div className="absolute top-1/2 left-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,rgba(0,112,243,0.8),#00a83e,rgba(0,112,243,0.8),#00a83e,rgba(0,112,243,0.8))] opacity-100 animate-spin-slow [animation-direction:reverse] -z-20 -translate-x-1/2 -translate-y-1/2 transform"></div>
-          <div className="absolute inset-[2.5px] bg-white rounded-[21.5px] -z-10"></div>
+        <div className="w-full lg:w-7/12 relative z-10 flex flex-col h-fit rounded-[24px] overflow-hidden shadow-sm border border-neutral-100/50 bg-white">
+          <div className="absolute top-1/2 left-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0%,rgba(0,112,243,0.8)_25%,transparent_50%,rgba(0,168,62,0.8)_75%,transparent_100%)] opacity-70 blur-xl animate-[spin_20s_linear_infinite_reverse] -z-20 -translate-x-1/2 -translate-y-1/2 transform"></div>
+          <div className="absolute inset-[1px] bg-white rounded-[23px] -z-10"></div>
           <div className="w-full h-full bg-transparent p-6 sm:p-10 flex flex-col relative z-0">
             <div className="mb-8">
             <h2 className="text-3xl font-black text-[#0b1a30] mb-2 tracking-tight">Finalizar Assinatura</h2>
