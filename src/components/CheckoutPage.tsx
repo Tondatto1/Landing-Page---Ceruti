@@ -155,7 +155,7 @@ ${emojis.card} *PAGAMENTO*
 ${emojis.clock} _Aguardo as instruções para finalizar._`;
 
     const encodedMessage = encodeURIComponent(message);
-    window.open(`https://api.whatsapp.com/send?phone=5567999431658&text=${encodedMessage}`, '_blank');
+    window.open(`https://api.whatsapp.com/send?phone=5567981246558&text=${encodedMessage}`, '_blank');
   };
 
   return (
@@ -196,7 +196,7 @@ ${emojis.clock} _Aguardo as instruções para finalizar._`;
               <ShieldCheck className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h3 className="font-black text-2xl text-[#0b1a30]">Ceruti AI</h3>
+              <h3 className="font-black text-2xl text-[#0b1a30]">Ceruti</h3>
               <p className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Treinador de Vendas</p>
             </div>
           </div>

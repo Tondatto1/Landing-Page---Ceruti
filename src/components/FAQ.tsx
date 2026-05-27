@@ -4,7 +4,7 @@ import { ChevronDown, MessageCircleQuestion } from 'lucide-react';
 
 const faqs = [
   {
-    question: "Como e onde a minha equipe vai usar o Ceruti AI?",
+    question: "Como e onde a minha equipe vai usar o Ceruti?",
     answer: "É tudo feito pelo WhatsApp! O nosso agente treinador está integrado a um número exclusivo nosso. Assim que você assinar, basta nos informar quais números da sua equipe estão autorizados a acessá-lo. Sua equipe vai mandar mensagem para esse nosso número e conversar com o agente como se fosse uma pessoa normal no WhatsApp."
   },
   {
@@ -16,8 +16,8 @@ const faqs = [
     answer: "Não é necessário. Você não precisa fornecer informações sobre sua empresa ou cadastrar todos os detalhes do seu produto. O treinador já vem com uma inteligência avançada e pré-treinada especificamente para o segmento do agronegócio, entendendo com clareza todo o seu contexto."
   },
   {
-    question: "A Ceruti AI funciona para qualquer tipo de negócio agrícola?",
-    answer: "Sim, o modelo da Ceruti AI é flexível e apoia tanto o modelo de vendas B2B (distribuidores, indústria) quanto B2C (venda direta ao produtor). O foco está na quebra de objeção e alta conversão que geram resultado independentemente da fase da safra."
+    question: "A Ceruti funciona para qualquer tipo de negócio agrícola?",
+    answer: "Sim, o modelo da Ceruti é flexível e apoia tanto o modelo de vendas B2B (distribuidores, indústria) quanto B2C (venda direta ao produtor). O foco está na quebra de objeção e alta conversão que geram resultado independentemente da fase da safra."
   },
   {
     question: "A ferramenta vai substituir meus vendedores?",
@@ -25,7 +25,7 @@ const faqs = [
   },
   {
     question: "Qual a diferença de assinar uma IA comum (como o ChatGPT)?",
-    answer: "Enquanto outras IAs são de uso muito geral e precisam de comandos (“prompts”) complexos elaborados toda vez, o agente Ceruti AI já possui engenharia baseada exclusivamente em vendas do agro. Ele carrega metodologias de negócio e negociação validadas na prática."
+    answer: "Enquanto outras IAs são de uso muito geral e precisam de comandos (“prompts”) complexos elaborados toda vez, o agente Ceruti já possui engenharia baseada exclusivamente em vendas do agro. Ele carrega metodologias de negócio e negociação validadas na prática."
   },
   {
     question: "Em quanto tempo consigo ver os resultados?",

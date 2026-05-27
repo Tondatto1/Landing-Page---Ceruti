@@ -897,7 +897,7 @@ export default function App() {
                   <div className="mt-6 space-y-2">
                     <h4 className="font-sans font-black text-lg text-[#0c1f22]">Diagnóstico</h4>
                     <p className="text-xs text-neutral-500 font-semibold leading-relaxed px-1">
-                      Treinador faz perguntas para entender melhor o cenário
+                      Agente Ceruti faz perguntas para entender melhor o cenário
                     </p>
                   </div>
 
@@ -934,7 +934,7 @@ export default function App() {
                   <div className="mt-6 space-y-2">
                     <h4 className="font-sans font-black text-lg text-[#0c1f22]">Plano de Solução</h4>
                     <p className="text-xs text-neutral-500 font-semibold leading-relaxed px-1">
-                      Treinador entrega um plano para solucionar o problema
+                      Agente Ceruti entrega um plano para solucionar o problema
                     </p>
                   </div>
 
@@ -973,7 +973,7 @@ export default function App() {
                   <div className="mt-6 space-y-2">
                     <h4 className="font-sans font-black text-lg text-[#0c1f22]">Pós plano</h4>
                     <p className="text-xs text-neutral-500 font-semibold leading-relaxed px-1">
-                      Treinador abre para criar script, treinar etc...
+                      Agente Ceruti abre para criação de scripts, refinamento do plano etc...
                     </p>
                   </div>
 
@@ -1907,7 +1907,7 @@ export default function App() {
                 </span>
               </div>
               <p className="text-xs text-gray-400 leading-relaxed font-sans font-medium">
-                A inteligência de vendas brasileira feita exclusivamente para apoiar engenheiros agrônomos, consultores comerciais e distribuidores de insumos do agronegócio no fechamento de grandes negociações no campo.
+                A inteligência de vendas criada exclusivamente para potencializar o treinamento de equipes comerciais e aumentar o fechamento de negócios.
               </p>
             </div>
 
