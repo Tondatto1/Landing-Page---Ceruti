@@ -1911,11 +1911,22 @@ export default function App() {
               </p>
             </div>
 
-            <div className="space-y-3 font-sans">
+            <div className="space-y-4 font-sans">
               <h5 className="font-bold text-white text-xs mb-1 font-mono uppercase tracking-wider">Segurança & Termos</h5>
               <p className="text-xs text-gray-400 leading-relaxed font-medium">
                 Sua operação comercial protegida. Processamento seguro de dados em total conformidade com a LGPD e criptografia integrada com APIs oficiais do WhatsApp.
               </p>
+              <div className="flex flex-col space-y-2 mt-4 text-xs font-semibold text-gray-400">
+                <Link to="/politica-de-privacidade" className="hover:text-white transition-colors w-fit">
+                  Política de Privacidade
+                </Link>
+                <Link to="/politica-de-reembolso" className="hover:text-white transition-colors w-fit">
+                  Política de Reembolso
+                </Link>
+                <Link to="/termos-de-servico" className="hover:text-white transition-colors w-fit">
+                  Termos de Serviço
+                </Link>
+              </div>
             </div>
 
           </div>
