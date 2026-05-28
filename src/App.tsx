@@ -932,7 +932,7 @@ export default function App() {
 
                   {/* Title and details */}
                   <div className="mt-6 space-y-2">
-                    <h4 className="font-sans font-black text-lg text-[#0c1f22]">Plano de Solução</h4>
+                    <h4 className="font-sans font-black text-lg text-[#0c1f22]">Plano de solução</h4>
                     <p className="text-xs text-neutral-500 font-semibold leading-relaxed px-1">
                       Agente Ceruti entrega um plano para solucionar o problema
                     </p>
@@ -1088,7 +1088,7 @@ export default function App() {
                   </span>
                 </div>
                 <h3 className="text-xl sm:text-2xl font-sans font-black text-[#0c1f22] tracking-tight leading-tight uppercase">
-                  Padronização da Operação
+                  Padronização da operação
                 </h3>
               </div>
             </ScrollStackItem>

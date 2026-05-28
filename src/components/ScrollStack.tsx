@@ -102,6 +102,14 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
     const scroller = useWindowScroll ? document : scrollerRef.current;
     if (!scroller) return;
 
+    const oldTransforms = new Map<HTMLElement, string>();
+    cardsRef.current.forEach(card => {
+      if (card) {
+        oldTransforms.set(card, card.style.transform);
+        card.style.transform = 'none';
+      }
+    });
+
     const endElement = useWindowScroll
       ? (document.querySelector('.scroll-stack-end') as HTMLElement)
       : (scrollerRef.current?.querySelector('.scroll-stack-end') as HTMLElement);
@@ -111,6 +119,12 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
 
     cardsRef.current.forEach(card => {
       if (card) cards.set(card, getElementOffset(card));
+    });
+    
+    cardsRef.current.forEach(card => {
+      if (card) {
+        card.style.transform = oldTransforms.get(card) || '';
+      }
     });
 
     offsetsCacheRef.current = { cards, end };
