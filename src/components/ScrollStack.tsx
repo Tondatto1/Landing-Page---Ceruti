@@ -64,11 +64,14 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
     return parseFloat(value as string);
   }, []);
 
+  const stableHeightRef = useRef<number>(typeof window !== 'undefined' ? window.innerHeight : 800);
+  const stableWidthRef = useRef<number>(typeof window !== 'undefined' ? window.innerWidth : 1200);
+
   const getScrollData = useCallback(() => {
     if (useWindowScroll) {
       return {
         scrollTop: window.scrollY,
-        containerHeight: window.innerHeight,
+        containerHeight: stableHeightRef.current,
         scrollContainer: document.documentElement
       };
     } else {
@@ -83,12 +86,19 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
 
   const getElementOffset = useCallback(
     (element: HTMLElement) => {
-      if (useWindowScroll) {
-        const rect = element.getBoundingClientRect();
-        return rect.top + window.scrollY;
-      } else {
+      let top = 0;
+      let current: HTMLElement | null = element;
+      while (current) {
+        top += current.offsetTop;
+        current = current.offsetParent as HTMLElement;
+      }
+      // If we are not using window scroll, we actually want the offset 
+      // relative to our scroller container (which is typically offsetParent anyway
+      // if position relative. But to be safe, if !useWindowScroll, we can just use element.offsetTop)
+      if (!useWindowScroll) {
         return element.offsetTop;
       }
+      return top;
     },
     [useWindowScroll]
   );
@@ -102,14 +112,6 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
     const scroller = useWindowScroll ? document : scrollerRef.current;
     if (!scroller) return;
 
-    const oldTransforms = new Map<HTMLElement, string>();
-    cardsRef.current.forEach(card => {
-      if (card) {
-        oldTransforms.set(card, card.style.transform);
-        card.style.transform = 'none';
-      }
-    });
-
     const endElement = useWindowScroll
       ? (document.querySelector('.scroll-stack-end') as HTMLElement)
       : (scrollerRef.current?.querySelector('.scroll-stack-end') as HTMLElement);
@@ -119,12 +121,6 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
 
     cardsRef.current.forEach(card => {
       if (card) cards.set(card, getElementOffset(card));
-    });
-    
-    cardsRef.current.forEach(card => {
-      if (card) {
-        card.style.transform = oldTransforms.get(card) || '';
-      }
     });
 
     offsetsCacheRef.current = { cards, end };
@@ -317,9 +313,24 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
       card.style.webkitPerspective = '1000px';
     });
 
+    let resizeTimer: number;
     const onResize = () => {
-      calculateOffsets();
-      updateCardTransforms();
+      const isMobile = window.innerWidth < 768;
+      const heightDelta = Math.abs(window.innerHeight - stableHeightRef.current);
+      
+      // On mobile, ignore vertical height changes less than 150px (usually caused by URL bar hiding/showing)
+      if (isMobile && window.innerWidth === stableWidthRef.current && heightDelta < 150) {
+        return;
+      }
+      
+      stableWidthRef.current = window.innerWidth;
+      stableHeightRef.current = window.innerHeight;
+
+      if (resizeTimer) window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => {
+        calculateOffsets();
+        updateCardTransforms();
+      }, 150);
     };
 
     window.addEventListener('resize', onResize);
@@ -344,6 +355,7 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
       } else if (scroller) {
         scroller.removeEventListener('scroll', handleScroll);
       }
+      if (resizeTimer) window.clearTimeout(resizeTimer);
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
