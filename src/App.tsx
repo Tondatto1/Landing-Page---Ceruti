@@ -1388,8 +1388,8 @@ export default function App() {
               <RotateCcw className="w-3.5 h-3.5 animate-spin-slow text-[#00a83e]" />
               Loop de melhoria contínua
             </div>
-            <h2 className="notranslate text-[28px] sm:text-[40px] font-sans font-black text-[#0c1f22] tracking-tighter uppercase leading-snug sm:leading-tight break-words" translate="no">
-              Resultado vira rotina
+            <h2 className="notranslate text-[28px] sm:text-[40px] font-sans font-black text-[#0c1f22] tracking-tighter uppercase leading-[1.2] whitespace-normal" translate="no">
+              Resultado vira <br className="sm:hidden" />rotina
             </h2>
           </div>
 
