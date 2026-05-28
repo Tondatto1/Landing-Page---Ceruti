@@ -140,7 +140,7 @@ export default function App() {
           <nav className="hidden md:flex items-center space-x-8 text-sm font-semibold text-neutral-600">
             <a href="#quem-treinar" className="hover:text-black transition-colors">Para quem é</a>
             <a href="#como-funciona" className="hover:text-black transition-colors">Como funciona</a>
-            <a href="#resultados" className="hover:text-black transition-colors">Resultados</a>
+            <a href="#resultados" className="notranslate hover:text-black transition-colors" translate="no">Resultados</a>
             <a href="#beneficios" className="hover:text-black transition-colors">Benefícios</a>
           </nav>
 
@@ -189,7 +189,8 @@ export default function App() {
               <a 
                 href="#resultados" 
                 onClick={() => setMobileMenuOpen(false)}
-                className="block text-neutral-700 hover:text-[#00a83e] text-base py-1 font-medium"
+                className="notranslate block text-neutral-700 hover:text-[#00a83e] text-base py-1 font-medium"
+                translate="no"
               >
                 Resultados
               </a>
@@ -1387,7 +1388,7 @@ export default function App() {
               <RotateCcw className="w-3.5 h-3.5 animate-spin-slow text-[#00a83e]" />
               Loop de melhoria contínua
             </div>
-            <h2 className="text-3xl sm:text-[40px] font-sans font-black text-[#0c1f22] tracking-tighter uppercase leading-tight">
+            <h2 className="text-[28px] sm:text-[40px] font-sans font-black text-[#0c1f22] tracking-tighter uppercase leading-snug sm:leading-tight break-words">
               Resultado vira rotina
             </h2>
           </div>
@@ -1738,7 +1739,7 @@ export default function App() {
                   </div>
                 </div>
                 
-                <h4 className="text-[#0c1f22] font-sans font-black text-base sm:text-lg tracking-tight mb-2">
+                <h4 className="notranslate text-[#0c1f22] font-sans font-black text-base sm:text-lg tracking-tight mb-2" translate="no">
                   Retrabalho de Propostas
                 </h4>
                 
@@ -1769,7 +1770,7 @@ export default function App() {
                   </div>
                 </div>
                 
-                <h4 className="text-[#0c1f22] font-sans font-black text-base sm:text-lg tracking-tight mb-2">
+                <h4 className="notranslate text-[#0c1f22] font-sans font-black text-base sm:text-lg tracking-tight mb-2" translate="no">
                   Turnover Comercial
                 </h4>
                 
@@ -1938,7 +1939,7 @@ export default function App() {
             <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-6 gap-y-3 font-medium text-gray-400">
               <a href="#quem-treinar" className="hover:text-white transition-colors">Para quem é</a>
               <a href="#como-funciona" className="hover:text-white transition-colors">Como funciona</a>
-              <a href="#resultados" className="hover:text-white transition-colors">Resultados</a>
+              <a href="#resultados" className="notranslate hover:text-white transition-colors" translate="no">Resultados</a>
               <a href="#beneficios" className="hover:text-white transition-colors">Benefícios</a>
               <span className="text-white/10 hidden lg:inline">|</span>
               <a href="#top_container" className="text-gray-600 hover:text-white transition-colors font-semibold">Voltar para o Topo</a>

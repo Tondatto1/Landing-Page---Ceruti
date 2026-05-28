@@ -72,7 +72,7 @@ export const FAQ = () => {
         </div>
 
         <div className="text-center mb-12 sm:mb-16">
-          <h2 className="text-3xl sm:text-4xl lg:text-[42px] font-sans font-black text-[#0b1a30] tracking-tighter leading-tight uppercase">
+          <h2 className="notranslate text-3xl sm:text-4xl lg:text-[42px] font-sans font-black text-[#0b1a30] tracking-tighter leading-tight uppercase" translate="no">
             Ainda tem dúvidas?
           </h2>
           <p className="mt-4 text-[13px] sm:text-[15px] font-medium text-neutral-500 max-w-2xl mx-auto">
