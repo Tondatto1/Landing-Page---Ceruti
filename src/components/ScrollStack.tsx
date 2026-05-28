@@ -112,6 +112,14 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
     const scroller = useWindowScroll ? document : scrollerRef.current;
     if (!scroller) return;
 
+    const oldTransforms = new Map<HTMLElement, string>();
+    cardsRef.current.forEach(card => {
+      if (card) {
+        oldTransforms.set(card, card.style.transform);
+        card.style.transform = 'none';
+      }
+    });
+
     const endElement = useWindowScroll
       ? (document.querySelector('.scroll-stack-end') as HTMLElement)
       : (scrollerRef.current?.querySelector('.scroll-stack-end') as HTMLElement);
@@ -123,8 +131,14 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
       if (card) cards.set(card, getElementOffset(card));
     });
 
+    cardsRef.current.forEach((card, i) => {
+      if (card) {
+        card.style.transform = oldTransforms.get(card) || '';
+      }
+    });
+
     offsetsCacheRef.current = { cards, end };
-  }, [getElementOffset, useWindowScroll]);
+  }, [getElementOffset, useWindowScroll, stackPosition, itemStackDistance, parsePercentage, getScrollData]);
 
   const updateCardTransforms = useCallback(() => {
     if (!cardsRef.current.length || isUpdatingRef.current) return;
@@ -179,17 +193,17 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
       }
 
       const newTransform = {
-        translateY: Math.round(translateY * 100) / 100,
-        scale: Math.round(scale * 1000) / 1000,
-        rotation: Math.round(rotation * 100) / 100,
-        blur: Math.round(blur * 100) / 100
+        translateY: translateY,
+        scale: scale,
+        rotation: rotation,
+        blur: blur
       };
 
       const lastTransform = lastTransformsRef.current.get(i);
       const hasChanged =
         !lastTransform ||
-        Math.abs(lastTransform.translateY - newTransform.translateY) > 0.1 ||
-        Math.abs(lastTransform.scale - newTransform.scale) > 0.001 ||
+        Math.abs(lastTransform.translateY - newTransform.translateY) > 0.01 ||
+        Math.abs(lastTransform.scale - newTransform.scale) > 0.0001 ||
         Math.abs(lastTransform.rotation - newTransform.rotation) > 0.1 ||
         Math.abs(lastTransform.blur - newTransform.blur) > 0.1;
 
@@ -316,10 +330,9 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
     let resizeTimer: number;
     const onResize = () => {
       const isMobile = window.innerWidth < 768;
-      const heightDelta = Math.abs(window.innerHeight - stableHeightRef.current);
       
-      // On mobile, ignore vertical height changes less than 150px (usually caused by URL bar hiding/showing)
-      if (isMobile && window.innerWidth === stableWidthRef.current && heightDelta < 150) {
+      // On mobile, completely ignore vertical height changes (URL bar hiding/showing). Only recalculate on width change (orientation)
+      if (isMobile && window.innerWidth === stableWidthRef.current) {
         return;
       }
       
