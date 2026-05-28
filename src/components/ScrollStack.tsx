@@ -255,6 +255,7 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
         duration: 1.2,
         easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
         smoothWheel: true,
+        syncTouch: true,
         touchMultiplier: 2,
         infinite: false,
         wheelMultiplier: 1,
@@ -281,6 +282,7 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
         duration: 1.2,
         easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
         smoothWheel: true,
+        syncTouch: true,
         touchMultiplier: 2,
         infinite: false,
         gestureOrientation: 'vertical',
@@ -348,12 +350,6 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
 
     window.addEventListener('resize', onResize);
     
-    if (useWindowScroll) {
-      window.addEventListener('scroll', handleScroll, { passive: true });
-    } else if (scroller) {
-      scroller.addEventListener('scroll', handleScroll, { passive: true });
-    }
-    
     // Initial calculate before first update
     calculateOffsets();
 
@@ -363,11 +359,6 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
 
     return () => {
       window.removeEventListener('resize', onResize);
-      if (useWindowScroll) {
-        window.removeEventListener('scroll', handleScroll);
-      } else if (scroller) {
-        scroller.removeEventListener('scroll', handleScroll);
-      }
       if (resizeTimer) window.clearTimeout(resizeTimer);
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
