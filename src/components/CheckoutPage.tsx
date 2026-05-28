@@ -449,19 +449,23 @@ ${emojis.clock} _Aguardo as instruções para finalizar._`;
 
               {/* Supported Card Flags */}
               <div className="flex flex-wrap items-center gap-3 mt-5 mx-1">
-                <svg className="h-5" viewBox="0 0 38 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M14.532 0L9.467 11.968h3.298l1.01-2.825h4.153l.394 2.825h2.89L18.006 0h-3.474zm2.148 2.052l1.353 4.542h-3.324l1.971-4.542zM4.148 0L2.709 8.163l-1.32-6.52A1.895 1.895 0 0 0 .11 0H.001L.004.147l2.868 11.821h3.407L10.384 0H6.945L4.148 0z" fill="#1434CB"/>
-                  <path d="M29.627 0h-2.906v11.968h2.906V0zM38.001 0h-3.153a1.9 1.9 0 0 0-1.638 1.052l-2.866 6.843L28.164.004H25.26l3.418 11.968h2.906L38.001 0z" fill="#F5A623"/>
-                </svg>
+                {/* Visa Badge */}
+                <div className="flex items-center justify-center font-extrabold italic text-[#1434CB] bg-white border border-neutral-200 px-2 py-0.5 rounded text-[12px] h-[22px] tracking-tighter select-none font-sans leading-none shadow-sm">
+                  <span className="text-[#F5A623]">V</span>ISA
+                </div>
                 {/* Mastercard-like overlapping circles */}
-                <svg className="h-5" viewBox="0 0 32 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg className="h-[22px] w-auto py-0.5" viewBox="0 0 32 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <circle cx="10" cy="10" r="10" fill="#EB001B"/>
                   <circle cx="22" cy="10" r="10" fill="#F79E1B" fillOpacity="0.8"/>
                 </svg>
                 {/* Generic Amex-like minimal */}
-                <div className="text-[10px] font-bold border border-blue-600 text-blue-600 bg-white px-1.5 py-0.5 rounded-sm uppercase tracking-wider">AMEX</div>
+                <div className="text-[10px] h-[22px] flex items-center justify-center font-bold border border-blue-600 text-blue-600 bg-white px-1.5 rounded uppercase tracking-wider shadow-sm select-none">
+                  AMEX
+                </div>
                 {/* Generic Elo-like minimal */}
-                <div className="text-[10px] items-center justify-center font-bold border border-black bg-black text-white px-2 py-0.5 rounded-sm uppercase tracking-wider">elo</div>
+                <div className="text-[10px] h-[22px] flex items-center justify-center font-bold border border-black bg-black text-white px-2 rounded uppercase tracking-wider shadow-sm select-none">
+                  elo
+                </div>
               </div>
 
               {/* Credit Card Expanded Form */}
