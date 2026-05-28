@@ -1210,7 +1210,7 @@ export default function App() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 max-w-6xl mx-auto">
             
             {/* Testimonial Card 1 */}
-            <div className="bg-white border border-neutral-100 rounded-[32px] p-4 sm:p-10 shadow-[0_20px_45px_0_rgba(12,31,34,0.04)] md:hover:shadow-[0_25px_50px_-10px_rgba(37,211,102,0.12)] md:hover:-translate-y-1 transition-all duration-300 flex flex-col justify-center">
+            <div className="bg-white border border-neutral-100 rounded-[32px] p-4 sm:p-10 shadow-[0_20px_45px_0_rgba(12,31,34,0.04)] lg:hover:shadow-[0_25px_50px_-10px_rgba(37,211,102,0.12)] lg:hover:-translate-y-1 transition-all duration-300 flex flex-col justify-center">
               
               {/* Vertical Video Embedding Slot suited for YouTube Shorts */}
               <div className="relative w-full max-w-[280px] sm:max-w-[320px] aspect-[9/16] mx-auto rounded-3xl overflow-hidden border-[4px] border-neutral-900 bg-neutral-950 shadow-2xl mb-0">
@@ -1228,7 +1228,7 @@ export default function App() {
             </div>
 
             {/* Testimonial Card 2 */}
-            <div className="bg-white border border-neutral-100 rounded-[32px] p-4 sm:p-10 shadow-[0_20px_45px_0_rgba(12,31,34,0.04)] md:hover:shadow-[0_25px_50px_-10px_rgba(0,112,243,0.12)] md:hover:-translate-y-1 transition-all duration-300 flex flex-col justify-center">
+            <div className="bg-white border border-neutral-100 rounded-[32px] p-4 sm:p-10 shadow-[0_20px_45px_0_rgba(12,31,34,0.04)] lg:hover:shadow-[0_25px_50px_-10px_rgba(0,112,243,0.12)] lg:hover:-translate-y-1 transition-all duration-300 flex flex-col justify-center">
               
               {/* Vertical Video Embedding Slot suited for YouTube Shorts */}
               <div className="relative w-full max-w-[280px] sm:max-w-[320px] aspect-[9/16] mx-auto rounded-3xl overflow-hidden border-[4px] border-neutral-900 bg-neutral-950 shadow-2xl mb-0">
