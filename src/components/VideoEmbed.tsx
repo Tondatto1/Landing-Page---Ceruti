@@ -12,6 +12,7 @@ export const VideoEmbed = ({ videoId, title = "Depoimento com o Ceruti" }: { vid
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen
         title={title}
+        data-lenis-prevent="true"
       />
     );
   }
