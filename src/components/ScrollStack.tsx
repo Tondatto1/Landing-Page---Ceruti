@@ -51,6 +51,7 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
   const lastTransformsRef = useRef(new Map<number, any>());
   const isUpdatingRef = useRef(false);
   const isVisibleRef = useRef(true);
+  const scheduledFrameRef = useRef<number | null>(null);
 
   const calculateProgress = useCallback((scrollTop: number, start: number, end: number) => {
     if (scrollTop < start) return 0;
@@ -250,64 +251,23 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
     getElementOffset
   ]);
 
-  const handleScroll = useCallback(() => {
-    updateCardTransforms();
+  const requestUpdate = useCallback(() => {
+    if (scheduledFrameRef.current !== null) return;
+    scheduledFrameRef.current = requestAnimationFrame(() => {
+      scheduledFrameRef.current = null;
+      updateCardTransforms();
+    });
   }, [updateCardTransforms]);
 
+  const handleScroll = useCallback(() => {
+    requestUpdate();
+  }, [requestUpdate]);
+
   const setupLenis = useCallback(() => {
-    // Completely bypass Lenis smooth scroll on mobile devices for 100% native scroll performance
-    // and full iframe gesture / video interactivity compatibility
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-    if (isMobile) return null;
-
-    if (useWindowScroll) {
-      const lenis = new Lenis({
-        duration: 1.2,
-        easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-        smoothWheel: true,
-        infinite: false,
-        wheelMultiplier: 1,
-        lerp: 0.1
-      });
-
-      lenis.on('scroll', handleScroll);
-
-      const raf = (time: number) => {
-        lenis.raf(time);
-        animationFrameRef.current = requestAnimationFrame(raf);
-      };
-      animationFrameRef.current = requestAnimationFrame(raf);
-
-      lenisRef.current = lenis;
-      return lenis;
-    } else {
-      const scroller = scrollerRef.current;
-      if (!scroller) return;
-
-      const lenis = new Lenis({
-        wrapper: scroller,
-        content: scroller.querySelector('.scroll-stack-inner') as HTMLElement,
-        duration: 1.2,
-        easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-        smoothWheel: true,
-        infinite: false,
-        gestureOrientation: 'vertical',
-        wheelMultiplier: 1,
-        lerp: 0.1
-      });
-
-      lenis.on('scroll', handleScroll);
-
-      const raf = (time: number) => {
-        lenis.raf(time);
-        animationFrameRef.current = requestAnimationFrame(raf);
-      };
-      animationFrameRef.current = requestAnimationFrame(raf);
-
-      lenisRef.current = lenis;
-      return lenis;
-    }
-  }, [handleScroll, useWindowScroll]);
+    // Completely disable Lenis page-wide scroll hijacking to avoid conflicts with browser scrolling,
+    // anchor links navigation, touchpads, and iframes, resolving all shaking, freezing, and sticking.
+    return null;
+  }, []);
 
   useLayoutEffect(() => {
     const scroller = scrollerRef.current;
@@ -333,19 +293,27 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
       card.style.webkitTransform = 'translateZ(0)';
       card.style.perspective = '1000px';
       card.style.webkitPerspective = '1000px';
-      // Absolutely no hard CSS transitions on transform to prevent scroll lags and fighting
-      card.style.transition = 'none';
+      
+      // Ensure smooth native tracking scrolling by setting a fast and responsive transition
+      card.style.transition = 'transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), filter 0.15s ease-out';
     });
 
     // IntersectionObserver to pause scroll-event calculations when component is not in viewport
     const observer = new IntersectionObserver(
       ([entry]) => {
-        isVisibleRef.current = entry.isIntersecting;
-        if (entry.isIntersecting) {
-          updateCardTransforms();
+        // If we are using window scroll, the cards translate far down from their original container,
+        // so we bypass pausing or use a massive margin to prevent premature freezes.
+        if (useWindowScroll) {
+          isVisibleRef.current = true;
+        } else {
+          isVisibleRef.current = entry.isIntersecting;
+        }
+        
+        if (entry.isIntersecting || useWindowScroll) {
+          requestUpdate();
         }
       },
-      { root: null, rootMargin: '200px 0px', threshold: 0.01 }
+      { root: null, rootMargin: '1200px 0px', threshold: 0.01 }
     );
     observer.observe(scroller);
 
@@ -361,34 +329,58 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
       stableWidthRef.current = window.innerWidth;
       stableHeightRef.current = window.innerHeight;
 
+      // Update transitions dynamically on window resize
+      cardsRef.current.forEach((card) => {
+        if (card) {
+          card.style.transition = 'transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), filter 0.15s ease-out';
+        }
+      });
+
       if (resizeTimer) window.clearTimeout(resizeTimer);
       resizeTimer = window.setTimeout(() => {
         calculateOffsets();
-        updateCardTransforms();
+        requestUpdate();
       }, 150);
     };
 
     window.addEventListener('resize', onResize);
 
     const handleNativeScroll = () => {
-      updateCardTransforms();
+      requestUpdate();
     };
     window.addEventListener('scroll', handleNativeScroll, { passive: true });
     
     // Initial calculate before first update
     calculateOffsets();
 
+    // Recalculate offsets after short delays to handle any asynchronous layout shifts
+    // (e.g., dynamic images loading, font rendering shifts, or banner insertions)
+    const timer1 = setTimeout(() => {
+      calculateOffsets();
+      requestUpdate();
+    }, 500);
+
+    const timer2 = setTimeout(() => {
+      calculateOffsets();
+      requestUpdate();
+    }, 2000);
+
     setupLenis();
 
-    updateCardTransforms();
+    requestUpdate();
 
     return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
       observer.disconnect();
       window.removeEventListener('resize', onResize);
       window.removeEventListener('scroll', handleNativeScroll);
       if (resizeTimer) window.clearTimeout(resizeTimer);
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (scheduledFrameRef.current !== null) {
+        cancelAnimationFrame(scheduledFrameRef.current);
       }
       if (lenisRef.current) {
         lenisRef.current.destroy();
@@ -410,7 +402,7 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
     useWindowScroll,
     onStackComplete,
     setupLenis,
-    updateCardTransforms
+    requestUpdate
   ]);
 
   return (
