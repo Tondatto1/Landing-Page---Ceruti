@@ -50,6 +50,7 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
   const cardsRef = useRef<HTMLElement[]>([]);
   const lastTransformsRef = useRef(new Map<number, any>());
   const isUpdatingRef = useRef(false);
+  const isVisibleRef = useRef(true);
 
   const calculateProgress = useCallback((scrollTop: number, start: number, end: number) => {
     if (scrollTop < start) return 0;
@@ -113,9 +114,12 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
     if (!scroller) return;
 
     const oldTransforms = new Map<HTMLElement, string>();
+    const oldTransitions = new Map<HTMLElement, string>();
     cardsRef.current.forEach(card => {
       if (card) {
         oldTransforms.set(card, card.style.transform);
+        oldTransitions.set(card, card.style.transition);
+        card.style.transition = 'none';
         card.style.transform = 'none';
       }
     });
@@ -133,6 +137,7 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
 
     cardsRef.current.forEach((card, i) => {
       if (card) {
+        card.style.transition = oldTransitions.get(card) || '';
         card.style.transform = oldTransforms.get(card) || '';
       }
     });
@@ -141,7 +146,7 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
   }, [getElementOffset, useWindowScroll, stackPosition, itemStackDistance, parsePercentage, getScrollData]);
 
   const updateCardTransforms = useCallback(() => {
-    if (!cardsRef.current.length || isUpdatingRef.current) return;
+    if (!cardsRef.current.length || isUpdatingRef.current || !isVisibleRef.current) return;
 
     isUpdatingRef.current = true;
 
@@ -250,13 +255,16 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
   }, [updateCardTransforms]);
 
   const setupLenis = useCallback(() => {
+    // Completely bypass Lenis smooth scroll on mobile devices for 100% native scroll performance
+    // and full iframe gesture / video interactivity compatibility
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    if (isMobile) return null;
+
     if (useWindowScroll) {
       const lenis = new Lenis({
         duration: 1.2,
         easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
         smoothWheel: true,
-        smoothTouch: true,
-        touchMultiplier: 2,
         infinite: false,
         wheelMultiplier: 1,
         lerp: 0.1
@@ -282,8 +290,6 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
         duration: 1.2,
         easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
         smoothWheel: true,
-        smoothTouch: true,
-        touchMultiplier: 2,
         infinite: false,
         gestureOrientation: 'vertical',
         wheelMultiplier: 1,
@@ -327,7 +333,21 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
       card.style.webkitTransform = 'translateZ(0)';
       card.style.perspective = '1000px';
       card.style.webkitPerspective = '1000px';
+      // Absolutely no hard CSS transitions on transform to prevent scroll lags and fighting
+      card.style.transition = 'none';
     });
+
+    // IntersectionObserver to pause scroll-event calculations when component is not in viewport
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isVisibleRef.current = entry.isIntersecting;
+        if (entry.isIntersecting) {
+          updateCardTransforms();
+        }
+      },
+      { root: null, rootMargin: '200px 0px', threshold: 0.01 }
+    );
+    observer.observe(scroller);
 
     let resizeTimer: number;
     const onResize = () => {
@@ -349,6 +369,11 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
     };
 
     window.addEventListener('resize', onResize);
+
+    const handleNativeScroll = () => {
+      updateCardTransforms();
+    };
+    window.addEventListener('scroll', handleNativeScroll, { passive: true });
     
     // Initial calculate before first update
     calculateOffsets();
@@ -358,7 +383,9 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
     updateCardTransforms();
 
     return () => {
+      observer.disconnect();
       window.removeEventListener('resize', onResize);
+      window.removeEventListener('scroll', handleNativeScroll);
       if (resizeTimer) window.clearTimeout(resizeTimer);
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -378,7 +405,6 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
     stackPosition,
     scaleEndPosition,
     baseScale,
-    scaleDuration,
     rotationAmount,
     blurAmount,
     useWindowScroll,
