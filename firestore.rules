@@ -1,0 +1,40 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net (Default-deny click-jacking/unintentional leaks)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ID Variable safety checker
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Checks if the user is the bootstrapped platform administrator (the user's email)
+    function isAdmin() {
+      return request.auth != null && 
+             request.auth.token.email == "guilhermetondatto@gmail.com" && 
+             request.auth.token.email_verified == true;
+    }
+
+    // Type validation for incoming lead data
+    function isValidTrialSignup(data) {
+      return data.keys().hasAll(['name', 'email', 'phone', 'createdAt']) && 
+             data.keys().size() == 4 && 
+             data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+             data.email is string && data.email.size() > 0 && data.email.size() <= 200 &&
+             data.phone is string && data.phone.size() > 0 && data.phone.size() <= 50 &&
+             data.createdAt is string && data.createdAt.size() > 0 && data.createdAt.size() <= 100;
+    }
+
+    match /trial_signups/{signupId} {
+      // Anyone can submit a lead sign-up (frictional-free) - enforces schema and ID poisoning guards
+      allow create: if isValidId(signupId) && isValidTrialSignup(request.resource.data);
+      
+      // Strict access: Only the certified administrator can query, delete, or modify
+      allow read, list, delete: if isAdmin();
+      allow update: if isAdmin() && isValidTrialSignup(request.resource.data);
+    }
+  }
+}

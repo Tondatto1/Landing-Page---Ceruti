@@ -1,0 +1,39 @@
+{
+  "entities": {
+    "trial_signup": {
+      "title": "Trial Signup",
+      "description": "Registers a user for the 3-day free trial captured from the chat widget.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique record identifier"
+        },
+        "name": {
+          "type": "string",
+          "description": "Full name of the prospect"
+        },
+        "email": {
+          "type": "string",
+          "description": "Corporate email address"
+        },
+        "phone": {
+          "type": "string",
+          "description": "WhatsApp contact number with DDD"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Submission time"
+        }
+      },
+      "required": ["name", "email", "phone", "createdAt"]
+    }
+  },
+  "firestore": {
+    "trial_signups/{signupId}": {
+      "schema": "trial_signup",
+      "description": "Collection of prospect trials awaiting activation"
+    }
+  }
+}

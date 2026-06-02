@@ -27,7 +27,13 @@ import {
   Wrench,
   CalendarDays,
   Rocket,
-  ShieldCheck
+  ShieldCheck,
+  Play,
+  CheckCheck,
+  Mic,
+  Phone,
+  Video,
+  MoreVertical
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
@@ -40,85 +46,9 @@ import { FAQ } from './components/FAQ';
 import AnimatedList from './components/AnimatedList';
 import { WhatsAppWidget } from './components/WhatsAppWidget';
 
-const CONVERSATION_THREADS: Record<string, Array<{ sender: 'user' | 'ceruti', text: string, time: string }>> = {
-  'preco-saca': [
-    { sender: 'user', text: 'Ceruti, cliente falou que meu produto é 30 reais mais caro por saca. Como quebro isso?', time: '10:15' },
-    { sender: 'ceruti', text: 'Opa! Antes do plano, me responde: qual o perfil desse cliente e qual problema ele tem que sua semente resolve?', time: '10:16' },
-    { sender: 'user', text: 'Fazendeiro de soja, 800 ha. Perde produtividade com pragas. Minha semente resolve, mas ele só vê preço.', time: '10:16' },
-    { sender: 'ceruti', text: 'Perfeito. O que você falou quando ele disse que tava caro?', time: '10:17' },
-    { sender: 'user', text: "Falei que era mais resistente e dava mais produtividade. Ele disse 'depois eu vejo' e não voltou.", time: '10:18' },
-    { sender: 'ceruti', text: 'Pronto. O erro não foi o preço — foi não traduzir os 15% a mais de produtividade em dinheiro no bolso dele. Vou montar um plano pra você voltar com argumento que ele não ignora. Topa?', time: '10:19' }
-  ],
-  'fidelidade-cooperativa': [
-    { sender: 'user', text: 'Ceruti, o diretor da Fronteira disse que compra há 15 anos da cooperativa local e o agrônomo é amigo de pescaria dele. Como entro lá?', time: '14:20' },
-    { sender: 'ceruti', text: 'Grande desafio! Me responde: a cooperativa atua forte em biológicos de última geração com eles ou focam só no químico de balcão?', time: '14:21' },
-    { sender: 'user', text: 'Químico de balcão. Eles quase não usam biológicos de raiz, mas têm medo de mexer no que dá certo.', time: '14:22' },
-    { sender: 'ceruti', text: 'Perfeito. Esse é o ponto fraco. Deixe o químico com eles. O que você falou sobre blindagem e diversificação de fornecimento de biológicos?', time: '14:23' },
-    { sender: 'user', text: 'Falei que nosso biológico era melhor e tinha prêmio de qualidade, mas ele disse que prefere a segurança da parceria antiga.', time: '14:24' },
-    { sender: 'ceruti', text: 'Entendi. O erro foi tentar concorrer com a cooperativa. Proponha apenas uma área piloto de 5% da fazenda exclusivamente para prevenção microbiológica. Convide o próprio agrônomo da cooperativa para auditar e assinar o resultado. Topa tentar?', time: '14:26' }
-  ],
-  'prazo-barter': [
-    { sender: 'user', text: 'Seu Jamil aceitou, mas quer barter de 100% pra pagar na colheita. Meu financeiro só me libera 30% barter e o resto boleto. Como resolvo?', time: '16:02' },
-    { sender: 'ceruti', text: 'Hedge é seguro! Me conta, o boleto das parcelas restante oferecido pelo seu financeiro tem algum desconto de antecipação ou taxa reduzida?', time: '16:03' },
-    { sender: 'user', text: 'Tem sim, o financeiro dá 6% de desconto se fechar no boleto com garantias agrícolas padrão.', time: '16:04' },
-    { sender: 'ceruti', text: 'Excelente! Faça as contas com ele de forma simples: use os 30% em barter físico. Para os 70%, sugira uma CPR física registrada na colheita aplicando os 6% de desconto.', time: '16:06' },
-    { sender: 'user', text: 'Verdade, assim ele preserva a paridade das sacas sem risco de câmbio e ainda economiza nominalmente.', time: '16:07' },
-    { sender: 'ceruti', text: 'Exato! Hege garantido, evita as altas taxas embutidas das cooperativas e ainda embolsa 6% de desconto real. Mostre esse ganho no bolso dele. Fechamos essa estrutura?', time: '16:09' }
-  ]
-};
-
 export default function App() {
   // Mobile menu toggle
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  // Active WhatsApp simulator objection ID
-  const [activeObjectionId, setActiveObjectionId] = useState<string>('preco-saca');
-  
-  // Real-time progressive rendering and auto-scroll state
-  const [visibleMessagesCount, setVisibleMessagesCount] = useState<number>(2);
-  const [isTypingNext, setIsTypingNext] = useState<boolean>(false);
-  const chatContainerRef = React.useRef<HTMLDivElement>(null);
-
-  // Sync visible messages when selected objection changes
-  useEffect(() => {
-    setVisibleMessagesCount(2);
-    setIsTypingNext(false);
-  }, [activeObjectionId]);
-
-  // Handle smooth programmatic scroll whenever messages count or typing status changes
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (chatContainerRef.current) {
-        chatContainerRef.current.scrollTo({
-          top: chatContainerRef.current.scrollHeight,
-          behavior: 'smooth'
-        });
-      }
-    }, 80);
-    return () => clearTimeout(timer);
-  }, [visibleMessagesCount, isTypingNext]);
-
-  // Advance conversation safely with progressive replies
-  const advanceConversation = () => {
-    const thread = CONVERSATION_THREADS[activeObjectionId] || [];
-    if (visibleMessagesCount < thread.length && !isTypingNext) {
-      const nextMsg = thread[visibleMessagesCount];
-      if (nextMsg.sender === 'ceruti') {
-        setIsTypingNext(true);
-        setTimeout(() => {
-          setVisibleMessagesCount(prev => prev + 1);
-          setIsTypingNext(false);
-        }, 1200); // 1.2s typing simulation for peak realism
-      } else {
-        setVisibleMessagesCount(prev => prev + 1);
-      }
-    }
-  };
-
-  const restartConversation = () => {
-    setVisibleMessagesCount(2);
-    setIsTypingNext(false);
-  };
 
   return (
     <div className="bg-agro-deep text-gray-100 min-h-screen font-sans selection:bg-agro-green selection:text-agro-deep theme-natural-tones w-full overflow-x-clip relative" id="top_container">
@@ -148,7 +78,7 @@ export default function App() {
           <div className="hidden md:flex items-center">
             <a 
               href="#planos" 
-              className="border-[1.5px] border-[#00a83e] text-[#00a83e] hover:bg-[#00a83e]/5 px-5 py-2 rounded-lg font-bold text-xs tracking-wider uppercase transition-colors"
+              className="bg-gradient-to-r from-[#600207] via-[#bd1822] to-[#f04d56] hover:from-[#730309] hover:via-[#d41c27] hover:to-[#f55d65] text-white font-extrabold text-xs tracking-wider uppercase px-5 py-2.5 rounded-lg transition-all duration-300 shadow-md shadow-red-950/20 hover:shadow-red-600/30 active:scale-98 border-b-2 border-[#450104]"
             >
               Quero ter acesso
             </a>
@@ -206,7 +136,7 @@ export default function App() {
                 <a 
                   href="#planos"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block w-full text-center border-[1.5px] border-[#00a83e] text-[#00a83e] py-2.5 rounded-lg font-bold text-xs tracking-wider uppercase"
+                  className="block w-full text-center bg-gradient-to-r from-[#600207] via-[#bd1822] to-[#f04d56] text-white py-2.5 rounded-lg font-extrabold text-xs tracking-wider uppercase transition-all duration-300 shadow-md shadow-red-950/20 border-b-2 border-[#450104]"
                 >
                   Quero ter acesso
                 </a>
@@ -266,7 +196,7 @@ export default function App() {
               <div className="pt-0.5">
                 <a 
                   href="#planos" 
-                  className="inline-flex items-center gap-3 bg-[#00a83e] hover:bg-[#009035] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-md shadow-[#00a83e]/20 hover:scale-[1.01] active:scale-[0.99]"
+                  className="inline-flex items-center gap-3 bg-gradient-to-r from-[#600207] via-[#bd1822] to-[#f04d56] hover:from-[#730309] hover:via-[#d41c27] hover:to-[#f55d65] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-lg shadow-red-950/25 hover:shadow-red-600/35 hover:scale-[1.01] active:scale-[0.99] border-b-[3px] border-[#450104]"
                 >
                   <MessageCircle className="w-5 h-5 text-current" />
                   Quero ter acesso
@@ -306,275 +236,355 @@ export default function App() {
 
             </div>
 
-            {/* Right Column: Live Premium WhatsApp Simulator (Designed inside iOS Phone case) */}
+            {/* Right Column: Premium 3D Phone Chassis with Popout Messages */}
             <div className="lg:col-span-6 flex flex-col justify-center items-center relative">
               
-              {/* Floating Container to contain the cellphone and its floor shadow */}
-              <div className="relative flex flex-col items-center w-full">
+              {/* Resizing / Scaling Container to fit beautifully on any screen size */}
+              <div className="relative w-full max-w-[420px] sm:max-w-[480px] h-[660px] flex items-center justify-center scale-[0.80] min-[380px]:scale-[0.85] min-[440px]:scale-[0.92] sm:scale-100 origin-center select-none pointer-events-none">
                 
-                {/* iPhone-Realistic Floating Frame */}
-                <motion.div 
-                  animate={{ y: [0, -12, 0] }}
-                  transition={{ 
-                    duration: 4.2, 
-                    repeat: Infinity, 
-                    ease: "easeInOut" 
+                {/* 3D Slanted/Rotated Container */}
+                <div 
+                  style={{ 
+                    transform: 'perspective(1600px) rotateY(-4deg) rotateX(3deg) rotateZ(-1deg)', 
+                    transformStyle: 'preserve-3d' 
                   }}
-                  style={{ willChange: 'transform' }}
-                  className="relative mx-auto w-full max-w-[280px] min-[360px]:max-w-[320px] min-[400px]:max-w-[340px] sm:max-w-[370px] bg-neutral-900 rounded-[56px] p-3 shadow-2xl border-[5px] border-neutral-800/90 ring-1 ring-white/10 z-10"
+                  className="relative w-full max-w-[280px] sm:max-w-[325px] h-[630px]"
                 >
-                  {/* Physical buttons deco */}
-                  <div className="absolute left-[-5px] top-[110px] w-[5px] h-[40px] bg-neutral-700 rounded-l shadow-sm" />
-                  <div className="absolute left-[-5px] top-[165px] w-[5px] h-[55px] bg-neutral-700 rounded-l shadow-sm" />
-                  <div className="absolute left-[-5px] top-[230px] w-[5px] h-[55px] bg-neutral-700 rounded-l shadow-sm" />
-                  <div className="absolute right-[-5px] top-[150px] w-[5px] h-[75px] bg-neutral-700 rounded-r shadow-sm" />
-
-                  {/* Upper Notch / Dynamic Island */}
-                  <div className="absolute left-1/2 -translate-x-1/2 top-5 w-28 h-6 bg-black rounded-full flex items-center justify-between px-3.5 z-30 shadow-inner ring-1 ring-neutral-800/80">
-                    <div className="w-[7px] h-[7px] bg-[#0c0d1c] rounded-full ring-[1px] ring-neutral-800/40" />
-                    <div className="w-2.5 h-1.5 bg-[#09091a] rounded-full ring-[1px] ring-neutral-800/40" />
-                  </div>
-
-                  {/* Screen Content Wrapper */}
-                  <div className="relative w-full overflow-hidden bg-[#FAF9F6] rounded-[46px] flex flex-col h-[650px] ring-1 ring-black/5">
-                    
-                    {/* Status Bar */}
-                    <div className="bg-[#FAF9F6] h-10 px-6 pt-3.5 flex justify-between items-center text-neutral-800 text-xs font-bold leading-none select-none z-20 shrink-0">
-                      <span>11:30</span>
-                      <div className="flex items-center space-x-1.5 pt-0.5 pointer-events-none">
-                        {/* Signal Strength bars */}
-                        <svg className="w-4 h-4 fill-current text-neutral-800" viewBox="0 0 24 24">
-                          <path d="M2 22h3v-3H2v3zm4 0h3v-6H6v6zm4 0h3v-10h-3v10zm4 0h3v-15h-3v15zm4 0h3V2h-3v20z" />
-                        </svg>
-                        {/* Wireless waves */}
-                        <svg className="w-4 h-4 stroke-current text-neutral-800 fill-none stroke-[2.5]" viewBox="0 0 24 24">
-                          <path d="M5 12.55a11 11 0 0 1 14.08 0" />
-                          <path d="M1.42 9a16 16 0 0 1 21.16 0" />
-                          <path d="M8.53 16.1a6 6 0 0 1 6.95 0" />
-                        </svg>
-                        {/* Battery outline */}
-                        <div className="w-5.5 h-2.5 border-[1.5px] border-neutral-800 rounded-sm p-[1px] flex items-center">
-                          <div className="bg-[#00a83e] h-full w-[80%] rounded-[1px]" />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Custom Header */}
-                    <div className="bg-white px-4 py-3 flex items-center justify-between border-b border-neutral-100 z-10 shrink-0 shadow-sm shadow-neutral-100/40">
-                      <div className="flex items-center space-x-3">
-                        <div className="relative select-none">
-                          <div className="w-10 h-10 rounded-full bg-[#00a83e] flex items-center justify-center text-white font-sans font-black text-lg shadow-sm border border-[#00a83e]/10">
-                            C
-                          </div>
-                          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full animate-pulse"></span>
-                        </div>
-                        <div className="text-left select-none">
-                          <h3 className="font-extrabold text-sm text-neutral-900 leading-tight">
-                            Treinador Ceruti
-                          </h3>
-                          <p className="text-[11px] text-green-600 font-bold leading-none mt-0.5">online</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-3.5 text-neutral-400 select-none">
-                        <svg className="w-5 h-5 cursor-pointer hover:text-neutral-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 9.24v9.68z" />
-                        </svg>
-                        <svg className="w-5 h-5 cursor-pointer hover:text-neutral-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                          <circle cx="12" cy="12" r="1" />
-                          <circle cx="12" cy="5" r="1" />
-                          <circle cx="12" cy="19" r="1" />
-                        </svg>
-                      </div>
-                    </div>
-
-                    {/* Chat Message Stream Pane - STRICTLY FIXED OVERFLOW HIDDEN TO PREVENT MOBILE TOUCH HIJACKING */}
-                    <div 
-                      ref={chatContainerRef}
-                      className="flex-1 overflow-hidden p-4 space-y-3.5 bg-[#FAF9F6] relative border-b border-neutral-150 pointer-events-none select-none"
-                      style={{ 
-                        backgroundImage: "url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')",
-                        backgroundRepeat: 'repeat',
-                        backgroundSize: '150px',
-                        backgroundBlendMode: 'overlay',
-                        backgroundColor: '#f1ede5'
-                      }}
+                             {/* 1. Glossy 3D Translucent WhatsApp Logo */}
+                  <div 
+                    style={{ transform: 'translateZ(90px)', transformStyle: 'preserve-3d' }}
+                    className="absolute -top-3 -right-6 sm:-right-10 w-22 h-22 sm:w-26 sm:h-26 z-30 pointer-events-none"
+                  >
+                    <motion.div
+                       animate={{ y: [0, -8, 0], rotate: [2, -2, 2] }}
+                       transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                       className="w-full h-full rounded-2xl bg-gradient-to-tr from-[#128c7e] via-[#25d366] to-[#4af48e] p-[2.5px] relative flex items-center justify-center overflow-hidden drop-shadow-[0_15px_30px_rgba(37,211,102,0.45)]"
                     >
-                      {/* Progressive message rendering up to visibleMessagesCount */}
-                      <AnimatePresence mode="popLayout">
-                        {CONVERSATION_THREADS[activeObjectionId]?.slice(0, visibleMessagesCount).map((msg, index) => {
-                          const isUser = msg.sender === 'user';
-                          return (
-                            <motion.div 
-                              key={activeObjectionId + '_' + index}
-                              initial={{ opacity: 0, scale: 0.94, y: 12 }}
-                              animate={{ opacity: 1, scale: 1, y: 0 }}
-                              transition={{ duration: 0.32 }}
-                              className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
-                            >
+                       <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent rounded-2xl z-10" />
+                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.35),transparent)] rounded-2xl z-10" />
+                       <svg className="w-11 h-11 sm:w-13 sm:h-13 text-white fill-current relative z-20 drop-shadow-md" viewBox="0 0 24 24">
+                         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.993c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.746.953 3.71 1.454 5.709 1.455h.008c6.56 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                       </svg>
+                    </motion.div>
+                  </div>
+ 
+                   {/* 2. Premium iPhone Metallic Chassis */}
+                   <div 
+                      style={{ transform: 'translateZ(10px)' }}
+                      className="absolute inset-0 bg-gradient-to-b from-neutral-850 to-neutral-950 rounded-[52px] p-2.5 shadow-[0_28px_60px_-15px_rgba(0,0,0,0.5),_0_0_40px_rgba(37,211,102,0.12)] border-[5.5px] border-neutral-800 ring-1 ring-white/20 flex flex-col"
+                    >
+                      {/* Physical buttons deco with high-end polished styling */}
+                      <div className="absolute left-[-5px] top-[105px] w-[5px] h-[35px] bg-gradient-to-r from-neutral-500 to-neutral-800 rounded-l shadow-sm border-r border-neutral-600" />
+                      <div className="absolute left-[-5px] top-[150px] w-[5px] h-[45px] bg-gradient-to-r from-neutral-500 to-neutral-800 rounded-l shadow-sm border-r border-neutral-600" />
+                      <div className="absolute left-[-5px] top-[205px] w-[5px] h-[45px] bg-gradient-to-r from-neutral-500 to-neutral-800 rounded-l shadow-sm border-r border-neutral-600" />
+                      <div className="absolute right-[-5px] top-[135px] w-[5px] h-[65px] bg-gradient-to-l from-neutral-500 to-neutral-800 rounded-r shadow-sm border-l border-neutral-600" />
+ 
+                      {/* Dynamic Island / Notch עם Lens Highlight */}
+                      <div className="absolute left-1/2 -translate-x-1/2 top-4.5 w-26 h-5 bg-black rounded-full flex items-center justify-between px-3.5 z-30 shadow-[inset_0_1.5px_3px_rgba(255,255,255,0.15),_0_1.5px_1.5px_rgba(0,0,0,0.4)]">
+                        <div className="w-2.5 h-2.5 bg-[#080a15] rounded-full border border-neutral-900 flex items-center justify-center">
+                          <div className="w-1 h-1 bg-indigo-950/70 rounded-full opacity-70" />
+                        </div>
+                        <div className="w-3.5 h-1 bg-neutral-950 rounded-full" />
+                      </div>
+ 
+                      {/* Screen Envelope */}
+                      <div className="relative w-full h-full overflow-hidden bg-[#e5ddd5] rounded-[42px] flex flex-col select-none border border-black/25 shadow-inner">
+                        
+                        {/* High-fidelity Glass Glare Reflection Overlay */}
+                        <div 
+                          className="absolute inset-0 pointer-events-none z-15 opacity-[0.22] mix-blend-overlay"
+                          style={{
+                            background: 'linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.1) 28%, rgba(255,255,255,0) 29%, rgba(255,255,255,0) 100%)'
+                          }}
+                        />
+                        
+                        {/* Subtle inner bezel reflection highlight */}
+                        <div className="absolute inset-[0.5px] rounded-[42px] border border-white/5 pointer-events-none z-15" />
+
+                        {/* WhatsApp Wallpaper texture overlay */}
+                        <div 
+                          className="absolute inset-0 opacity-[0.24] pointer-events-none z-0"
+                          style={{ 
+                            backgroundImage: "url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')",
+                            backgroundRepeat: 'repeat',
+                            backgroundSize: '110px',
+                          }}
+                        />
+ 
+                        {/* Inner Status Bar */}
+                        <div className="relative z-10 w-full h-9 px-5 pt-3.5 flex justify-between items-center text-neutral-800 text-[10px] font-sans font-extrabold leading-none select-none">
+                          <span>11:30</span>
+                          <div className="flex items-center space-x-1.5 pt-0.5">
+                            {/* Network signals */}
+                            <svg className="w-3.5 h-3.5 fill-current text-neutral-800" viewBox="0 0 24 24">
+                              <path d="M2 22h3v-3H2v3zm4 0h3v-6H6v6zm4 0h3v-10h-3v10zm4 0h3v-15h-3v15zm4 0h3V2h-3v20z" />
+                            </svg>
+                            {/* Wave */}
+                            <svg className="w-3.5 h-3.5 stroke-current text-neutral-800 fill-none stroke-[2.5]" viewBox="0 0 24 24">
+                              <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+                              <path d="M8.53 16.1a6 6 0 0 1 6.95 0" />
+                            </svg>
+                            {/* Battery outline */}
+                            <div className="w-5 h-2.2 border-[1.2px] border-neutral-800 rounded-sm p-[1px] flex items-center">
+                              <div className="bg-[#00a83e] h-full w-[85%] rounded-[0.5px]" />
+                            </div>
+                          </div>
+                        </div>
+ 
+                        {/* Inner WhatsApp Header */}
+                        <div className="relative z-10 bg-white/95 backdrop-blur-sm px-3.5 py-2.5 flex items-center justify-between border-b border-neutral-200/50 shadow-sm shadow-neutral-200/10">
+                          <div className="flex items-center space-x-2.5">
+                            <div className="relative">
+                              <div className="w-8.5 h-8.5 rounded-full bg-[#00a83e] flex items-center justify-center text-white font-sans font-black text-sm border border-[#00a83e]/5 shadow-sm">
+                                C
+                              </div>
+                              <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 border border-white rounded-full animate-pulse" />
+                            </div>
+                            <div className="text-left">
+                              <h3 className="font-extrabold text-xs text-neutral-900 leading-tight">
+                                Treinador Ceruti
+                              </h3>
+                              <p className="text-[9.5px] text-green-600 font-bold leading-none mt-0.5">online</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-3 text-neutral-400">
+                            <Phone className="w-4 h-4 cursor-context-menu hover:text-neutral-600" />
+                            <Video className="w-4 h-4 cursor-context-menu hover:text-neutral-600" />
+                            <MoreVertical className="w-4 h-4 cursor-context-menu hover:text-neutral-600" />
+                          </div>
+                        </div>
+ 
+                        {/* Spacer for screen list (This portion is blurred out because active cards pop OUT above it) */}
+                        <div className="flex-1" />
+ 
+                        {/* WhatsApp Styled Footer send-message control */}
+                        <div className="relative z-10 bg-[#fafafa]/90 backdrop-blur-sm p-3 flex items-center justify-between gap-2.5 border-t border-neutral-200/40 pb-5">
+                          <div className="bg-white border border-neutral-200 text-[10.5px] px-3.5 py-2 rounded-full flex-1 text-neutral-400 text-left shadow-inner truncate">
+                            Aguardando retorno prático...
+                          </div>
+                          <div className="w-7.5 h-7.5 rounded-full bg-[#00a83e] flex items-center justify-center text-white shadow-sm shrink-0">
+                            <svg className="w-3.5 h-3.5 rotate-[45deg]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                              <line x1="22" y1="2" x2="11" y2="13" />
+                              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                            </svg>
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+
+                                                            {/* 3. The 3D Popouts: 5 Gorgeous Speech Bubbles positioned in a dynamic flex layout inside the WhatsApp chat area */}
+                    <div 
+                      style={{ 
+                        transform: 'translateZ(115px)',
+                        transformStyle: 'preserve-3d'
+                      }}
+                      className="absolute top-[110px] bottom-[82px] left-[14px] right-[14px] flex flex-col justify-center gap-2.5 sm:gap-3.5 z-20 pointer-events-auto"
+                    >
+                      
+                      {/* Message 1: Usuário Audio 1 */}
+                      <div 
+                        style={{ transform: 'translateZ(25px) translateX(24px)', transformStyle: 'preserve-3d' }}
+                        className="self-end w-[82%] sm:w-[85%] max-w-[200px] sm:max-w-[220px] relative"
+                      >
+                        <motion.div 
+                          animate={{ y: [0, -3, 0] }}
+                          transition={{ duration: 4.8, repeat: Infinity, ease: "easeInOut" }}
+                          className="bg-[#d9fdd3] text-neutral-850 p-1.5 px-2 rounded-2xl rounded-tr-none shadow-[0_18px_32px_rgba(37,211,102,0.18),_0_6px_12px_rgba(0,0,0,0.12)] border border-[#c1fca9] text-left relative"
+                        >
+                          {/* pointy right tail */}
+                          <div className="absolute top-0 right-[-6px] w-3 h-3 bg-[#d9fdd3] pointer-events-none" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)' }} />
+                          
+                          <div className="flex items-center gap-1.5">
+                            {/* Avatar wrapper */}
+                            <div className="relative shrink-0">
                               <div 
-                                className={`text-[12.5px] p-3 rounded-2xl max-w-[85%] shadow-[0_1px_2px_rgba(0,0,0,0.06)] relative border text-left ${
-                                  isUser 
-                                    ? 'bg-[#e2f9cb] border-[#e2f9cb] text-neutral-800 rounded-tr-none' 
-                                    : 'bg-white border-neutral-100 text-neutral-800 rounded-tl-none'
-                                }`}
-                              >
-                                <p className="leading-relaxed font-sans font-medium">{msg.text}</p>
-                                <div className="text-[9px] text-neutral-400 text-right mt-1.5 flex items-center justify-end gap-0.5 font-mono">
-                                  <span>{msg.time}</span>
-                                  {isUser && (
-                                    <svg className="w-3.5 h-3.5 text-[#53bdeb]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                      <polyline points="20 6 9 17 4 12" />
-                                      <polyline points="13 6 9 10" />
-                                      <line x1="20" y1="12" x2="16" y2="16" />
-                                    </svg>
-                                  )}
+                                className="w-7 h-7 rounded-full bg-neutral-200/80 border border-white/25 shadow-sm leading-none bg-cover" 
+                                style={{ backgroundImage: "url('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=150&auto=format&fit=crop')" }} 
+                              />
+                              <div className="absolute right-[-2px] bottom-[-2px] w-3 h-3 bg-emerald-500 rounded-full flex items-center justify-center border border-white shadow-xs">
+                                <Mic className="w-1.5 h-1.5 text-white animate-pulse" />
+                              </div>
+                            </div>
+   
+                            {/* Audio Player details */}
+                            <div className="flex-1 flex flex-col justify-between">
+                              <div className="flex items-center gap-1">
+                                {/* Play button */}
+                                <div className="w-5 h-5 rounded-full bg-neutral-800/5 hover:bg-neutral-800/10 flex items-center justify-center cursor-context-menu">
+                                  <Play className="w-2 h-2 text-neutral-700 fill-neutral-700 ml-0.5" />
+                                </div>
+                                
+                                {/* Waves */}
+                                <div className="flex-1 flex items-center gap-[1px] h-4 px-0.5 pt-1 select-none">
+                                  {[5, 12, 16, 9, 5, 14, 18, 9, 11, 15, 6, 12].map((h, i) => (
+                                    <div 
+                                      key={i} 
+                                      className="w-[1.5px] rounded-full"
+                                      style={{ 
+                                        height: `${h * 0.7}px`,
+                                        backgroundColor: i < 7 ? '#34b7f1' : '#a1daaa' 
+                                      }} 
+                                    />
+                                  ))}
                                 </div>
                               </div>
-                            </motion.div>
-                          );
-                        })}
-
-                        {/* Real-time typing bubble simulation for the AI coach */}
-                        {isTypingNext && (
-                          <motion.div 
-                            key="typing-indicator"
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className="flex justify-start"
-                          >
-                            <div className="bg-white border border-neutral-100 text-neutral-800 rounded-tl-none text-[12.5px] px-4 py-3 rounded-2xl shadow-[0_1px_2px_rgba(0,0,0,0.06)] flex items-center gap-1.5">
-                              <span className="w-1.5 h-1.5 bg-[#00a83e] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                              <span className="w-1.5 h-1.5 bg-[#00a83e] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                              <span className="w-1.5 h-1.5 bg-[#00a83e] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                              
+                              {/* Time and checks */}
+                              <div className="flex justify-between items-center mt-0.5 text-[8px] text-[#667781] leading-none select-none">
+                                <span className="font-sans font-medium">0:18</span>
+                                <div className="flex items-center gap-0.5">
+                                  <span>11:30</span>
+                                  <CheckCheck className="w-2.5 h-2.5 text-[#34b7f1]" />
+                                </div>
+                              </div>
                             </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-
-                    {/* Highly intuitive, beautiful floating scroll/next pill button (pointer-events-auto overrides container locking) */}
-                    <div className="absolute bottom-16 inset-x-0 flex justify-center z-20 pointer-events-auto select-none px-4">
-                      {visibleMessagesCount < (CONVERSATION_THREADS[activeObjectionId]?.length || 0) ? (
-                        <motion.button
-                          onClick={advanceConversation}
-                          disabled={isTypingNext}
-                          animate={isTypingNext ? { scale: 0.98 } : {
-                            scale: [1, 1.03, 1],
-                          }}
-                          transition={isTypingNext ? { duration: 0.2 } : {
-                            duration: 2.2,
-                            repeat: Infinity,
-                            ease: "easeInOut"
-                          }}
-                          className={`relative overflow-visible inline-flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 rounded-full text-[11px] sm:text-xs font-sans font-black tracking-widest uppercase border transition-all duration-300 ${
-                            isTypingNext
-                              ? 'bg-[#009035] border-[#00a83e] text-white force-white cursor-not-allowed shadow-none'
-                              : 'bg-[#00a83e] hover:bg-[#00c54a] border-[#00c54a] text-white force-white hover:scale-[1.05] active:scale-95 cursor-pointer shadow-[0_4px_16px_rgba(34,197,94,0.3)]'
-                          }`}
-                        >
-                          {/* Highly eye-catching concentric pulsing halos */}
-                          {!isTypingNext && (
-                            <>
-                              <motion.div
-                                className="absolute inset-0 rounded-full border border-[#00c54a]/30 pointer-events-none z-0"
-                                animate={{
-                                  scale: [1, 1.15, 1],
-                                  opacity: [0.5, 0, 0.5]
-                                }}
-                                transition={{
-                                  duration: 2.2,
-                                  repeat: Infinity,
-                                  ease: "easeInOut"
-                                }}
-                              />
-                              <motion.div
-                                className="absolute inset-0 rounded-full bg-[#00a83e]/10 pointer-events-none z-0"
-                                animate={{
-                                  scale: [1, 1.25, 1],
-                                  opacity: [0.25, 0, 0.25]
-                                }}
-                                transition={{
-                                  duration: 2.2,
-                                  delay: 0.4,
-                                  repeat: Infinity,
-                                  ease: "easeInOut"
-                                }}
-                              />
-                            </>
-                          )}
-                          <span className="relative z-10 text-white force-white font-sans font-black tracking-wider drop-shadow-sm">{isTypingNext ? 'Ceruti pensando...' : 'Avançar Resposta'}</span>
-                          <ChevronDown className="relative z-10 w-3.5 h-3.5 sm:w-4 sm:h-4 text-white force-white animate-bounce" />
-                        </motion.button>
-                      ) : (
-                        <motion.button
-                          onClick={restartConversation}
-                          animate={{
-                            scale: [1, 1.02, 1],
-                          }}
-                          transition={{
-                            duration: 2.5,
-                            repeat: Infinity,
-                            ease: "easeInOut"
-                          }}
-                          className="relative overflow-visible inline-flex items-center gap-2 px-3.5 py-2 sm:px-5 sm:py-3 rounded-full text-[10px] sm:text-[11px] font-sans font-black tracking-wider bg-neutral-900 hover:bg-black border border-neutral-800 text-white force-white transition-all hover:scale-[1.03] active:scale-95 cursor-pointer shadow-[0_4px_12px_rgba(0,0,0,0.2)]"
-                        >
-                          {/* Striking pulsing rings for restart button */}
-                          <motion.div
-                            className="absolute inset-0 rounded-full border border-neutral-600/30 pointer-events-none z-0"
-                            animate={{
-                              scale: [1, 1.12, 1],
-                              opacity: [0.4, 0, 0.4]
-                            }}
-                            transition={{
-                              duration: 2.5,
-                              repeat: Infinity,
-                              ease: "easeInOut"
-                            }}
-                          />
-                          <motion.div
-                            className="absolute inset-0 rounded-full bg-neutral-900/10 pointer-events-none z-0"
-                            animate={{
-                              scale: [1, 1.22, 1],
-                              opacity: [0.2, 0, 0.2]
-                            }}
-                            transition={{
-                              duration: 2.5,
-                              delay: 0.5,
-                              repeat: Infinity,
-                              ease: "easeInOut"
-                            }}
-                          />
-                          <span className="relative z-10 text-white force-white">Reiniciar Diálogo</span>
-                          <RotateCcw className="relative z-10 w-3 h-3 sm:w-3.5 sm:h-3.5 text-white force-white animate-spin-slow" />
-                        </motion.button>
-                      )}
-                    </div>
-
-                    {/* Chat Input Bar */}
-                    <div className="bg-[#FAF9F6] p-3 flex items-center justify-between gap-2.5 z-10 select-none shrink-0 border-t border-neutral-200/40">
-                      <div className="bg-white border border-neutral-200/85 text-[11.5px] px-4 py-2 rounded-full flex-1 text-neutral-400 italic text-left shadow-inner truncate">
-                        Aguardando retorno prático...
+                          </div>
+                        </motion.div>
                       </div>
-                      <div className="w-8.5 h-8.5 rounded-full bg-[#008069] flex items-center justify-center text-white cursor-pointer shadow-sm shadow-[#00806a]/15 shrink-0">
-                        <svg className="w-4 h-4 rotate-[45deg]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <line x1="22" y1="2" x2="11" y2="13" />
-                          <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                        </svg>
+   
+                      {/* Message 2: Ceruti Response 1 */}
+                      <div 
+                        style={{ transform: 'translateZ(35px) translateX(-24px)', transformStyle: 'preserve-3d' }}
+                        className="self-start w-[82%] sm:w-[85%] max-w-[190px] sm:max-w-[210px] relative"
+                      >
+                        <motion.div 
+                          animate={{ y: [0, -3, 0] }}
+                          transition={{ duration: 5.2, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                          className="bg-white text-neutral-800 p-2 rounded-2xl rounded-tl-none shadow-[0_20px_35px_rgba(0,0,0,0.14),_0_6px_12px_rgba(0,0,0,0.11)] border border-neutral-100 text-left relative"
+                        >
+                          {/* pointy left tail */}
+                          <div className="absolute top-0 left-[-6px] w-3 h-3 bg-white pointer-events-none" style={{ clipPath: 'polygon(100% 0, 0 0, 100% 100%)' }} />
+                          
+                          <p className="font-sans font-medium text-[10.5px] sm:text-[11px] leading-snug text-neutral-900 pr-1">
+                            Opa, João. Prospecção realmente é complicado... vamos dar um jeito nisso.
+                          </p>
+                          
+                          <div className="text-[7.5px] text-[#667781] text-right mt-0.5 font-sans">
+                            11:31
+                          </div>
+                        </motion.div>
+                      </div>
+   
+                      {/* Message 3: Ceruti Response 2 */}
+                      <div 
+                        style={{ transform: 'translateZ(30px) translateX(-16px)', transformStyle: 'preserve-3d' }}
+                        className="self-start w-[82%] sm:w-[85%] max-w-[190px] sm:max-w-[210px] relative"
+                      >
+                        <motion.div 
+                          animate={{ y: [0, -3, 0] }}
+                          transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut", delay: 1.0 }}
+                          className="bg-white text-neutral-800 p-2 rounded-2xl rounded-tl-none shadow-[0_18px_32px_rgba(0,0,0,0.13),_0_6px_12px_rgba(0,0,0,0.11)] border border-neutral-100 text-left relative"
+                        >
+                          {/* pointy left tail */}
+                          <div className="absolute top-0 left-[-6px] w-3 h-3 bg-white pointer-events-none" style={{ clipPath: 'polygon(100% 0, 0 0, 100% 100%)' }} />
+                          
+                          <p className="font-sans font-medium text-[10.5px] sm:text-[11px] leading-snug text-neutral-900 pr-1">
+                            Vou te fazer 3 perguntas rápidas, somente para eu entender melhor o cenário
+                          </p>
+                          
+                          <div className="text-[7.5px] text-[#667781] text-right mt-0.5 font-sans">
+                            11:32
+                          </div>
+                        </motion.div>
+                      </div>
+   
+                      {/* Message 4: Ceruti Response 3 (Padronizada) */}
+                      <div 
+                        style={{ transform: 'translateZ(40px) translateX(-24px)', transformStyle: 'preserve-3d' }}
+                        className="self-start w-[82%] sm:w-[85%] max-w-[195px] sm:max-w-[215px] relative"
+                      >
+                        <motion.div 
+                          animate={{ y: [0, -3, 0] }}
+                          transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
+                          className="bg-white text-neutral-800 p-2 rounded-2xl rounded-tl-none shadow-[0_22px_38px_rgba(0,0,0,0.16),_0_8px_16px_rgba(0,0,0,0.13)] border border-neutral-100 text-left relative"
+                        >
+                          {/* pointy left tail */}
+                          <div className="absolute top-0 left-[-6px] w-3 h-3 bg-white pointer-events-none" style={{ clipPath: 'polygon(100% 0, 0 0, 100% 100%)' }} />
+                          
+                          <p className="font-sans font-medium text-[10.5px] sm:text-[11px] leading-snug text-neutral-900 pr-1">
+                            Primeiro, gostaria de entender melhor quem você está prospectando. Produtor de grande, médio ou pequeno porte? E o que ele planta?
+                          </p>
+                          
+                          <div className="text-[7.5px] text-[#667781] text-right mt-0.5 font-sans">
+                            11:32
+                          </div>
+                        </motion.div>
+                      </div>
+   
+                      {/* Message 5: Usuário Audio 2 */}
+                      <div 
+                        style={{ transform: 'translateZ(26px) translateX(24px)', transformStyle: 'preserve-3d' }}
+                        className="self-end w-[82%] sm:w-[85%] max-w-[200px] sm:max-w-[220px] relative"
+                      >
+                        <motion.div 
+                          animate={{ y: [0, -3, 0] }}
+                          transition={{ duration: 5.0, repeat: Infinity, ease: "easeInOut", delay: 2.0 }}
+                          className="bg-[#d9fdd3] text-neutral-850 p-1.5 px-2 rounded-2xl rounded-tr-none shadow-[0_18px_32px_rgba(37,211,102,0.18),_0_6px_12px_rgba(0,0,0,0.12)] border border-[#c1fca9] text-left relative"
+                        >
+                          {/* pointy right tail */}
+                          <div className="absolute top-0 right-[-6px] w-3 h-3 bg-[#d9fdd3] pointer-events-none" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)' }} />
+                          
+                          <div className="flex items-center gap-1.5">
+                            {/* Avatar wrapper */}
+                            <div className="relative shrink-0">
+                              <div 
+                                className="w-7 h-7 rounded-full bg-neutral-200/80 border border-white/25 shadow-sm leading-none bg-cover" 
+                                style={{ backgroundImage: "url('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=150&auto=format&fit=crop')" }} 
+                              />
+                              <div className="absolute right-[-2px] bottom-[-2px] w-3 h-3 bg-emerald-500 rounded-full flex items-center justify-center border border-white shadow-xs">
+                                <Mic className="w-1.5 h-1.5 text-white active-pulse" />
+                              </div>
+                            </div>
+   
+                            {/* Audio Player details */}
+                            <div className="flex-1 flex flex-col justify-between">
+                              <div className="flex items-center gap-1">
+                                {/* Play button */}
+                                <div className="w-5 h-5 rounded-full bg-neutral-800/5 hover:bg-neutral-800/10 flex items-center justify-center cursor-context-menu">
+                                  <Play className="w-2 h-2 text-neutral-700 fill-neutral-700 ml-0.5" />
+                                </div>
+                                
+                                {/* Waves */}
+                                <div className="flex-1 flex items-center gap-[1px] h-4 px-0.5 pt-1 select-none">
+                                  {[3, 9, 14, 18, 9, 12, 15, 23, 16, 9].map((h, i) => (
+                                    <div 
+                                      key={i} 
+                                      className="w-[1.5px] rounded-full"
+                                      style={{ 
+                                        height: `${h * 0.6}px`,
+                                        backgroundColor: i < 7 ? '#34b7f1' : '#a1daaa' 
+                                      }} 
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                              
+                              {/* Time and checks */}
+                              <div className="flex justify-between items-center mt-0.5 text-[8px] text-[#667781] leading-none select-none">
+                                <span className="font-sans font-medium flex items-center gap-0.5">
+                                  <span>0:42</span>
+                                  <span className="text-[6px]">⚡ 1.5x</span>
+                                </span>
+                                <div className="flex items-center gap-0.5">
+                                  <span>11:33</span>
+                                  <CheckCheck className="w-2.5 h-2.5 text-[#34b7f1]" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
                       </div>
                     </div>
 
-                  </div>
-                </motion.div>
+                 </div>
 
-                {/* Simulated Floating Shadow to ground the device realistically as shown in screenshot */}
-                <div 
-                  className="w-[180px] sm:w-[220px] h-3.5 bg-neutral-500/70 rounded-full mt-7 shadow-lg z-0 mx-auto"
-                />
+                 {/* Simulated Ambient Glow under the 3D element */}
+                 <div className="absolute -bottom-10 w-[240px] sm:w-[280px] h-6 bg-[#00a83e]/15 blur-2xl rounded-full z-0 pointer-events-none" />
 
-              </div>
+               </div>
 
-            </div>
+             </div>
 
           </div>
         </div>
@@ -989,7 +999,7 @@ export default function App() {
           <div className="flex justify-center mt-12 relative z-20">
             <a 
               href="#planos" 
-              className="inline-flex items-center gap-3 bg-[#00a83e] hover:bg-[#009035] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-md shadow-[#00a83e]/20 hover:scale-[1.01] active:scale-[0.99]"
+              className="inline-flex items-center gap-3 bg-gradient-to-r from-[#600207] via-[#bd1822] to-[#f04d56] hover:from-[#730309] hover:via-[#d41c27] hover:to-[#f55d65] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-lg shadow-red-950/25 hover:shadow-red-600/35 hover:scale-[1.01] active:scale-[0.99] border-b-[3px] border-[#450104]"
             >
               <MessageCircle className="w-5 h-5 text-current" />
               Quero ter acesso
@@ -1252,7 +1262,7 @@ export default function App() {
           <div className="flex justify-center mt-12 relative z-20">
             <a 
               href="#planos" 
-              className="inline-flex items-center gap-3 bg-[#00a83e] hover:bg-[#009035] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-md shadow-[#00a83e]/20 hover:scale-[1.01] active:scale-[0.99]"
+              className="inline-flex items-center gap-3 bg-gradient-to-r from-[#600207] via-[#bd1822] to-[#f04d56] hover:from-[#730309] hover:via-[#d41c27] hover:to-[#f55d65] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-lg shadow-red-950/25 hover:shadow-red-600/35 hover:scale-[1.01] active:scale-[0.99] border-b-[3px] border-[#450104]"
             >
               <MessageCircle className="w-5 h-5 text-current" />
               Quero ter acesso
@@ -1481,7 +1491,7 @@ export default function App() {
           <div className="flex justify-center mt-12 relative z-20">
             <a 
               href="#planos" 
-              className="inline-flex items-center gap-3 bg-[#00a83e] hover:bg-[#009035] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-md shadow-[#00a83e]/20 hover:scale-[1.01] active:scale-[0.99]"
+              className="inline-flex items-center gap-3 bg-gradient-to-r from-[#600207] via-[#bd1822] to-[#f04d56] hover:from-[#730309] hover:via-[#d41c27] hover:to-[#f55d65] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-lg shadow-red-950/25 hover:shadow-red-600/35 hover:scale-[1.01] active:scale-[0.99] border-b-[3px] border-[#450104]"
             >
               <MessageCircle className="w-5 h-5 text-current" />
               Quero ter acesso
@@ -1617,7 +1627,7 @@ export default function App() {
           <div className="flex justify-center mt-12 pb-8">
             <Link 
               to="/checkout"
-              className="inline-flex items-center gap-3 bg-[#00a83e] hover:bg-[#009035] text-white px-8 sm:px-10 py-4 sm:py-4.5 rounded-2xl font-black text-sm sm:text-[15px] tracking-widest uppercase transition-all shadow-[0_8px_25px_rgba(0,168,62,0.3)] hover:-translate-y-1"
+              className="inline-flex items-center gap-3 bg-gradient-to-r from-[#600207] via-[#bd1822] to-[#f04d56] hover:from-[#730309] hover:via-[#d41c27] hover:to-[#f55d65] text-white px-8 sm:px-10 py-4 sm:py-4.5 rounded-2xl font-black text-sm sm:text-[15px] tracking-widest uppercase transition-all shadow-lg shadow-red-950/25 hover:shadow-red-600/35 hover:-translate-y-1 active:scale-[0.99] border-b-[3px] border-[#450104]"
             >
               <Rocket className="w-6 h-6" />
               ASSINAR AGORA
@@ -1880,7 +1890,7 @@ export default function App() {
           <div className="flex justify-center mt-12 relative z-20">
             <a 
               href="#planos" 
-              className="inline-flex items-center gap-3 bg-[#00a83e] hover:bg-[#009035] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-md shadow-[#00a83e]/20 hover:scale-[1.01] active:scale-[0.99]"
+              className="inline-flex items-center gap-3 bg-gradient-to-r from-[#600207] via-[#bd1822] to-[#f04d56] hover:from-[#730309] hover:via-[#d41c27] hover:to-[#f55d65] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-lg shadow-red-950/25 hover:shadow-red-600/35 hover:scale-[1.01] active:scale-[0.99] border-b-[3px] border-[#450104]"
             >
               <MessageCircle className="w-5 h-5 text-current" />
               Quero ter acesso
