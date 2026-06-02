@@ -13,10 +13,22 @@ interface Message {
 
 export const WhatsAppWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [showBalloon, setShowBalloon] = useState(true);
+  const [showBalloon, setShowBalloon] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Show balloon with a 3-second delay when the chatbot is closed or on initial mount
+  useEffect(() => {
+    if (!isOpen) {
+      const timer = setTimeout(() => {
+        setShowBalloon(true);
+      }, 3000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowBalloon(false);
+    }
+  }, [isOpen]);
 
   // Default target number
   const WHATSAPP_NUMBER = '5567981246558';
@@ -282,26 +294,20 @@ export const WhatsAppWidget = () => {
               initial={{ opacity: 0, y: 15, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
-              className="absolute bottom-20 sm:bottom-24 right-0 mr-1 flex flex-col items-end w-72 sm:w-80 max-w-[325px] drop-shadow-[0_12px_35px_rgba(0,0,0,0.35)] select-none z-50 cursor-pointer"
+              className="absolute bottom-18 sm:bottom-22 right-0 mr-1 flex flex-col items-end w-[220px] sm:w-[250px] drop-shadow-[0_8px_25px_rgba(0,0,0,0.3)] select-none z-50 cursor-pointer"
               onClick={toggleWidget}
             >
-              {/* Balloon Bubble Body - More expanded padding */}
-              <div className="relative w-full group bg-gradient-to-br from-neutral-900 via-neutral-950 to-neutral-900 border border-neutral-800 text-white rounded-2xl py-5 px-6 pr-12 text-sm font-medium tracking-tight shadow-[0_6px_35px_rgba(0,168,62,0.25)] transition-all duration-300 hover:border-[#10b981]/60">
-                {/* Clean, high-contrast message with force-white class and direct inline style safety */}
-                <div 
-                  className="flex items-center gap-2 text-[16px] sm:text-[18px] font-extrabold force-white leading-tight select-none"
-                  style={{ color: '#FFFFFF' }}
-                >
-                  <Sparkles className="w-5 h-5 text-[#10b981] animate-pulse shrink-0" />
-                  <span className="force-white" style={{ color: '#FFFFFF' }}>Teste por 3 dias</span>
+              {/* Balloon Bubble Body - Sleek and compact with light gradient and dark/black text */}
+              <div className="relative w-full group bg-gradient-to-br from-white via-[#f4fdf9] to-[#edfcf5] border border-emerald-200/90 text-neutral-900 rounded-xl py-3 px-4 pr-10 text-xs sm:text-sm font-medium tracking-tight shadow-[0_6px_22px_rgba(0,168,62,0.14)] transition-all duration-300 hover:border-[#00a83e]/50">
+                {/* Clean, high-contrast message with dark text */}
+                <div className="flex items-center gap-1.5 text-[14px] sm:text-[15px] font-black text-neutral-950 leading-tight select-none">
+                  <Sparkles className="w-4 h-4 text-[#00a83e] animate-pulse shrink-0" />
+                  <span>Teste por 3 dias</span>
                 </div>
                 
-                <div 
-                  className="flex items-center gap-1.5 text-[12px] sm:text-[13px] font-bold force-white mt-2 select-none transition-colors duration-200 group-hover:text-[#10b981]"
-                  style={{ color: '#FFFFFF' }}
-                >
-                  <span className="force-white opacity-90 group-hover:opacity-100" style={{ color: '#FFFFFF' }}>Clique aqui</span>
-                  <span className="text-[11px]">⚡</span>
+                <div className="flex items-center gap-1 text-[11px] sm:text-[12px] font-extrabold text-[#00a83e] mt-1 select-none transition-colors duration-200 group-hover:text-emerald-700">
+                  <span className="opacity-95 group-hover:opacity-100">Clique aqui</span>
+                  <span className="text-[10px]">⚡</span>
                 </div>
 
                 {/* Dismiss X button */}
@@ -310,15 +316,15 @@ export const WhatsAppWidget = () => {
                     e.stopPropagation();
                     setShowBalloon(false);
                   }}
-                  className="absolute top-3 right-3 text-neutral-400 hover:text-white transition-colors p-1.5 rounded-full hover:bg-neutral-800/60"
+                  className="absolute top-2 right-2 text-neutral-400 hover:text-neutral-800 hover:bg-emerald-100/50 transition-colors p-1 rounded-full"
                   aria-label="Fechar balão"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </div>
 
-              {/* Chat Bubble Arrow Pin */}
-              <div className="w-4 h-4 bg-neutral-950 rotate-45 -mt-2.5 mr-6 border-r border-b border-neutral-800" />
+              {/* Chat Bubble Arrow Pin matching the light gradient bottom part */}
+              <div className="w-3.5 h-3.5 bg-[#edfcf5] rotate-45 -mt-2 mr-5 border-r border-b border-emerald-200/90" />
             </motion.div>
           )}
         </AnimatePresence>
