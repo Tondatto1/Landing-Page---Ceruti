@@ -38,6 +38,7 @@ import ScrollStack, { ScrollStackItem } from './components/ScrollStack';
 import { VideoEmbed } from './components/VideoEmbed';
 import { FAQ } from './components/FAQ';
 import AnimatedList from './components/AnimatedList';
+import { WhatsAppWidget } from './components/WhatsAppWidget';
 
 const CONVERSATION_THREADS: Record<string, Array<{ sender: 'user' | 'ceruti', text: string, time: string }>> = {
   'preco-saca': [
@@ -1949,32 +1950,8 @@ export default function App() {
         </div>
       </footer>
 
-      {/* Floating WhatsApp Button */}
-      <a
-        href="https://wa.me/5567981246558?text=Olá! Gostaria de saber mais sobre o Ceruti."
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#25D366] text-white shadow-[0_8px_30px_rgba(37,211,102,0.4)] hover:bg-[#20ba5c] hover:scale-110 hover:shadow-[0_12px_40px_rgba(37,211,102,0.6)] active:scale-95 transition-all duration-300 group border-2 border-white/90"
-        aria-label="Fale conosco no WhatsApp"
-        id="whatsapp_floating_button"
-      >
-        {/* Pulsing glow underlay */}
-        <div className="absolute inset-0 rounded-full bg-[#25D366]/30 animate-pulse pointer-events-none -z-10 group-hover:scale-115 transition-transform duration-300" />
-        <div className="absolute inset-0 rounded-full bg-[#25D366]/20 animate-ping pointer-events-none -z-10" />
-
-        <svg 
-          className="w-8 h-8 sm:w-9 sm:h-9 fill-current stroke-none drop-shadow-sm select-none" 
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path d="M17.472 14.382c-.022-.015-.029-.02-.054-.051l-.105-.125c-.27-.324-1.79-1.082-1.79-1.082s-.225-.138-.415.111l-.475.63s-.167.228-.432.115c-.266-.113-.99-.44-1.85-1.205-.666-.595-1.116-1.332-1.246-1.56-.13-.227-.014-.35.101-.462l.307-.36s.1-.15.004-.298c-.097-.15-1.015-2.45-1.015-2.45s-.125-.335-.41-.318c-.287.017-.822.422-1.137.77-.314.347-.565.807-.533 1.393.07 1.314.614 2.502 1.488 3.518.874 1.015 1.956 1.83 3.12 2.38 1.127.531 2.155.805 2.873.744.757-.064 1.348-.38 1.66-.75.312-.371.492-.852.492-.852s.06-.182-.016-.27-.268-.14-.268-.14zm-5.466 7.424h-.01c-1.875 0-3.71-.493-5.32-1.425l-.382-.22-3.955 1.038 1.056-3.855-.24-.383A9.761 9.761 0 011.82 12c0-5.411 4.417-9.82 9.851-9.82a9.774 9.774 0 016.968 2.878c1.859 1.861 2.883 4.34 2.88 6.945C21.516 17.411 17.1 21.82 11.666 21.82zM12 0C5.373 0 0 5.372 0 12c0 2.11.547 4.16 1.59 5.973L0 24l6.216-1.63C7.94 23.36 9.94 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/>
-        </svg>
-        
-        {/* Help text on hover (Desktops) */}
-        <span className="absolute right-18 sm:right-20 scale-0 bg-neutral-950 text-white font-sans text-xs font-semibold px-3 py-1.5 rounded-lg shadow-md transition-all duration-200 group-hover:scale-100 whitespace-nowrap shadow-black/20">
-          Chamar no WhatsApp
-        </span>
-      </a>
+      {/* Floating WhatsApp Chat Widget */}
+      <WhatsAppWidget />
     </div>
   );
 }
