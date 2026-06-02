@@ -416,14 +416,14 @@ export default function App() {
                                 </div>
                                 
                                 {/* Waves */}
-                                <div className="flex-1 flex items-center gap-[1px] h-4 px-0.5 pt-1 select-none">
-                                  {[5, 12, 16, 9, 5, 14, 18, 9, 11, 15, 6, 12].map((h, i) => (
+                                <div className="flex-1 flex items-center justify-between h-4 px-0.5 pt-1 select-none">
+                                  {[5, 8, 14, 20, 16, 11, 6, 9, 13, 19, 16, 12, 7, 5, 10, 15, 18, 14, 9, 11, 16, 21, 19, 14, 9, 7, 11, 15, 13, 9, 6, 11, 7, 4].map((h, i) => (
                                     <div 
                                       key={i} 
-                                      className="w-[1.5px] rounded-full"
+                                      className="w-[2px] rounded-full"
                                       style={{ 
                                         height: `${h * 0.7}px`,
-                                        backgroundColor: i < 7 ? '#34b7f1' : '#a1daaa' 
+                                        backgroundColor: i < 13 ? '#34b7f1' : '#a1daaa' 
                                       }} 
                                     />
                                   ))}
@@ -546,14 +546,14 @@ export default function App() {
                                 </div>
                                 
                                 {/* Waves */}
-                                <div className="flex-1 flex items-center gap-[1px] h-4 px-0.5 pt-1 select-none">
-                                  {[3, 9, 14, 18, 9, 12, 15, 23, 16, 9].map((h, i) => (
+                                <div className="flex-1 flex items-center justify-between h-4 px-0.5 pt-1 select-none">
+                                  {[4, 7, 12, 18, 15, 10, 6, 8, 12, 19, 16, 11, 8, 5, 9, 14, 17, 13, 8, 10, 15, 20, 17, 12, 8, 6, 10, 14, 18, 14, 10, 7, 11, 8, 5, 9, 6, 4].map((h, i) => (
                                     <div 
                                       key={i} 
-                                      className="w-[1.5px] rounded-full"
+                                      className="w-[2px] rounded-full"
                                       style={{ 
                                         height: `${h * 0.6}px`,
-                                        backgroundColor: i < 7 ? '#34b7f1' : '#a1daaa' 
+                                        backgroundColor: i < 25 ? '#34b7f1' : '#a1daaa' 
                                       }} 
                                     />
                                   ))}
