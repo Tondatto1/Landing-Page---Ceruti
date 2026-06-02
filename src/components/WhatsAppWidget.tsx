@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, User } from 'firebase/auth';
+import { HanaAvatar } from './HanaAvatar';
 import { 
   saveLead, 
   getLeads, 
@@ -251,7 +252,7 @@ export const WhatsAppWidget = () => {
       const botMsg: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
-        text: 'Excelente escolha! 🚀\nO nosso treinador de Inteligência Artificial está pronto para capacitar e impulsionar suas vendas rurais diretamente pelo WhatsApp!\n\nPara ativarmos e liberarmos o seu *Teste Grátis de 3 Dias*, preciso de 3 informações rápidas.\n\nPor favor, digite o seu *nome completo*:',
+        text: 'Excelente escolha: o nosso agente ceruti, está pronto para capacitar e impulsionar suas vendas através do WhatsApp.\n\nPara ativarmos e liberarmos o seu *Teste Grátis de 3 Dias*, preciso de 3 informações rápidas.\n\nPor favor, digite o seu *nome completo*:',
         time: formatTime()
       };
       setMessages((prev) => [...prev, botMsg]);
@@ -426,7 +427,7 @@ export const WhatsAppWidget = () => {
       const botMsg: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
-        text: `Muito prazer, *${userText}*! 👋\n\nAgora, informe o seu *e-mail corporativo* principal:`,
+        text: `Muito prazer, *${userText}*! 👋\n\nAgora, informe o seu *e-mail* principal:`,
         time: formatTime()
       };
       setMessages((prev) => [...prev, botMsg]);
@@ -616,14 +617,14 @@ export const WhatsAppWidget = () => {
                     {/* Hidden administration panel portal triggers on 5 rapid clicks on the 'C' brand avatar */}
                     <div 
                       onClick={handleAvatarClick}
-                      className="relative w-10 h-10 rounded-full bg-white/10 flex items-center justify-center border border-white/20 shadow-inner cursor-pointer select-none"
-                      title="Assistente Virtual"
+                      className="relative w-10 h-10 rounded-full overflow-hidden flex items-center justify-center border border-white/20 shadow-inner cursor-pointer select-none bg-neutral-100"
+                      title="Hana - assistente virtual"
                     >
-                      <span className="font-extrabold text-white text-base font-sans tracking-tight">C</span>
+                      <HanaAvatar className="w-full h-full" />
                       <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[#008069] animate-pulse" />
                     </div>
                     <div className="text-left">
-                      <h4 className="font-bold text-sm tracking-tight leading-tight">Assistente Virtual</h4>
+                      <h4 className="font-bold text-xs sm:text-sm tracking-tight leading-tight text-white">Hana - assistente virtual</h4>
                       <p className="text-[11px] text-[#b3dfd6] flex items-center gap-1 font-medium font-sans select-none">
                         <span>Online</span>
                         <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping" />
