@@ -240,15 +240,15 @@ export default function App() {
             <div className="lg:col-span-6 flex flex-col justify-center items-center relative">
               
               {/* Resizing / Scaling Container to fit beautifully on any screen size */}
-              <div className="relative w-full max-w-[420px] sm:max-w-[480px] h-[660px] flex items-center justify-center scale-[0.80] min-[380px]:scale-[0.85] min-[440px]:scale-[0.92] sm:scale-100 origin-center select-none pointer-events-none">
+              <div className="relative w-full max-w-[440px] sm:max-w-[500px] h-[680px] flex items-center justify-center scale-[0.93] min-[380px]:scale-[0.97] min-[440px]:scale-[1.02] sm:scale-100 md:scale-[1.06] origin-center select-none pointer-events-none">
                 
-                {/* 3D Slanted/Rotated Container */}
+                {/* 3D Slanted/Rotated Container (Straightened & Centered as requested) */}
                 <div 
                   style={{ 
-                    transform: 'perspective(1600px) rotateY(-4deg) rotateX(3deg) rotateZ(-1deg)', 
+                    transform: 'perspective(1600px) rotateY(0deg) rotateX(0deg) rotateZ(0deg)', 
                     transformStyle: 'preserve-3d' 
                   }}
-                  className="relative w-full max-w-[280px] sm:max-w-[325px] h-[630px]"
+                  className="relative w-full max-w-[315px] sm:max-w-[348px] h-[645px]"
                 >
                              {/* 1. Glossy 3D Translucent WhatsApp Logo */}
                   <div 
@@ -271,7 +271,7 @@ export default function App() {
                    {/* 2. Premium iPhone Metallic Chassis */}
                    <div 
                       style={{ transform: 'translateZ(10px)' }}
-                      className="absolute inset-0 bg-gradient-to-b from-neutral-850 to-neutral-950 rounded-[52px] p-2.5 shadow-[0_28px_60px_-15px_rgba(0,0,0,0.5),_0_0_40px_rgba(37,211,102,0.12)] border-[5.5px] border-neutral-800 ring-1 ring-white/20 flex flex-col"
+                      className="absolute inset-0 bg-neutral-950 rounded-[52px] p-2.5 shadow-[0_28px_60px_-15px_rgba(0,0,0,0.5),_0_0_40px_rgba(37,211,102,0.12)] border-[5.5px] border-black ring-[1.5px] ring-neutral-900/80 flex flex-col"
                     >
                       {/* Physical buttons deco with high-end polished styling */}
                       <div className="absolute left-[-5px] top-[105px] w-[5px] h-[35px] bg-gradient-to-r from-neutral-500 to-neutral-800 rounded-l shadow-sm border-r border-neutral-600" />
@@ -379,13 +379,13 @@ export default function App() {
                         transform: 'translateZ(115px)',
                         transformStyle: 'preserve-3d'
                       }}
-                      className="absolute top-[110px] bottom-[82px] left-[14px] right-[14px] flex flex-col justify-center gap-2.5 sm:gap-3.5 z-20 pointer-events-auto"
+                      className="absolute top-[115px] bottom-[85px] left-[16px] right-[16px] flex flex-col justify-center gap-3 sm:gap-4 z-20 pointer-events-auto"
                     >
                       
                       {/* Message 1: Usuário Audio 1 */}
                       <div 
                         style={{ transform: 'translateZ(25px) translateX(24px)', transformStyle: 'preserve-3d' }}
-                        className="self-end w-[82%] sm:w-[85%] max-w-[200px] sm:max-w-[220px] relative"
+                        className="self-end w-[85%] sm:w-[88%] max-w-[220px] sm:max-w-[245px] relative"
                       >
                         <motion.div 
                           animate={{ y: [0, -3, 0] }}
@@ -446,7 +446,7 @@ export default function App() {
                       {/* Message 2: Ceruti Response 1 */}
                       <div 
                         style={{ transform: 'translateZ(35px) translateX(-24px)', transformStyle: 'preserve-3d' }}
-                        className="self-start w-[82%] sm:w-[85%] max-w-[190px] sm:max-w-[210px] relative"
+                        className="self-start w-[85%] sm:w-[88%] max-w-[210px] sm:max-w-[235px] relative"
                       >
                         <motion.div 
                           animate={{ y: [0, -3, 0] }}
@@ -469,7 +469,7 @@ export default function App() {
                       {/* Message 3: Ceruti Response 2 */}
                       <div 
                         style={{ transform: 'translateZ(30px) translateX(-16px)', transformStyle: 'preserve-3d' }}
-                        className="self-start w-[82%] sm:w-[85%] max-w-[190px] sm:max-w-[210px] relative"
+                        className="self-start w-[85%] sm:w-[88%] max-w-[210px] sm:max-w-[235px] relative"
                       >
                         <motion.div 
                           animate={{ y: [0, -3, 0] }}
@@ -492,7 +492,7 @@ export default function App() {
                       {/* Message 4: Ceruti Response 3 (Padronizada) */}
                       <div 
                         style={{ transform: 'translateZ(40px) translateX(-24px)', transformStyle: 'preserve-3d' }}
-                        className="self-start w-[82%] sm:w-[85%] max-w-[195px] sm:max-w-[215px] relative"
+                        className="self-start w-[85%] sm:w-[88%] max-w-[215px] sm:max-w-[240px] relative"
                       >
                         <motion.div 
                           animate={{ y: [0, -3, 0] }}
@@ -515,7 +515,7 @@ export default function App() {
                       {/* Message 5: Usuário Audio 2 */}
                       <div 
                         style={{ transform: 'translateZ(26px) translateX(24px)', transformStyle: 'preserve-3d' }}
-                        className="self-end w-[82%] sm:w-[85%] max-w-[200px] sm:max-w-[220px] relative"
+                        className="self-end w-[85%] sm:w-[88%] max-w-[220px] sm:max-w-[245px] relative"
                       >
                         <motion.div 
                           animate={{ y: [0, -3, 0] }}
