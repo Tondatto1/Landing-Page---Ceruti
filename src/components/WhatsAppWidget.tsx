@@ -609,175 +609,209 @@ export const WhatsAppWidget = () => {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 30, scale: 0.95 }}
                 transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-                className="absolute bottom-20 sm:bottom-24 right-0 w-[350px] sm:w-[380px] max-w-[calc(100vw-32px)] h-[520px] max-h-[80vh] flex flex-col bg-[#efeae2] rounded-3xl border border-neutral-200 shadow-[0_15px_60px_-15px_rgba(0,0,0,0.3)] overflow-hidden z-[999]"
+                className="absolute bottom-20 sm:bottom-24 right-0 w-[350px] sm:w-[380px] max-w-[calc(100vw-32px)] h-[520px] max-h-[80vh] z-[999] pointer-events-auto"
               >
-                {/* Custom Header (WhatsApp teal styled) */}
-                <div className="bg-[#008069] text-white py-3.5 px-4 flex items-center justify-between shadow-sm relative shrink-0">
-                  <div className="flex items-center gap-3">
-                    {/* Hidden administration panel portal triggers on 5 rapid clicks on the 'C' brand avatar */}
-                    <div 
-                      onClick={handleAvatarClick}
-                      className="relative w-10 h-10 rounded-full overflow-hidden flex items-center justify-center border border-white/20 shadow-inner cursor-pointer select-none bg-neutral-100"
-                      title="Hana - assistente virtual"
-                    >
-                      <HanaAvatar className="w-full h-full" />
-                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[#008069] animate-pulse" />
+                {/* Solid Glowing Border SVG overlay with perpetual simultaneous animation */}
+                <svg className="absolute inset-0 w-full h-full pointer-events-none z-50">
+                  <defs>
+                    <filter id="glow-border" x="-20%" y="-20%" width="140%" height="140%">
+                      <feGaussianBlur stdDeviation="3.5" result="blur" />
+                      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                    </filter>
+                  </defs>
+                  <motion.rect
+                    x="2.5"
+                    y="2.5"
+                    width="calc(100% - 5px)"
+                    height="calc(100% - 5px)"
+                    rx="24"
+                    fill="none"
+                    stroke="#008069"
+                    strokeWidth="4.5"
+                    strokeLinecap="round"
+                    style={{ filter: "url(#glow-border)" }}
+                    animate={{
+                      opacity: [0.75, 1, 0.75],
+                      stroke: ["#02d3ac", "#008069", "#02d3ac"]
+                    }}
+                    transition={{
+                      duration: 3,
+                      ease: "easeInOut",
+                      repeat: Infinity
+                    }}
+                  />
+                </svg>
+
+                {/* Main container with slightly increased border thickness */}
+                <div className="w-full h-full flex flex-col bg-[#efeae2] rounded-3xl border border-neutral-200 shadow-[0_15px_60px_-15px_rgba(0,0,0,0.3)] overflow-hidden relative">
+                  {/* Custom Header (WhatsApp teal styled) */}
+                  <div className="bg-[#008069] text-white py-3.5 px-4 flex items-center justify-between shadow-sm relative shrink-0">
+                    <div className="flex items-center gap-3">
+                      {/* Hidden administration panel portal triggers on 5 rapid clicks on the 'C' brand avatar */}
+                      <div 
+                        onClick={handleAvatarClick}
+                        className="relative w-10 h-10 rounded-full overflow-hidden flex items-center justify-center border border-white/20 shadow-inner cursor-pointer select-none bg-neutral-100"
+                        title="Hana - assistente virtual"
+                      >
+                        <HanaAvatar className="w-full h-full" />
+                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[#008069] animate-pulse" />
+                      </div>
+                      <div className="text-left">
+                        <h4 className="font-bold text-xs sm:text-sm tracking-tight leading-tight text-white force-white">Hana - assistente virtual</h4>
+                        <p className="text-[11px] text-[#b3dfd6] force-white flex items-center gap-1 font-medium font-sans select-none">
+                          <span className="force-white">Online</span>
+                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping" />
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-left">
-                      <h4 className="font-bold text-xs sm:text-sm tracking-tight leading-tight text-white force-white">Hana - assistente virtual</h4>
-                      <p className="text-[11px] text-[#b3dfd6] force-white flex items-center gap-1 font-medium font-sans select-none">
-                        <span className="force-white">Online</span>
-                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping" />
-                      </p>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setIsOpen(false)}
+                        className="text-white/80 hover:text-white p-1.5 hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+                        aria-label="Minimizar conversa"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => setIsOpen(false)}
-                      className="text-white/80 hover:text-white p-1.5 hover:bg-white/10 rounded-full transition-colors cursor-pointer"
-                      aria-label="Minimizar conversa"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Chat Messages Log Area */}
-                <div 
-                  className="flex-1 overflow-y-auto p-4 space-y-4"
-                  style={{
-                    backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")',
-                    backgroundBlendMode: 'overlay',
-                    backgroundColor: '#efeae2',
-                    opacity: 0.97
-                  }}
-                >
-                  <div className="flex justify-center mb-2">
-                    <div className="bg-amber-100/90 border border-amber-200 text-amber-900 text-[11px] px-3 py-1 rounded-lg text-center font-medium max-w-[85%] shadow-sm uppercase tracking-wider">
-                      🔒 Canal Oficial • Resposta imediata
+                  {/* Chat Messages Log Area */}
+                  <div 
+                    className="flex-1 overflow-y-auto p-4 space-y-4"
+                    style={{
+                      backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")',
+                      backgroundBlendMode: 'overlay',
+                      backgroundColor: '#efeae2',
+                      opacity: 0.97
+                    }}
+                  >
+                    <div className="flex justify-center mb-2">
+                      <div className="bg-amber-100/90 border border-amber-200 text-amber-900 text-[11px] px-3 py-1 rounded-lg text-center font-medium max-w-[85%] shadow-sm uppercase tracking-wider">
+                        🔒 Canal Oficial • Resposta imediata
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Messages Mapping */}
-                  {messages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={`flex flex-col max-w-[82%] ${
-                        msg.sender === 'user' ? 'ml-auto items-end' : 'mr-auto items-start'
-                      }`}
-                    >
+                    {/* Messages Mapping */}
+                    {messages.map((msg) => (
                       <div
-                        className={`relative px-3.5 py-2.5 rounded-2xl shadow-sm text-sm ${
-                          msg.sender === 'user'
-                            ? 'bg-[#d9fdd3] text-neutral-800 rounded-tr-none'
-                            : 'bg-white text-neutral-800 rounded-tl-none'
+                        key={msg.id}
+                        className={`flex flex-col max-w-[82%] ${
+                          msg.sender === 'user' ? 'ml-auto items-end' : 'mr-auto items-start'
                         }`}
                       >
-                        <p className="whitespace-pre-wrap leading-relaxed break-words font-medium text-[13.5px] font-sans">
-                          {renderMessageText(msg.text)}
-                        </p>
+                        <div
+                          className={`relative px-3.5 py-2.5 rounded-2xl shadow-sm text-sm ${
+                            msg.sender === 'user'
+                              ? 'bg-[#d9fdd3] text-neutral-800 rounded-tr-none'
+                              : 'bg-white text-neutral-800 rounded-tl-none'
+                          }`}
+                        >
+                          <p className="whitespace-pre-wrap leading-relaxed break-words font-medium text-[13.5px] font-sans">
+                            {renderMessageText(msg.text)}
+                          </p>
 
-                        {msg.cta && (
-                          <div className="mt-3.5">
-                            <a
-                              href={msg.cta.link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center justify-center gap-2 w-full py-3.5 px-4 bg-[#25D366] text-white font-extrabold uppercase text-[11px] tracking-wider rounded-xl hover:bg-[#20ba5c] hover:scale-[1.02] shadow-[0_4px_12px_rgba(37,211,102,0.3)] transition-all duration-300"
-                            >
-                              <MessageCircle className="w-4 h-4 fill-white" />
-                              {msg.cta.text}
-                            </a>
+                          {msg.cta && (
+                            <div className="mt-3.5">
+                              <a
+                                href={msg.cta.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-center gap-2 w-full py-3.5 px-4 bg-[#25D366] text-white font-extrabold uppercase text-[11px] tracking-wider rounded-xl hover:bg-[#20ba5c] hover:scale-[1.02] shadow-[0_4px_12px_rgba(37,211,102,0.3)] transition-all duration-300"
+                              >
+                                <MessageCircle className="w-4 h-4 fill-white" />
+                                {msg.cta.text}
+                              </a>
+                            </div>
+                          )}
+
+                          <span className="block text-[10px] text-neutral-400 text-right mt-1.5 select-none font-sans font-normal leading-none">
+                            {msg.time}
+                            {msg.sender === 'user' && (
+                              <CheckCheck className="inline-block w-3.5 h-3.5 ml-1 text-sky-500" />
+                            )}
+                          </span>
+                        </div>
+
+                        {/* Options below */}
+                        {msg.options && (
+                          <div className="mt-2.5 w-full flex flex-col gap-2">
+                            {msg.options.map((opt, i) => {
+                              const isTestOption = opt.action === 'test_3_days';
+                              return (
+                                <button
+                                  key={i}
+                                  onClick={() => handleOptionClick(opt.action, opt.text)}
+                                  className={`text-left w-full transition-all duration-300 active:scale-98 rounded-xl ${
+                                    isTestOption
+                                      ? "bg-gradient-to-r from-[#600207] to-[#bd1822] hover:from-[#730309] hover:to-[#d41c27] text-white font-black text-xs sm:text-[13px] py-3.5 px-4 border-b-2 border-[#450104] shadow-[0_4px_15px_rgba(189,24,34,0.3)] animate-pulse cursor-pointer"
+                                      : "bg-white hover:bg-teal-50 hover:text-[#008069] text-gray-700 font-semibold text-xs sm:text-[13px] py-2.5 px-3.5 border border-neutral-200 shadow-sm cursor-pointer"
+                                  }`}
+                                >
+                                  {opt.text}
+                                </button>
+                              );
+                            })}
                           </div>
                         )}
-
-                        <span className="block text-[10px] text-neutral-400 text-right mt-1.5 select-none font-sans font-normal leading-none">
-                          {msg.time}
-                          {msg.sender === 'user' && (
-                            <CheckCheck className="inline-block w-3.5 h-3.5 ml-1 text-sky-500" />
-                          )}
-                        </span>
                       </div>
+                    ))}
 
-                      {/* Options below */}
-                      {msg.options && (
-                        <div className="mt-2.5 w-full flex flex-col gap-2">
-                          {msg.options.map((opt, i) => {
-                            const isTestOption = opt.action === 'test_3_days';
-                            return (
-                              <button
-                                key={i}
-                                onClick={() => handleOptionClick(opt.action, opt.text)}
-                                className={`text-left w-full transition-all duration-300 active:scale-98 rounded-xl ${
-                                  isTestOption
-                                    ? "bg-gradient-to-r from-[#600207] to-[#bd1822] hover:from-[#730309] hover:to-[#d41c27] text-white font-black text-xs sm:text-[13px] py-3.5 px-4 border-b-2 border-[#450104] shadow-[0_4px_15px_rgba(189,24,34,0.3)] animate-pulse cursor-pointer"
-                                    : "bg-white hover:bg-teal-50 hover:text-[#008069] text-gray-700 font-semibold text-xs sm:text-[13px] py-2.5 px-3.5 border border-neutral-200 shadow-sm cursor-pointer"
-                                }`}
-                              >
-                                {opt.text}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    {/* Simulated Typing */}
+                    {isTyping && (
+                      <div className="flex items-center gap-1.5 max-w-[40%] bg-white px-4 py-3 rounded-2xl rounded-tl-none shadow-sm mr-auto">
+                        <span className="w-1.5 h-1.5 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-1.5 h-1.5 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-1.5 h-1.5 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </div>
+                    )}
 
-                  {/* Simulated Typing */}
-                  {isTyping && (
-                    <div className="flex items-center gap-1.5 max-w-[40%] bg-white px-4 py-3 rounded-2xl rounded-tl-none shadow-sm mr-auto">
-                      <span className="w-1.5 h-1.5 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="w-1.5 h-1.5 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-1.5 h-1.5 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                    </div>
-                  )}
+                    <div ref={chatEndRef} />
+                  </div>
 
-                  <div ref={chatEndRef} />
-                </div>
-
-                {/* Form / Dummy Input Footer */}
-                <form
-                  onSubmit={handleCustomInputSubmit}
-                  className="bg-[#f0f2f5] px-3.5 py-3 flex items-center gap-2.5 border-t border-neutral-200 shrink-0"
-                >
-                  {signupStep !== 'idle' ? (
-                    <input
-                      type={signupStep === 'email' ? 'email' : 'text'}
-                      value={userInputText}
-                      onChange={(e) => setUserInputText(e.target.value)}
-                      placeholder={
-                        signupStep === 'name' 
-                          ? 'Digite seu nome completo...' 
-                          : signupStep === 'email' 
-                            ? 'Digite seu melhor e-mail...' 
-                            : 'Digite seu WhatsApp com DDD...'
-                      }
-                      required
-                      className="flex-1 bg-white rounded-full py-2 px-4 text-neutral-800 font-sans text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#008069] shadow-inner"
-                      autoFocus
-                    />
-                  ) : (
-                    <input
-                      type="text"
-                      disabled
-                      value=""
-                      placeholder="Escolha uma opção acima..."
-                      className="flex-1 bg-white rounded-full py-2 px-4 text-neutral-400 font-sans text-xs sm:text-sm select-none cursor-not-allowed border-none outline-none"
-                    />
-                  )}
-                  <button
-                    type="submit"
-                    disabled={signupStep === 'idle'}
-                    className={`flex items-center justify-center h-10 w-10 rounded-full shadow-sm transition-all ${
-                      signupStep !== 'idle'
-                        ? 'bg-[#008069] text-white hover:bg-[#006e57] active:scale-95 cursor-pointer'
-                        : 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
-                    }`}
+                  {/* Form / Dummy Input Footer */}
+                  <form
+                    onSubmit={handleCustomInputSubmit}
+                    className="bg-[#f0f2f5] px-3.5 py-3 flex items-center gap-2.5 border-t border-neutral-200 shrink-0"
                   >
-                    <Send className="w-4 h-4 ml-0.5" />
-                  </button>
-                </form>
+                    {signupStep !== 'idle' ? (
+                      <input
+                        type={signupStep === 'email' ? 'email' : 'text'}
+                        value={userInputText}
+                        onChange={(e) => setUserInputText(e.target.value)}
+                        placeholder={
+                          signupStep === 'name' 
+                            ? 'Digite seu nome completo...' 
+                            : signupStep === 'email' 
+                              ? 'Digite seu melhor e-mail...' 
+                              : 'Digite seu WhatsApp com DDD...'
+                        }
+                        required
+                        className="flex-1 bg-white rounded-full py-2 px-4 text-neutral-800 font-sans text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#008069] shadow-inner"
+                        autoFocus
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        disabled
+                        value=""
+                        placeholder="Escolha uma opção acima..."
+                        className="flex-1 bg-white rounded-full py-2 px-4 text-neutral-400 font-sans text-xs sm:text-sm select-none cursor-not-allowed border-none outline-none"
+                      />
+                    )}
+                    <button
+                      type="submit"
+                      disabled={signupStep === 'idle'}
+                      className={`flex items-center justify-center h-10 w-10 rounded-full shadow-sm transition-all ${
+                        signupStep !== 'idle'
+                          ? 'bg-[#008069] text-white hover:bg-[#006e57] active:scale-95 cursor-pointer'
+                          : 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
+                      }`}
+                    >
+                      <Send className="w-4 h-4 ml-0.5" />
+                    </button>
+                  </form>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
