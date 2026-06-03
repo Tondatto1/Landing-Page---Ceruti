@@ -45,7 +45,7 @@ import { VideoEmbed } from './components/VideoEmbed';
 import { FAQ } from './components/FAQ';
 import AnimatedList from './components/AnimatedList';
 import { WhatsAppWidget } from './components/WhatsAppWidget';
-import { HanaAvatar } from './components/HanaAvatar';
+import { HanaAvatar, CerutiAvatar } from './components/HanaAvatar';
 
 export default function App() {
   // Mobile menu toggle
@@ -337,21 +337,21 @@ export default function App() {
                           <div className="flex items-center space-x-2.5">
                             <div className="relative">
                               <div className="w-8.5 h-8.5 rounded-full overflow-hidden bg-white/10 flex items-center justify-center border border-white/20 shadow-sm">
-                                <HanaAvatar className="w-full h-full" />
+                                <CerutiAvatar className="w-full h-full" />
                               </div>
                               <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-400 border border-[#008069] rounded-full animate-pulse" />
                             </div>
-                            <div className="text-left">
-                              <h3 className="font-extrabold text-[11px] text-white leading-tight">
-                                Hana - assistente virtual
+                            <div className="text-left font-sans">
+                              <h3 className="font-bold text-[14px] text-white force-white leading-tight">
+                                Agente Ceruti
                               </h3>
-                              <p className="text-[9.5px] text-[#b3dfd6] font-bold leading-none mt-0.5">online</p>
+                              <p className="text-[10px] text-[#e2f0ee] force-white font-medium leading-none mt-1">online</p>
                             </div>
                           </div>
-                          <div className="flex items-center space-x-3 text-white/80">
-                            <Phone className="w-4 h-4 cursor-context-menu hover:text-white" />
-                            <Video className="w-4 h-4 cursor-context-menu hover:text-white" />
-                            <MoreVertical className="w-4 h-4 cursor-context-menu hover:text-white" />
+                          <div className="flex items-center space-x-3 text-white/80 force-white">
+                            <Phone className="w-4 h-4 cursor-context-menu hover:text-white force-white" />
+                            <Video className="w-4 h-4 cursor-context-menu hover:text-white force-white" />
+                            <MoreVertical className="w-4 h-4 cursor-context-menu hover:text-white force-white" />
                           </div>
                         </div>
  

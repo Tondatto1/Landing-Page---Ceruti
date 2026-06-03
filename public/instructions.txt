@@ -1,0 +1,2 @@
+# Pasta para arquivos estáticos como imagens.
+# Você pode fazer upload de suas fotos diretamente aqui nesta pasta pelo File Explorer à esquerda!

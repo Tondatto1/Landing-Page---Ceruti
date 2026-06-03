@@ -624,9 +624,9 @@ export const WhatsAppWidget = () => {
                       <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[#008069] animate-pulse" />
                     </div>
                     <div className="text-left">
-                      <h4 className="font-bold text-xs sm:text-sm tracking-tight leading-tight text-white">Hana - assistente virtual</h4>
-                      <p className="text-[11px] text-[#b3dfd6] flex items-center gap-1 font-medium font-sans select-none">
-                        <span>Online</span>
+                      <h4 className="font-bold text-xs sm:text-sm tracking-tight leading-tight text-white force-white">Hana - assistente virtual</h4>
+                      <p className="text-[11px] text-[#b3dfd6] force-white flex items-center gap-1 font-medium font-sans select-none">
+                        <span className="force-white">Online</span>
                         <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping" />
                       </p>
                     </div>
