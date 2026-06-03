@@ -614,6 +614,12 @@ export const WhatsAppWidget = () => {
                 {/* Solid Glowing Border SVG overlay with perpetual simultaneous animation */}
                 <svg className="absolute inset-0 w-full h-full pointer-events-none z-50">
                   <defs>
+                    <linearGradient id="metallic-blue-green" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#005a9c" />
+                      <stop offset="40%" stopColor="#09297a" />
+                      <stop offset="80%" stopColor="#026b48" />
+                      <stop offset="100%" stopColor="#004026" />
+                    </linearGradient>
                     <filter id="glow-border" x="-20%" y="-20%" width="140%" height="140%">
                       <feGaussianBlur stdDeviation="3.5" result="blur" />
                       <feComposite in="SourceGraphic" in2="blur" operator="over" />
@@ -626,13 +632,12 @@ export const WhatsAppWidget = () => {
                     height="calc(100% - 5px)"
                     rx="24"
                     fill="none"
-                    stroke="#008069"
+                    stroke="url(#metallic-blue-green)"
                     strokeWidth="4.5"
                     strokeLinecap="round"
                     style={{ filter: "url(#glow-border)" }}
                     animate={{
-                      opacity: [0.75, 1, 0.75],
-                      stroke: ["#02d3ac", "#008069", "#02d3ac"]
+                      opacity: [0.75, 1, 0.75]
                     }}
                     transition={{
                       duration: 3,
