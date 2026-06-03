@@ -450,7 +450,7 @@ export const WhatsAppWidget = () => {
         console.error("Firestore persistence warning (falling back to localStorage only):", err);
       });
 
-      const messageText = `Olá. Acabei de realizar o cadastro para o teste grátis de 3 dias do Agro Sales Coach.\n\n👤 *Nome:* ${prospectData.name}\n📧 *E-mail:* ${prospectData.email}\n📱 *WhatsApp:* ${userText}`;
+      const messageText = `Olá, realizei meu cadastro na página e gostaria de ter acesso ao teste de três dias do agente Ceruti.`;
       const encodedMsg = encodeURIComponent(messageText);
 
       const botMsg: Message = {
