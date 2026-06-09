@@ -749,7 +749,7 @@ export const WhatsAppWidget = () => {
                                   onClick={() => handleOptionClick(opt.action, opt.text)}
                                   className={`text-left w-full transition-all duration-300 active:scale-98 rounded-xl ${
                                     isTestOption
-                                      ? "bg-gradient-to-r from-[#600207] to-[#bd1822] hover:from-[#730309] hover:to-[#d41c27] text-white font-black text-xs sm:text-[13px] py-3.5 px-4 border-b-2 border-[#450104] shadow-[0_4px_15px_rgba(189,24,34,0.3)] animate-pulse cursor-pointer"
+                                      ? "bg-gradient-to-r from-[#004d1a] to-[#00a83e] hover:from-[#006020] hover:to-[#00b944] text-white font-black text-xs sm:text-[13px] py-3.5 px-4 border-b-2 border-[#003813] shadow-[0_4px_15px_rgba(0,168,62,0.3)] animate-pulse cursor-pointer"
                                       : "bg-white hover:bg-teal-50 hover:text-[#008069] text-gray-700 font-semibold text-xs sm:text-[13px] py-2.5 px-3.5 border border-neutral-200 shadow-sm cursor-pointer"
                                   }`}
                                 >

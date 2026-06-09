@@ -79,7 +79,7 @@ export default function App() {
           <div className="hidden md:flex items-center">
             <a 
               href="#planos" 
-              className="bg-gradient-to-r from-[#600207] via-[#bd1822] to-[#f04d56] hover:from-[#730309] hover:via-[#d41c27] hover:to-[#f55d65] text-white font-extrabold text-xs tracking-wider uppercase px-5 py-2.5 rounded-lg transition-all duration-300 shadow-md shadow-red-950/20 hover:shadow-red-600/30 active:scale-98 border-b-2 border-[#450104]"
+              className="bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white font-extrabold text-xs tracking-wider uppercase px-5 py-2.5 rounded-lg transition-all duration-300 shadow-md shadow-emerald-950/20 hover:shadow-emerald-600/30 active:scale-98 border-b-2 border-[#003813]"
             >
               Quero ter acesso
             </a>
@@ -137,7 +137,7 @@ export default function App() {
                 <a 
                   href="#planos"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block w-full text-center bg-gradient-to-r from-[#600207] via-[#bd1822] to-[#f04d56] text-white py-2.5 rounded-lg font-extrabold text-xs tracking-wider uppercase transition-all duration-300 shadow-md shadow-red-950/20 border-b-2 border-[#450104]"
+                  className="block w-full text-center bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] text-white py-2.5 rounded-lg font-extrabold text-xs tracking-wider uppercase transition-all duration-300 shadow-md shadow-emerald-950/20 border-b-2 border-[#003813]"
                 >
                   Quero ter acesso
                 </a>
@@ -197,7 +197,7 @@ export default function App() {
               <div className="pt-0.5">
                 <a 
                   href="#planos" 
-                  className="inline-flex items-center gap-3 bg-gradient-to-r from-[#600207] via-[#bd1822] to-[#f04d56] hover:from-[#730309] hover:via-[#d41c27] hover:to-[#f55d65] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-lg shadow-red-950/25 hover:shadow-red-600/35 hover:scale-[1.01] active:scale-[0.99] border-b-[3px] border-[#450104]"
+                  className="inline-flex items-center gap-3 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-lg shadow-emerald-950/25 hover:shadow-emerald-600/35 hover:scale-[1.01] active:scale-[0.99] border-b-[3px] border-[#003813]"
                 >
                   <MessageCircle className="w-5 h-5 text-current" />
                   Quero ter acesso
@@ -1000,7 +1000,7 @@ export default function App() {
           <div className="flex justify-center mt-12 relative z-20">
             <a 
               href="#planos" 
-              className="inline-flex items-center gap-3 bg-gradient-to-r from-[#600207] via-[#bd1822] to-[#f04d56] hover:from-[#730309] hover:via-[#d41c27] hover:to-[#f55d65] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-lg shadow-red-950/25 hover:shadow-red-600/35 hover:scale-[1.01] active:scale-[0.99] border-b-[3px] border-[#450104]"
+              className="inline-flex items-center gap-3 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-lg shadow-emerald-950/25 hover:shadow-emerald-600/35 hover:scale-[1.01] active:scale-[0.99] border-b-[3px] border-[#003813]"
             >
               <MessageCircle className="w-5 h-5 text-current" />
               Quero ter acesso
@@ -1263,7 +1263,7 @@ export default function App() {
           <div className="flex justify-center mt-12 relative z-20">
             <a 
               href="#planos" 
-              className="inline-flex items-center gap-3 bg-gradient-to-r from-[#600207] via-[#bd1822] to-[#f04d56] hover:from-[#730309] hover:via-[#d41c27] hover:to-[#f55d65] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-lg shadow-red-950/25 hover:shadow-red-600/35 hover:scale-[1.01] active:scale-[0.99] border-b-[3px] border-[#450104]"
+              className="inline-flex items-center gap-3 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-lg shadow-emerald-950/25 hover:shadow-emerald-600/35 hover:scale-[1.01] active:scale-[0.99] border-b-[3px] border-[#003813]"
             >
               <MessageCircle className="w-5 h-5 text-current" />
               Quero ter acesso
@@ -1492,7 +1492,7 @@ export default function App() {
           <div className="flex justify-center mt-12 relative z-20">
             <a 
               href="#planos" 
-              className="inline-flex items-center gap-3 bg-gradient-to-r from-[#600207] via-[#bd1822] to-[#f04d56] hover:from-[#730309] hover:via-[#d41c27] hover:to-[#f55d65] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-lg shadow-red-950/25 hover:shadow-red-600/35 hover:scale-[1.01] active:scale-[0.99] border-b-[3px] border-[#450104]"
+              className="inline-flex items-center gap-3 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-lg shadow-emerald-950/25 hover:shadow-emerald-600/35 hover:scale-[1.01] active:scale-[0.99] border-b-[3px] border-[#003813]"
             >
               <MessageCircle className="w-5 h-5 text-current" />
               Quero ter acesso
@@ -1628,7 +1628,7 @@ export default function App() {
           <div className="flex justify-center mt-12 pb-8">
             <Link 
               to="/checkout"
-              className="inline-flex items-center gap-3 bg-gradient-to-r from-[#600207] via-[#bd1822] to-[#f04d56] hover:from-[#730309] hover:via-[#d41c27] hover:to-[#f55d65] text-white px-8 sm:px-10 py-4 sm:py-4.5 rounded-2xl font-black text-sm sm:text-[15px] tracking-widest uppercase transition-all shadow-lg shadow-red-950/25 hover:shadow-red-600/35 hover:-translate-y-1 active:scale-[0.99] border-b-[3px] border-[#450104]"
+              className="inline-flex items-center gap-3 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white px-8 sm:px-10 py-4 sm:py-4.5 rounded-2xl font-black text-sm sm:text-[15px] tracking-widest uppercase transition-all shadow-lg shadow-emerald-950/25 hover:shadow-emerald-600/35 hover:-translate-y-1 active:scale-[0.99] border-b-[3px] border-[#003813]"
             >
               <Rocket className="w-6 h-6" />
               ASSINAR AGORA
@@ -1891,7 +1891,7 @@ export default function App() {
           <div className="flex justify-center mt-12 relative z-20">
             <a 
               href="#planos" 
-              className="inline-flex items-center gap-3 bg-gradient-to-r from-[#600207] via-[#bd1822] to-[#f04d56] hover:from-[#730309] hover:via-[#d41c27] hover:to-[#f55d65] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-lg shadow-red-950/25 hover:shadow-red-600/35 hover:scale-[1.01] active:scale-[0.99] border-b-[3px] border-[#450104]"
+              className="inline-flex items-center gap-3 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-lg shadow-emerald-950/25 hover:shadow-emerald-600/35 hover:scale-[1.01] active:scale-[0.99] border-b-[3px] border-[#003813]"
             >
               <MessageCircle className="w-5 h-5 text-current" />
               Quero ter acesso
