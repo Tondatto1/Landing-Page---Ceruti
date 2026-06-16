@@ -172,24 +172,13 @@ export default function App() {
             
             {/* Left Content Column */}
             <div className="lg:col-span-6 flex flex-col items-start gap-y-3.5 sm:gap-y-4 lg:gap-y-5 text-left">
-              {/* Solid green indicator bar matching the screenshot */}
-              <div className="w-14 h-1.5 bg-[#00a83e] rounded-full" />
-
-              <div className="relative inline-flex items-center gap-2.5 bg-gradient-to-r from-[#00a83e] to-[#00c853] text-white font-sans font-black text-sm sm:text-base tracking-[0.12em] uppercase px-6 py-2.5 rounded-full shadow-[0_10px_30px_rgba(0,168,62,0.35)] border border-white/20 select-none transform hover:scale-[1.03] transition-all duration-300">
-                {/* Dynamic mini glowing core */}
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
-                </span>
-                <span>Para agronegócios</span>
-              </div>
 
               <h1 className="text-3xl sm:text-4xl lg:text-[44px] font-sans font-black text-neutral-900 leading-[1.2] sm:leading-[1.15] lg:leading-[1.1] tracking-tight sm:tracking-tighter lg:tracking-tighter pl-[1px]">
-                CERUTI: Um agente de IA que treina seus vendedores diretamente no whatsApp e faz sua empresa VENDER mais!
+                Agente de IA que treina seus vendedores através do whatsApp e faz sua empresa VENDER mais!
               </h1>
 
               <p className="text-[#3A4338]/90 text-lg md:text-xl font-medium leading-relaxed max-w-xl">
-                É o fim do treinamento comercial tradicional no agro.
+                É o fim do treinamento comercial tradicional no <span className="text-[#00a83e] font-bold underline decoration-[2px] decoration-[#00a83e]/30">agronegócios</span>.
               </p>
 
               {/* Action Button CTA */}
