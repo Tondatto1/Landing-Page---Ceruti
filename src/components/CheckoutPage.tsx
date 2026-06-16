@@ -13,7 +13,7 @@ import { WhatsAppWidget } from './WhatsAppWidget';
 
 export function CheckoutPage() {
   const navigate = useNavigate();
-  const [frequency, setFrequency] = useState<'mensal' | 'semestral'>('mensal');
+  const [frequency, setFrequency] = useState<'mensal' | 'semestral' | 'anual'>('mensal');
   const [usersCountStr, setUsersCountStr] = useState<string>('1');
   const usersCount = Math.max(1, parseInt(usersCountStr) || 1);
   const [paymentMethod, setPaymentMethod] = useState<'credit_card' | 'pix' | 'boleto'>('pix');
@@ -52,15 +52,21 @@ export function CheckoutPage() {
   // Pricing Logic
   const getUnitPrice = () => {
     if (usersCount <= 10) {
-      return frequency === 'mensal' ? 337.45 : 297.75;
+      if (frequency === 'mensal') return 337.45;
+      if (frequency === 'semestral') return 297.75;
+      return 258.05; // anual
     } else {
-      return frequency === 'mensal' ? 297.75 : 258.05;
+      if (frequency === 'mensal') return 297.75;
+      if (frequency === 'semestral') return 258.05;
+      return 218.35; // anual
     }
   };
 
   const unitPrice = getUnitPrice();
   const totalPricePerMonth = unitPrice * usersCount;
-  const grandTotal = frequency === 'mensal' ? totalPricePerMonth : totalPricePerMonth * 6;
+  const grandTotal = frequency === 'mensal' 
+    ? totalPricePerMonth 
+    : (frequency === 'semestral' ? totalPricePerMonth * 6 : totalPricePerMonth * 12);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -142,7 +148,7 @@ ${emojis.user} *DADOS DO CLIENTE*
 ━━━━━━━━━━━━━━━━━━━━━━
 
 ${emojis.plan} *DETALHES DO PLANO*
-*Plano:* ${frequency === 'mensal' ? 'Mensal' : 'Semestral'}
+*Plano:* ${frequency === 'mensal' ? 'Mensal' : (frequency === 'semestral' ? 'Semestral' : 'Anual')}
 *Acessos:* ${usersCount}
 *Valor por Acesso:* ${formatCurrency(unitPrice)}/mês
 *Total:* ${formatCurrency(grandTotal)}${accessNumbersText}
@@ -204,27 +210,54 @@ ${emojis.clock} _Aguardo as instruções para finalizar._`;
 
           <div className="mb-8">
             <h4 className="font-bold text-neutral-900 mb-4">Escolha a frequência:</h4>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5">
               <button
+                type="button"
                 onClick={() => setFrequency('mensal')}
-                className={`p-4 rounded-xl border-2 text-sm font-bold text-center transition-all ${
+                className={`px-1 py-2 sm:px-3 sm:p-4 rounded-xl border-2 text-xs sm:text-sm font-black text-center transition-all ${
                   frequency === 'mensal' 
                     ? 'border-[#0070f3] bg-[#f0f7ff] text-[#0070f3] shadow-inner' 
                     : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 hover:bg-gray-50'
                 }`}
               >
                 Mensal
+                <div className={`text-[8px] sm:text-[10px] mt-0.5 uppercase tracking-wider font-extrabold ${
+                  frequency === 'mensal' ? 'text-[#0070f3]/90' : 'text-emerald-600'
+                }`}>
+                  {usersCount <= 10 ? '15% OFF' : '25% OFF'}
+                </div>
               </button>
               <button
+                type="button"
                 onClick={() => setFrequency('semestral')}
-                className={`p-4 rounded-xl border-2 text-sm font-bold text-center transition-all ${
+                className={`px-1 py-2 sm:px-3 sm:p-4 rounded-xl border-2 text-xs sm:text-sm font-black text-center transition-all ${
                   frequency === 'semestral' 
                     ? 'border-[#0070f3] bg-[#f0f7ff] text-[#0070f3] shadow-inner' 
                     : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 hover:bg-gray-50'
                 }`}
               >
                 Semestral
-                <div className="text-[10px] text-[#0070f3] opacity-80 mt-0.5 uppercase tracking-widest">Até 35% OFF</div>
+                <div className={`text-[8px] sm:text-[10px] mt-0.5 uppercase tracking-wider font-extrabold ${
+                  frequency === 'semestral' ? 'text-[#0070f3]/90' : 'text-emerald-600'
+                }`}>
+                  {usersCount <= 10 ? '25% OFF' : '35% OFF'}
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setFrequency('anual')}
+                className={`px-1 py-2 sm:px-3 sm:p-4 rounded-xl border-2 text-xs sm:text-sm font-black text-center transition-all ${
+                  frequency === 'anual' 
+                    ? 'border-[#0070f3] bg-[#f0f7ff] text-[#0070f3] shadow-inner' 
+                    : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 hover:bg-gray-50'
+                }`}
+              >
+                Anual
+                <div className={`text-[8px] sm:text-[10px] mt-0.5 uppercase tracking-wider font-extrabold ${
+                  frequency === 'anual' ? 'text-[#0070f3]/90' : 'text-emerald-600'
+                }`}>
+                  {usersCount <= 10 ? '35% OFF' : '45% OFF'}
+                </div>
               </button>
             </div>
           </div>
@@ -255,22 +288,23 @@ ${emojis.clock} _Aguardo as instruções para finalizar._`;
           <div className="mt-4 pt-6 border-t border-neutral-200">
             <div className="flex justify-between items-center mb-2">
               <span className="text-neutral-500 font-medium text-sm">
-                Preço original:
+                Mensalidade (Preço original):
               </span>
               <span className="font-bold text-red-400/80 decoration-red-400 decoration-2 line-through text-sm">
-                R$ 397,00/mês
+                {formatCurrency(397 * usersCount)}/mês
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-neutral-500 font-medium text-sm">
+                Total (Preço original):
+              </span>
+              <span className="font-bold text-red-400/80 decoration-red-400 decoration-2 line-through text-sm">
+                {formatCurrency(397 * usersCount * (frequency === 'mensal' ? 1 : (frequency === 'semestral' ? 6 : 12)))}
               </span>
             </div>
             
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-[#00a83e] font-bold text-sm flex items-center gap-1.5">
-                Preço com desconto:
-                <span className="bg-[#eafdf0] px-2 py-0.5 rounded-full text-[11px] uppercase tracking-wide">
-                  {usersCount <= 10 ? (frequency === 'mensal' ? '15% OFF' : '25% OFF') : (frequency === 'mensal' ? '25% OFF' : '35% OFF')}
-                </span>
-              </span>
-              <span className="font-black text-neutral-900 text-lg">{formatCurrency(unitPrice)}/mês</span>
-            </div>
+
 
             {frequency === 'semestral' && (
               <div className="flex justify-between items-center mb-4 pt-4 border-t border-neutral-100">
@@ -278,22 +312,31 @@ ${emojis.clock} _Aguardo as instruções para finalizar._`;
                 <span className="font-bold text-neutral-900">6 meses</span>
               </div>
             )}
+
+            {frequency === 'anual' && (
+              <div className="flex justify-between items-center mb-4 pt-4 border-t border-neutral-100">
+                <span className="text-neutral-500 font-medium text-sm">Tempo de contrato:</span>
+                <span className="font-bold text-neutral-900">12 meses</span>
+              </div>
+            )}
+
+
             
             <div className="flex flex-col items-center mt-6 pt-6 border-t border-neutral-200 gap-2 sm:gap-3 pb-2 text-center">
               <span className="font-black text-neutral-500 text-xs sm:text-sm uppercase tracking-widest">
-                Total {frequency === 'mensal' ? 'Mensal' : 'Semestral'}
+                Mensalidade
               </span>
               <div className="flex items-baseline gap-1 sm:gap-1.5 justify-center">
                 <span className="font-bold text-lg sm:text-xl text-[#0b1a30]">R$</span>
                 <span className="font-black text-[32px] sm:text-[40px] text-[#0b1a30] leading-none tracking-tight truncate">
-                  {formatCurrency(grandTotal).replace('R$', '').trim()}
+                  {formatCurrency(totalPricePerMonth).replace('R$', '').trim()}
                 </span>
+                <span className="font-bold text-neutral-500 text-sm ml-1">/mês</span>
               </div>
-              {frequency === 'semestral' && (
-                <div className="text-[11px] sm:text-sm font-bold text-[#00a83e] bg-[#eafdf0] px-3 py-1.5 sm:px-4 sm:py-1.5 rounded-full inline-block mt-1 sm:mt-1.5">
-                   Em 1x de R$ {formatCurrency(grandTotal).replace('R$', '').trim()}
-                </div>
-              )}
+              
+              <div className="text-xs sm:text-sm font-semibold text-neutral-500 mt-1">
+                Total do plano somente <span className="font-black text-[#0b1a30]">{formatCurrency(grandTotal)}</span> para os {usersCount} {usersCount === 1 ? 'acesso' : 'acessos'}
+              </div>
             </div>
           </div>
           </div>

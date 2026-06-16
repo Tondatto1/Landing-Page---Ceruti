@@ -173,16 +173,16 @@ export default function App() {
             {/* Left Content Column */}
             <div className="lg:col-span-6 flex flex-col items-start gap-y-3.5 sm:gap-y-4 lg:gap-y-5 text-left">
 
-              <h1 className="text-3xl sm:text-4xl lg:text-[44px] font-sans font-black text-neutral-900 leading-[1.2] sm:leading-[1.15] lg:leading-[1.1] tracking-tight sm:tracking-tighter lg:tracking-tighter pl-[1px]">
+              <h1 className="order-1 text-3xl sm:text-4xl lg:text-[44px] font-sans font-black text-neutral-900 leading-[1.2] sm:leading-[1.15] lg:leading-[1.1] tracking-tight sm:tracking-tighter lg:tracking-tighter pl-[1px]">
                 Agente de IA que treina seus vendedores através do whatsApp e faz sua empresa VENDER mais!
               </h1>
 
-              <p className="text-[#3A4338]/90 text-lg md:text-xl font-medium leading-relaxed max-w-xl">
+              <p className="order-2 text-[#3A4338]/90 text-lg md:text-xl font-medium leading-relaxed max-w-xl">
                 É o fim do treinamento comercial tradicional no <span className="text-[#00a83e] font-bold underline decoration-[2px] decoration-[#00a83e]/30">agronegócios</span>.
               </p>
 
               {/* Action Button CTA */}
-              <div className="pt-0.5">
+              <div className="order-4 lg:order-3 pt-0.5">
                 <a 
                   href="#planos" 
                   className="inline-flex items-center gap-3 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-lg shadow-emerald-950/25 hover:shadow-emerald-600/35 hover:scale-[1.01] active:scale-[0.99] border-b-[3px] border-[#003813]"
@@ -193,7 +193,7 @@ export default function App() {
               </div>
 
               {/* Highlight Pillars (Clock, Bullseye, Increase Arrow) */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4.5 pt-5 sm:pt-6 border-t border-neutral-200 text-left max-w-2xl mb-[2px] mr-0">
+              <div className="order-3 lg:order-4 grid grid-cols-1 md:grid-cols-3 gap-4.5 pt-5 sm:pt-6 border-t border-neutral-200 text-left max-w-2xl mb-[2px] mr-0 w-full">
                 {/* Badge 1 */}
                 <div className="flex items-center gap-3">
                   <div className="w-11 h-11 shrink-0 rounded-full bg-[#e8f5e9] border border-[#c8e6c9]/30 shadow-sm flex items-center justify-center">
@@ -1523,7 +1523,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 mt-10 items-start justify-center max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 mt-10 items-start justify-center max-w-5xl mx-auto">
             {/* ATÉ 10 VENDEDORES */}
             <div className="bg-white border-2 border-[#d9e6ff] rounded-[32px] p-6 sm:p-8 flex flex-col relative w-full pt-12 shadow-[0_12px_45px_rgba(11,26,48,0.02)]">
               {/* Floating Badge */}
@@ -1535,34 +1535,61 @@ export default function App() {
                 ATÉ 10 VENDEDORES
               </h3>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 lg:gap-3 xl:gap-4">
                 {/* Mensal */}
-                <div className="bg-white border border-neutral-100 shadow-sm rounded-[24px] p-5 flex flex-col items-center">
-                  <div className="w-12 h-12 rounded-full bg-[#f0f7ff] text-[#0070f3] flex items-center justify-center mb-3">
-                    <CalendarDays className="w-6 h-6" />
+                <div className="bg-white border border-neutral-100 shadow-sm rounded-[24px] p-4 sm:p-2.5 md:p-3.5 xl:p-5 flex flex-col items-center">
+                  <div className="w-10 h-10 sm:w-8 sm:h-8 md:w-11 md:h-11 rounded-full bg-[#f0f7ff] text-[#0070f3] flex items-center justify-center mb-2.5">
+                    <CalendarDays className="w-5 h-5 sm:w-4 md:w-5.5 md:h-5.5" />
                   </div>
-                  <span className="font-bold text-neutral-900 text-sm mb-2">Mensal</span>
-                  <div className="flex items-baseline gap-1 mb-4">
-                    <span className="font-bold text-lg text-neutral-900 mt-1">R$</span>
-                    <span className="font-black text-3xl sm:text-4xl text-[#0b1a30] tracking-tighter leading-none">337<span className="text-xl sm:text-2xl">,45</span></span>
+                  <span className="font-bold text-neutral-900 text-sm sm:text-xs md:text-sm mb-1.5">Mensal</span>
+                  <div className="flex items-baseline gap-0.5 sm:gap-0 lg:gap-0.5 xl:gap-1 mb-3.5">
+                    <span className="font-bold text-sm sm:text-xs md:text-sm lg:text-xs xl:text-sm text-neutral-400 mt-0.5">R$</span>
+                    <span className="font-black text-2xl xs:text-3xl sm:text-xl md:text-2xl lg:text-xl xl:text-3xl text-[#0b1a30] tracking-tighter leading-none">337<span className="text-sm sm:text-xs md:text-sm lg:text-xs xl:text-lg font-bold">,45</span></span>
                   </div>
-                  <div className="bg-[#eafdf0] text-[#00a83e] font-bold text-xs uppercase px-4 py-1.5 rounded-full mt-auto">
+                  <div className="text-[10px] sm:text-[9px] md:text-[10px] text-neutral-500 font-extrabold -mt-2.5 mb-2.5 uppercase tracking-wide">
+                    Mês por acesso
+                  </div>
+                  <div className="bg-[#eafdf0] text-[#00a83e] font-black text-[10px] sm:text-[9px] md:text-[10px] xl:text-xs uppercase px-3 py-1 sm:px-1.5 md:px-2.5 rounded-full mt-auto">
                     15% OFF
                   </div>
                 </div>
 
                 {/* Semestral */}
-                <div className="bg-white border border-neutral-100 shadow-sm rounded-[24px] p-5 flex flex-col items-center">
-                  <div className="w-12 h-12 rounded-full bg-[#f0f7ff] text-[#0070f3] flex items-center justify-center mb-3">
-                    <CalendarDays className="w-6 h-6" />
+                <div className="bg-white border border-neutral-100 shadow-sm rounded-[24px] p-4 sm:p-2.5 md:p-3.5 xl:p-5 flex flex-col items-center">
+                  <div className="w-10 h-10 sm:w-8 sm:h-8 md:w-11 md:h-11 rounded-full bg-[#f0f7ff] text-[#0070f3] flex items-center justify-center mb-2.5">
+                    <CalendarDays className="w-5 h-5 sm:w-4 md:w-5.5 md:h-5.5" />
                   </div>
-                  <span className="font-bold text-neutral-900 text-sm mb-2">Semestral</span>
-                  <div className="flex items-baseline gap-1 mb-4">
-                    <span className="font-bold text-lg text-neutral-900 mt-1">R$</span>
-                    <span className="font-black text-3xl sm:text-4xl text-[#0b1a30] tracking-tighter leading-none">297<span className="text-xl sm:text-2xl">,75</span></span>
+                  <span className="font-bold text-neutral-900 text-sm sm:text-xs md:text-sm mb-1.5">Semestral</span>
+                  <div className="flex items-baseline gap-0.5 sm:gap-0 lg:gap-0.5 xl:gap-1 mb-3.5">
+                    <span className="font-bold text-sm sm:text-xs md:text-sm lg:text-xs xl:text-sm text-neutral-400 mt-0.5">R$</span>
+                    <span className="font-black text-2xl xs:text-3xl sm:text-xl md:text-2xl lg:text-xl xl:text-3xl text-[#0b1a30] tracking-tighter leading-none">297<span className="text-sm sm:text-xs md:text-sm lg:text-xs xl:text-lg font-bold">,75</span></span>
                   </div>
-                  <div className="bg-[#eafdf0] text-[#00a83e] font-bold text-xs uppercase px-4 py-1.5 rounded-full mt-auto">
+                  <div className="text-[10px] sm:text-[9px] md:text-[10px] text-neutral-500 font-extrabold -mt-2.5 mb-2.5 uppercase tracking-wide">
+                    Mês por acesso
+                  </div>
+                  <div className="bg-[#eafdf0] text-[#00a83e] font-black text-[10px] sm:text-[9px] md:text-[10px] xl:text-xs uppercase px-3 py-1 sm:px-1.5 md:px-2.5 rounded-full mt-auto">
                     25% OFF
+                  </div>
+                </div>
+
+                {/* Anual */}
+                <div className="bg-white border-2 border-[#0070f3]/25 shadow-md rounded-[24px] p-4 sm:p-2.5 md:p-3.5 xl:p-5 flex flex-col items-center relative overflow-hidden">
+                  <div className="absolute top-0 right-0 bg-[#00a83e] text-white font-black text-[7px] sm:text-[6px] md:text-[8px] uppercase px-1.5 py-0.5 rounded-bl-lg tracking-tight">
+                    RECOMENDADO
+                  </div>
+                  <div className="w-10 h-10 sm:w-8 sm:h-8 md:w-11 md:h-11 rounded-full bg-[#f0f7ff] text-[#0070f3] flex items-center justify-center mb-2.5">
+                    <CalendarDays className="w-5 h-5 sm:w-4 md:w-5.5 md:h-5.5" />
+                  </div>
+                  <span className="font-bold text-neutral-900 text-sm sm:text-xs md:text-sm mb-1.5">Anual</span>
+                  <div className="flex items-baseline gap-0.5 sm:gap-0 lg:gap-0.5 xl:gap-1 mb-3.5">
+                    <span className="font-bold text-sm sm:text-xs md:text-sm lg:text-xs xl:text-sm text-neutral-400 mt-0.5">R$</span>
+                    <span className="font-black text-2xl xs:text-3xl sm:text-xl md:text-2xl lg:text-xl xl:text-3xl text-[#0b1a30] tracking-tighter leading-none">258<span className="text-sm sm:text-xs md:text-sm lg:text-xs xl:text-lg font-bold">,05</span></span>
+                  </div>
+                  <div className="text-[10px] sm:text-[9px] md:text-[10px] text-neutral-500 font-extrabold -mt-2.5 mb-2.5 uppercase tracking-wide">
+                    Mês por acesso
+                  </div>
+                  <div className="bg-[#eafdf0] text-[#00a83e] font-black text-[10px] sm:text-[9px] md:text-[10px] xl:text-xs uppercase px-3 py-1 sm:px-1.5 md:px-2.5 rounded-full mt-auto">
+                    35% OFF
                   </div>
                 </div>
               </div>
@@ -1579,34 +1606,61 @@ export default function App() {
                 ACIMA DE 10 VENDEDORES
               </h3>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 lg:gap-3 xl:gap-4">
                 {/* Mensal */}
-                <div className="bg-white border border-neutral-100 shadow-sm rounded-[24px] p-5 flex flex-col items-center">
-                  <div className="w-12 h-12 rounded-full bg-[#eafdf0] text-[#00a83e] flex items-center justify-center mb-3">
-                    <CalendarDays className="w-6 h-6" />
+                <div className="bg-white border border-neutral-100 shadow-sm rounded-[24px] p-4 sm:p-2.5 md:p-3.5 xl:p-5 flex flex-col items-center">
+                  <div className="w-10 h-10 sm:w-8 sm:h-8 md:w-11 md:h-11 rounded-full bg-[#eafdf0] text-[#00a83e] flex items-center justify-center mb-2.5">
+                    <CalendarDays className="w-5 h-5 sm:w-4 md:w-5.5 md:h-5.5" />
                   </div>
-                  <span className="font-bold text-neutral-900 text-sm mb-2">Mensal</span>
-                  <div className="flex items-baseline gap-1 mb-4">
-                    <span className="font-bold text-lg text-neutral-900 mt-1">R$</span>
-                    <span className="font-black text-3xl sm:text-4xl text-[#0b1a30] tracking-tighter leading-none">297<span className="text-xl sm:text-2xl">,75</span></span>
+                  <span className="font-bold text-neutral-900 text-sm sm:text-xs md:text-sm mb-1.5">Mensal</span>
+                  <div className="flex items-baseline gap-0.5 sm:gap-0 lg:gap-0.5 xl:gap-1 mb-3.5">
+                    <span className="font-bold text-sm sm:text-xs md:text-sm lg:text-xs xl:text-sm text-neutral-400 mt-0.5">R$</span>
+                    <span className="font-black text-2xl xs:text-3xl sm:text-xl md:text-2xl lg:text-xl xl:text-3xl text-[#0b1a30] tracking-tighter leading-none">297<span className="text-sm sm:text-xs md:text-sm lg:text-xs xl:text-lg font-bold">,75</span></span>
                   </div>
-                  <div className="bg-[#eafdf0] text-[#00a83e] font-bold text-xs uppercase px-4 py-1.5 rounded-full mt-auto">
+                  <div className="text-[10px] sm:text-[9px] md:text-[10px] text-neutral-500 font-extrabold -mt-2.5 mb-2.5 uppercase tracking-wide">
+                    Mês por acesso
+                  </div>
+                  <div className="bg-[#eafdf0] text-[#00a83e] font-black text-[10px] sm:text-[9px] md:text-[10px] xl:text-xs uppercase px-3 py-1 sm:px-1.5 md:px-2.5 rounded-full mt-auto">
                     25% OFF
                   </div>
                 </div>
 
                 {/* Semestral */}
-                <div className="bg-white border border-neutral-100 shadow-sm rounded-[24px] p-5 flex flex-col items-center">
-                  <div className="w-12 h-12 rounded-full bg-[#eafdf0] text-[#00a83e] flex items-center justify-center mb-3">
-                    <CalendarDays className="w-6 h-6" />
+                <div className="bg-white border border-neutral-100 shadow-sm rounded-[24px] p-4 sm:p-2.5 md:p-3.5 xl:p-5 flex flex-col items-center">
+                  <div className="w-10 h-10 sm:w-8 sm:h-8 md:w-11 md:h-11 rounded-full bg-[#eafdf0] text-[#00a83e] flex items-center justify-center mb-2.5">
+                    <CalendarDays className="w-5 h-5 sm:w-4 md:w-5.5 md:h-5.5" />
                   </div>
-                  <span className="font-bold text-neutral-900 text-sm mb-2">Semestral</span>
-                  <div className="flex items-baseline gap-1 mb-4">
-                    <span className="font-bold text-lg text-neutral-900 mt-1">R$</span>
-                    <span className="font-black text-3xl sm:text-4xl text-[#0b1a30] tracking-tighter leading-none">258<span className="text-xl sm:text-2xl">,05</span></span>
+                  <span className="font-bold text-neutral-900 text-sm sm:text-xs md:text-sm mb-1.5">Semestral</span>
+                  <div className="flex items-baseline gap-0.5 sm:gap-0 lg:gap-0.5 xl:gap-1 mb-3.5">
+                    <span className="font-bold text-sm sm:text-xs md:text-sm lg:text-xs xl:text-sm text-neutral-400 mt-0.5">R$</span>
+                    <span className="font-black text-2xl xs:text-3xl sm:text-xl md:text-2xl lg:text-xl xl:text-3xl text-[#0b1a30] tracking-tighter leading-none">258<span className="text-sm sm:text-xs md:text-sm lg:text-xs xl:text-lg font-bold">,05</span></span>
                   </div>
-                  <div className="bg-[#eafdf0] text-[#00a83e] font-bold text-xs uppercase px-4 py-1.5 rounded-full mt-auto">
+                  <div className="text-[10px] sm:text-[9px] md:text-[10px] text-neutral-500 font-extrabold -mt-2.5 mb-2.5 uppercase tracking-wide">
+                    Mês por acesso
+                  </div>
+                  <div className="bg-[#eafdf0] text-[#00a83e] font-black text-[10px] sm:text-[9px] md:text-[10px] xl:text-xs uppercase px-3 py-1 sm:px-1.5 md:px-2.5 rounded-full mt-auto">
                     35% OFF
+                  </div>
+                </div>
+
+                {/* Anual */}
+                <div className="bg-white border-2 border-[#00a83e]/25 shadow-md rounded-[24px] p-4 sm:p-2.5 md:p-3.5 xl:p-5 flex flex-col items-center relative overflow-hidden">
+                  <div className="absolute top-0 right-0 bg-[#00a83e] text-white font-black text-[7px] sm:text-[6px] md:text-[8px] uppercase px-1.5 py-0.5 rounded-bl-lg tracking-tight">
+                    RECOMENDADO
+                  </div>
+                  <div className="w-10 h-10 sm:w-8 sm:h-8 md:w-11 md:h-11 rounded-full bg-[#eafdf0] text-[#00a83e] flex items-center justify-center mb-2.5">
+                    <CalendarDays className="w-5 h-5 sm:w-4 md:w-5.5 md:h-5.5" />
+                  </div>
+                  <span className="font-bold text-neutral-900 text-sm sm:text-xs md:text-sm mb-1.5">Anual</span>
+                  <div className="flex items-baseline gap-0.5 sm:gap-0 lg:gap-0.5 xl:gap-1 mb-3.5">
+                    <span className="font-bold text-sm sm:text-xs md:text-sm lg:text-xs xl:text-sm text-neutral-400 mt-0.5">R$</span>
+                    <span className="font-black text-2xl xs:text-3xl sm:text-xl md:text-2xl lg:text-xl xl:text-3xl text-[#0b1a30] tracking-tighter leading-none">218<span className="text-sm sm:text-xs md:text-sm lg:text-xs xl:text-lg font-bold">,35</span></span>
+                  </div>
+                  <div className="text-[10px] sm:text-[9px] md:text-[10px] text-neutral-500 font-extrabold -mt-2.5 mb-2.5 uppercase tracking-wide">
+                    Mês por acesso
+                  </div>
+                  <div className="bg-[#eafdf0] text-[#00a83e] font-black text-[10px] sm:text-[9px] md:text-[10px] xl:text-xs uppercase px-3 py-1 sm:px-1.5 md:px-2.5 rounded-full mt-auto">
+                    45% OFF
                   </div>
                 </div>
               </div>
