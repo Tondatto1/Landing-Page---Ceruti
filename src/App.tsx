@@ -181,16 +181,15 @@ export default function App() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
                 </span>
-                <span>É O FIM:</span>
+                <span>Para agronegócios</span>
               </div>
 
-              <h1 className="text-4xl sm:text-5xl lg:text-[62px] font-sans font-black text-neutral-900 leading-[1.14] sm:leading-[1.12] lg:leading-[1.1] tracking-tight sm:tracking-tighter lg:tracking-tighter uppercase pl-[1px]">
-                Do treinamento comercial <br className="hidden sm:inline" />
-                tradicional no Agro.
+              <h1 className="text-3xl sm:text-4xl lg:text-[44px] font-sans font-black text-neutral-900 leading-[1.2] sm:leading-[1.15] lg:leading-[1.1] tracking-tight sm:tracking-tighter lg:tracking-tighter pl-[1px]">
+                CERUTI: Um agente de IA que treina seus vendedores diretamente no whatsApp e faz sua empresa VENDER mais!
               </h1>
 
-              <p className="text-[#3A4338]/90 text-lg md:text-xl font-medium leading-relaxed max-w-lg">
-                Um agente de IA que atua como um treinador comercial sênior, integrado diretamente ao seu WhatsApp.
+              <p className="text-[#3A4338]/90 text-lg md:text-xl font-medium leading-relaxed max-w-xl">
+                É o fim do treinamento comercial tradicional no agro.
               </p>
 
               {/* Action Button CTA */}
