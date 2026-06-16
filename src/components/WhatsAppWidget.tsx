@@ -214,7 +214,7 @@ export const WhatsAppWidget = () => {
       text: 'Como posso te ajudar hoje? Selecione uma das opções abaixo para começarmos:',
       time: formatTime(),
       options: [
-        { text: '1️⃣ Desejo testar por 3 dias gratuitamente', action: 'test_3_days' },
+        { text: '1️⃣ Desejo testar por 7 dias gratuitamente', action: 'test_3_days' },
         { text: '2️⃣ Desejo falar com o suporte/atendimento', action: 'support' },
         { text: '3️⃣ Quero saber mais sobre o Agente Ceruti', action: 'more_about_ceruti' }
       ]
@@ -252,7 +252,7 @@ export const WhatsAppWidget = () => {
       const botMsg: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
-        text: 'Excelente escolha: o nosso agente ceruti, está pronto para capacitar e impulsionar suas vendas através do WhatsApp.\n\nPara ativarmos e liberarmos o seu *Teste Grátis de 3 Dias*, preciso de 3 informações rápidas.\n\nPor favor, digite o seu *nome completo*:',
+        text: 'Excelente escolha: o nosso agente ceruti, está pronto para capacitar e impulsionar suas vendas através do WhatsApp.\n\nPara ativarmos e liberarmos o seu *Teste Grátis de 7 Dias*, preciso de 3 informações rápidas.\n\nPor favor, digite o seu *nome completo*:',
         time: formatTime()
       };
       setMessages((prev) => [...prev, botMsg]);
@@ -301,7 +301,7 @@ export const WhatsAppWidget = () => {
         time: formatTime(),
         options: [
           { text: '⬅️ Voltar ao menu Ceruti', action: 'more_about_ceruti' },
-          { text: '🚀 Iniciar Teste Grátis de 3 Dias', action: 'test_3_days' },
+          { text: '🚀 Iniciar Teste Grátis de 7 Dias', action: 'test_3_days' },
           { text: '🔄 Voltar para o menu principal', action: 'reset' }
         ]
       };
@@ -322,7 +322,7 @@ export const WhatsAppWidget = () => {
         time: formatTime(),
         options: [
           { text: '⬅️ Voltar ao menu Ceruti', action: 'more_about_ceruti' },
-          { text: '🚀 Iniciar Teste Grátis de 3 Dias', action: 'test_3_days' },
+          { text: '🚀 Iniciar Teste Grátis de 7 Dias', action: 'test_3_days' },
           { text: '🔄 Voltar para o menu principal', action: 'reset' }
         ]
       };
@@ -341,7 +341,7 @@ export const WhatsAppWidget = () => {
         time: formatTime(),
         options: [
           { text: '⬅️ Voltar ao menu Ceruti', action: 'more_about_ceruti' },
-          { text: '🚀 Iniciar Teste Grátis de 3 Dias', action: 'test_3_days' },
+          { text: '🚀 Iniciar Teste Grátis de 7 Dias', action: 'test_3_days' },
           { text: '🔄 Voltar para o menu principal', action: 'reset' }
         ]
       };
@@ -360,7 +360,7 @@ export const WhatsAppWidget = () => {
         time: formatTime(),
         options: [
           { text: '⬅️ Voltar ao menu Ceruti', action: 'more_about_ceruti' },
-          { text: '🚀 Iniciar Teste Grátis de 3 Dias', action: 'test_3_days' },
+          { text: '🚀 Iniciar Teste Grátis de 7 Dias', action: 'test_3_days' },
           { text: '🔄 Voltar para o menu principal', action: 'reset' }
         ]
       };
@@ -375,11 +375,11 @@ export const WhatsAppWidget = () => {
               '• *Funciona para qualquer modelo de negócio?* Sim! Suporta B2B (distribuição, indústrias) e B2C (venda ao produtor), operando nas quebras de objeções.\n\n' +
               '• *Substituirá meus vendedores?* Não, ele atua como assistente ou parceiro complementar focado em acelerar respostas e converter negócios.\n\n' +
               '• *Como se diferencia de modelos comuns?* O Ceruti carrega engenharia e metodologias validadas e proprietárias de negociação do agro, sem termos técnicos difíceis.\n\n' +
-              '• *Garantia e Fidelidade:* Garantia incondicional de devolução de 14 dias para teste sem riscos. Semestral tem desconto com prazo fechado; mensal dá total flexibilidade para pausar ou cancelar sem fidelidades ou multas.',
+              '• *Garantia e Fidelidade:* Garantia incondicional de devolução de 7 dias para teste sem riscos. Semestral tem desconto com prazo fechado; mensal dá total flexibilidade para pausar ou cancelar sem fidelidades ou multas.',
         time: formatTime(),
         options: [
           { text: '⬅️ Voltar ao menu Ceruti', action: 'more_about_ceruti' },
-          { text: '🚀 Iniciar Teste Grátis de 3 Dias', action: 'test_3_days' },
+          { text: '🚀 Iniciar Teste Grátis de 7 Dias', action: 'test_3_days' },
           { text: '🔄 Voltar para o menu principal', action: 'reset' }
         ]
       };
@@ -392,7 +392,7 @@ export const WhatsAppWidget = () => {
         text: 'Como posso te ajudar hoje? Selecione uma das opções abaixo para começarmos:',
         time: formatTime(),
         options: [
-          { text: '1️⃣ Desejo testar por 3 dias gratuitamente', action: 'test_3_days' },
+          { text: '1️⃣ Desejo testar por 7 dias gratuitamente', action: 'test_3_days' },
           { text: '2️⃣ Desejo falar com o suporte/atendimento', action: 'support' },
           { text: '3️⃣ Quero saber mais sobre o Agente Ceruti', action: 'more_about_ceruti' }
         ]
@@ -438,7 +438,7 @@ export const WhatsAppWidget = () => {
       const botMsg: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
-        text: `Excelente! E para finalizarmos, qual é o seu *WhatsApp (com DDD)* para ativarmos seu teste de 3 dias?`,
+        text: `Excelente! E para finalizarmos, qual é o seu *WhatsApp (com DDD)* para ativarmos seu teste de 7 dias?`,
         time: formatTime()
       };
       setMessages((prev) => [...prev, botMsg]);
@@ -450,7 +450,7 @@ export const WhatsAppWidget = () => {
         console.error("Firestore persistence warning (falling back to localStorage only):", err);
       });
 
-      const messageText = `Olá, realizei meu cadastro na página e gostaria de ter acesso ao teste de três dias do agente Ceruti.`;
+      const messageText = `Olá, realizei meu cadastro na página e gostaria de ter acesso ao teste de sete dias do agente Ceruti.`;
       const encodedMsg = encodeURIComponent(messageText);
 
       const botMsg: Message = {
@@ -574,7 +574,7 @@ export const WhatsAppWidget = () => {
                 <div className="relative w-full group bg-gradient-to-br from-white via-[#f4fdf9] to-[#edfcf5] border border-emerald-200/90 text-neutral-900 rounded-xl py-3 px-4 pr-10 text-xs sm:text-sm font-medium tracking-tight shadow-[0_6px_22px_rgba(0,168,62,0.14)] transition-all duration-300 hover:border-[#00a83e]/50">
                   <div className="flex items-center gap-1.5 text-[14px] sm:text-[15px] font-black text-neutral-950 leading-tight select-none">
                     <Sparkles className="w-4 h-4 text-[#00a83e] animate-pulse shrink-0" />
-                    <span>Teste por 3 dias</span>
+                    <span>Teste por 7 dias</span>
                   </div>
                   
                   <div className="flex items-center gap-1 text-[11px] sm:text-[12px] font-extrabold text-[#00a83e] mt-1 select-none transition-colors duration-200 group-hover:text-emerald-700">
@@ -851,7 +851,7 @@ export const WhatsAppWidget = () => {
 
             {!isOpen && (
               <span className="absolute right-18 sm:right-20 scale-0 bg-neutral-950 text-white font-sans text-xs font-semibold px-3 py-1.5 rounded-lg shadow-md transition-all duration-200 group-hover:scale-100 whitespace-nowrap shadow-black/20">
-                Teste de 3 Dias Grátis ⚡
+                Teste de 7 Dias Grátis ⚡
               </span>
             )}
           </button>

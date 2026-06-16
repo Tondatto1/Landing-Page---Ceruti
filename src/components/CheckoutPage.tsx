@@ -532,7 +532,7 @@ ${emojis.clock} _Aguardo as instruções para finalizar._`;
               <div className="flex justify-center mb-6">
                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-full border border-emerald-200 shadow-sm">
                    <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                   <span className="text-sm font-bold text-emerald-800">Garantia incondicional de 14 dias</span>
+                   <span className="text-sm font-bold text-emerald-800">Garantia incondicional de 7 dias</span>
                  </div>
               </div>
 

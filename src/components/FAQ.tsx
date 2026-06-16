@@ -37,7 +37,7 @@ const faqs = [
   },
   {
     question: "E se não funcionar no dia a dia da minha equipe?",
-    answer: "Contamos com uma metodologia extremamente orgânica e comprovada, pois não tira o consultor do WhatsApp. Além disso, você conta com a garantia de devolução de 14 dias, retirando o seu risco caso não perceba valor."
+    answer: "Contamos com uma metodologia extremamente orgânica e comprovada, pois não tira o consultor do WhatsApp. Além disso, você conta com a garantia de devolução de 7 dias, retirando o seu risco caso não perceba valor."
   },
   {
     question: "A assinatura tem fidelidade?",

@@ -1529,7 +1529,7 @@ export default function App() {
               <div className="relative flex items-center gap-2 px-6 py-2.5 bg-white border border-neutral-100 rounded-full text-neutral-600 shadow-sm">
                 <ShieldCheck className="w-5 h-5 text-[#00a83e]" />
                 <span className="text-sm font-bold tracking-wide">
-                  Garantia Incondicional de <strong className="text-[#00a83e] font-black">14 DIAS</strong>
+                  Garantia Incondicional de <strong className="text-[#00a83e] font-black">7 DIAS</strong>
                 </span>
               </div>
             </div>

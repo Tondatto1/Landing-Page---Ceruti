@@ -29,9 +29,9 @@ export function RefundPolicyPage() {
           <h1 className="text-3xl font-black text-[#0c1f22] mb-8">Política de Reembolso e Cancelamento</h1>
           
           <div className="space-y-6 text-neutral-600 font-medium text-sm leading-relaxed">
-            <h2 className="text-lg font-bold text-[#0c1f22] mt-6 mb-3">1. Garantia Incondicional estendida de 14 Dias</h2>
+            <h2 className="text-lg font-bold text-[#0c1f22] mt-6 mb-3">1. Garantia Incondicional estendida de 7 Dias</h2>
             <p>
-              Em respeito aos nossos clientes e como prova de confiança na tecnologia da Ceruti, nós estendemos o prazo garantido pelo Art. 49 do Código de Defesa do Consumidor (CDC) para uma <strong>garantia incondicional de 14 dias corridos</strong>. Durante este período (contado a partir da efetivação do pagamento da primeira mensalidade ou ciclo), você poderá testar nossa Inteligência de Vendas.
+              Em respeito aos nossos clientes e como prova de confiança na tecnologia da Ceruti, nós estendemos o prazo garantido pelo Art. 49 do Código de Defesa do Consumidor (CDC) para uma <strong>garantia incondicional de 7 dias corridos</strong>. Durante este período (contado a partir da efetivação do pagamento da primeira mensalidade ou ciclo), você poderá testar nossa Inteligência de Vendas.
             </p>
             <p>
               Se, por qualquer motivo, você entender que a ferramenta não atende às necessidades da sua equipe comercial e não obteve o retorno esperado, garantimos a devolução de <strong>100% do valor pago</strong>. Não aplicamos multas ou retenção de taxas no processo exercido dentro desse prazo de garantia incondicional.
@@ -39,12 +39,12 @@ export function RefundPolicyPage() {
 
             <h2 className="text-lg font-bold text-[#0c1f22] mt-6 mb-3">2. Procedimento para Solicitação</h2>
             <p>
-              As solicitações de reembolso para as situações cobertas devem ser enviadas formalmente ao nosso suporte oficial via WhatsApp. Deverá ser informado o e-mail de compra e/ou o CPF/CNPJ pagador. A solicitação deve registrar-se antes das 23h59 (horário de Brasília) do 14º dia contratual.
+              As solicitações de reembolso para as situações cobertas devem ser enviadas formalmente ao nosso suporte oficial via WhatsApp. Deverá ser informado o e-mail de compra e/ou o CPF/CNPJ pagador. A solicitação deve registrar-se antes das 23h59 (horário de Brasília) do 7º dia contratual.
             </p>
 
             <h2 className="text-lg font-bold text-[#0c1f22] mt-6 mb-3">3. Regras de Cancelamento Posterior à Garantia</h2>
             <p>
-              Uma vez transcorrido o prazo de garantia incondicional de 14 dias, o serviço caracterizará a prestação contínua de tecnologia e uso sistêmico de IA hospedada. Após esse prazo:
+              Uma vez transcorrido o prazo de garantia incondicional de 7 dias, o serviço caracterizará a prestação contínua de tecnologia e uso sistêmico de IA hospedada. Após esse prazo:
             </p>
             <ul className="list-disc pl-5 space-y-2">
               <li>Não serão processados reembolsos ou devoluções proporcionais (pro rata) por não utilização temporária ou arrependimento tardio.</li>
@@ -63,7 +63,7 @@ export function RefundPolicyPage() {
 
             <h2 className="text-lg font-bold text-[#0c1f22] mt-6 mb-3">5. Disputas e Chargebacks Injustificados</h2>
             <p>
-              Ressaltamos que a abertura de disputas junto às operadoras de cartão sem uma solicitação prévia formalizada e recusada indevidamente através de nosso suporte, quando já fora do período de 14 dias de garantia ou após o efetivo uso extensivo dos servidores, configura descumprimento de Termos, ocasionando no bloqueio imediato do acesso até a resolução da lide amigavelmente.
+              Ressaltamos que a abertura de disputas junto às operadoras de cartão sem uma solicitação prévia formalizada e recusada indevidamente através de nosso suporte, quando já fora do período de 7 dias de garantia ou após o efetivo uso extensivo dos servidores, configura descumprimento de Termos, ocasionando no bloqueio imediato do acesso até a resolução da lide amigavelmente.
             </p>
 
             <p className="mt-8 pt-6 border-t border-neutral-100 text-xs text-neutral-400">Última atualização: {new Date().toLocaleDateString('pt-BR')}</p>
