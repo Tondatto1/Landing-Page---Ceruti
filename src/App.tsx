@@ -174,12 +174,10 @@ export default function App() {
             <div className="lg:col-span-6 flex flex-col items-start gap-y-3.5 sm:gap-y-4 lg:gap-y-5 text-left">
 
               <h1 className="order-1 text-3xl sm:text-4xl lg:text-[44px] font-sans font-black text-neutral-900 leading-[1.2] sm:leading-[1.15] lg:leading-[1.1] tracking-tight sm:tracking-tighter lg:tracking-tighter pl-[1px]">
-                Agente de IA que treina seus vendedores através do whatsApp e faz sua empresa VENDER mais!
+                Agente de <span className="text-[#00a83e]">IA</span> que treina seus vendedores <span className="text-[#00a83e]">24/7</span> e libera seus gestores para o que realmente <span className="text-[#00a83e]">importa</span>
               </h1>
 
-              <p className="order-2 text-[#3A4338]/90 text-lg md:text-xl font-medium leading-relaxed max-w-xl">
-                É o fim do treinamento comercial tradicional no <span className="text-[#00a83e] font-bold underline decoration-[2px] decoration-[#00a83e]/30">agronegócios</span>.
-              </p>
+
 
               {/* Action Button CTA */}
               <div className="order-4 lg:order-3 pt-0.5">
