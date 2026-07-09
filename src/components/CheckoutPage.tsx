@@ -197,9 +197,13 @@ ${emojis.clock} _Aguardo as instruções para finalizar._`;
             <span className="font-semibold text-sm hidden sm:inline">Voltar</span>
           </button>
           <div className="h-6 w-px bg-gray-300 hidden sm:block"></div>
-          <span className="font-extrabold text-xl tracking-tight text-neutral-900">
-            Ceruti
-          </span>
+          <img 
+            id="checkout_header_logo"
+            src="/LETRA ESCURA - FUNDO TRANS - HOR.png" 
+            alt="Ceruti" 
+            className="h-8 sm:h-9 w-auto object-contain" 
+            referrerPolicy="no-referrer"
+          />
         </div>
         <div className="flex items-center gap-2 text-neutral-500">
           <Lock className="w-4 h-4" />
@@ -618,10 +622,14 @@ ${emojis.clock} _Aguardo as instruções para finalizar._`;
 
             {/* Submit Button */}
             <div className="mt-8">
-              <div className="flex justify-center mb-6">
-                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-full border border-emerald-200 shadow-sm">
-                   <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                   <span className="text-sm font-bold text-emerald-800">Garantia incondicional de 7 dias</span>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6">
+                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-full border border-emerald-200/60 shadow-sm">
+                   <ShieldCheck className="w-5 h-5 text-[#00a83e]" />
+                   <span className="text-xs sm:text-sm font-black text-emerald-800 uppercase tracking-wider">Garantia incondicional de 7 dias</span>
+                 </div>
+                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50/80 rounded-full border border-blue-200/60 shadow-sm">
+                   <Lock className="w-4.5 h-4.5 text-blue-600" />
+                   <span className="text-xs sm:text-sm font-black text-blue-800 uppercase tracking-wider">Certificação de Segurança SSL</span>
                  </div>
               </div>
 

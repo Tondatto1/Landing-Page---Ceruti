@@ -66,9 +66,13 @@ export default function App() {
       <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-white/85 border-b border-neutral-200/50" id="nav_header">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           <div className="flex items-center">
-            <span className="font-sans font-extrabold text-3xl tracking-tight text-neutral-900">
-              Ceruti
-            </span>
+            <img 
+              id="header_logo"
+              src="/LETRA ESCURA - FUNDO TRANS - HOR.png" 
+              alt="Ceruti" 
+              className="h-11 md:h-12 w-auto object-contain" 
+              referrerPolicy="no-referrer"
+            />
           </div>
 
           {/* Desktop Navigation */}
@@ -1767,7 +1771,7 @@ export default function App() {
             </div>
           </div>
           
-          <div className="flex justify-center mt-12 pb-8">
+          <div className="flex flex-col items-center justify-center mt-12 pb-8 gap-4">
             <Link 
               to={`/checkout?agent=${selectedAgent}`}
               className="inline-flex items-center gap-3 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white px-8 sm:px-10 py-4 sm:py-4.5 rounded-2xl font-black text-sm sm:text-[15px] tracking-widest uppercase transition-all shadow-lg shadow-emerald-950/25 hover:shadow-emerald-600/35 hover:-translate-y-1 active:scale-[0.99] border-b-[3px] border-[#003813]"
@@ -1775,6 +1779,21 @@ export default function App() {
               <Rocket className="w-6 h-6" />
               ASSINAR AGORA
             </Link>
+
+            {/* Certificação de Segurança */}
+            <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 px-5 py-2.5 bg-white border border-neutral-200/60 rounded-2xl shadow-sm text-neutral-700 max-w-lg mt-2">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-[#00a83e]" />
+                <span className="text-xs font-black uppercase tracking-wider text-[#0b1a30]">
+                  Certificação de Segurança
+                </span>
+              </div>
+              <div className="hidden sm:block w-px h-4 bg-neutral-200" />
+              <div className="flex items-center gap-1 text-[11px] font-bold text-neutral-500">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#00a83e]" />
+                Ambiente 100% Criptografado & Protegido por SSL de 256 bits
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1795,10 +1814,13 @@ export default function App() {
             
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
-                <Sparkles className="w-5 h-5 text-agro-accent" />
-                <span className="font-sans font-extrabold text-2xl tracking-tight text-white uppercase select-none">
-                  Ceruti
-                </span>
+                <img 
+                  id="footer_logo"
+                  src="/LETRA ESCURA - FUNDO TRANS - HOR.png" 
+                  alt="Ceruti" 
+                  className="h-9 w-auto object-contain invert brightness-200" 
+                  referrerPolicy="no-referrer"
+                />
               </div>
               <p className="text-xs text-gray-400 leading-relaxed font-sans font-medium">
                 A inteligência de vendas criada exclusivamente para potencializar o treinamento de equipes comerciais e aumentar o fechamento de negócios.
