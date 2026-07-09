@@ -1818,7 +1818,7 @@ export default function App() {
                   id="footer_logo"
                   src="/LETRA ESCURA - FUNDO TRANS - HOR.png" 
                   alt="Ceruti" 
-                  className="h-9 w-auto object-contain invert brightness-200" 
+                  className="h-9 w-auto object-contain" 
                   referrerPolicy="no-referrer"
                 />
               </div>
