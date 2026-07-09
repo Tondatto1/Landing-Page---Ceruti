@@ -12,8 +12,10 @@ import { db, handleFirestoreError, OperationType } from './firebase';
 export interface TrialLead {
   id: string;
   name: string;
+  company?: string;
   email: string;
   phone: string;
+  agentSelected?: string;
   createdAt: string;
 }
 
@@ -64,12 +66,14 @@ export function decryptData(cipherText: string): string {
  * Saves a trial lead to both local storage (for high availability/resilience)
  * and to Firestore (as the centralized cloud database).
  */
-export async function saveLead(name: string, email: string, phone: string): Promise<TrialLead> {
+export async function saveLead(name: string, company: string, email: string, phone: string, agentSelected: string): Promise<TrialLead> {
   const newLead: TrialLead = {
     id: 'lead_' + Math.random().toString(36).substr(2, 9),
     name: name.trim(),
+    company: company.trim(),
     email: email.trim().toLowerCase(),
     phone: phone.trim(),
+    agentSelected: agentSelected.trim(),
     createdAt: new Date().toISOString()
   };
 
@@ -87,8 +91,10 @@ export async function saveLead(name: string, email: string, phone: string): Prom
   try {
     await setDoc(doc(db, path, newLead.id), {
       name: newLead.name,
+      company: newLead.company,
       email: newLead.email,
       phone: newLead.phone,
+      agentSelected: newLead.agentSelected,
       createdAt: newLead.createdAt
     });
   } catch (error) {
@@ -135,8 +141,10 @@ export async function fetchFirestoreLeads(): Promise<TrialLead[]> {
       leads.push({
         id: docSnap.id,
         name: data.name || '',
+        company: data.company || '',
         email: data.email || '',
         phone: data.phone || '',
+        agentSelected: data.agentSelected || '',
         createdAt: data.createdAt || ''
       });
     });
@@ -187,13 +195,15 @@ export function downloadLeadsCSV(leads: TrialLead[]): void {
     return;
   }
 
-  const csvHeaders = ['ID', 'Nome Completo', 'E-mail', 'WhatsApp', 'Data de Cadastro'];
+  const csvHeaders = ['ID', 'Nome Completo', 'Empresa', 'E-mail', 'WhatsApp', 'Agente Selecionado', 'Data de Cadastro'];
   
   const csvRows = leads.map(l => [
     l.id,
     `"${l.name.replace(/"/g, '""')}"`,
+    `"${(l.company || '').replace(/"/g, '""')}"`,
     `"${l.email.replace(/"/g, '""')}"`,
     `"${l.phone.replace(/"/g, '""')}"`,
+    `"${(l.agentSelected || '').replace(/"/g, '""')}"`,
     new Date(l.createdAt).toLocaleString('pt-BR')
   ]);
 

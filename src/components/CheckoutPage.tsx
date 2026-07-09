@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   ArrowLeft,
   CreditCard, 
@@ -13,6 +13,9 @@ import { WhatsAppWidget } from './WhatsAppWidget';
 
 export function CheckoutPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialAgent = (searchParams.get('agent') === 'campo') ? 'campo' : 'consultor';
+  const [selectedAgent, setSelectedAgent] = useState<'consultor' | 'campo'>(initialAgent);
   const [frequency, setFrequency] = useState<'mensal' | 'semestral' | 'anual'>('mensal');
   const [usersCountStr, setUsersCountStr] = useState<string>('1');
   const usersCount = Math.max(1, parseInt(usersCountStr) || 1);
@@ -51,16 +54,30 @@ export function CheckoutPage() {
 
   // Pricing Logic
   const getUnitPrice = () => {
-    if (usersCount <= 10) {
-      if (frequency === 'mensal') return 337.45;
-      if (frequency === 'semestral') return 297.75;
-      return 258.05; // anual
-    } else {
-      if (frequency === 'mensal') return 297.75;
-      if (frequency === 'semestral') return 258.05;
-      return 218.35; // anual
+    if (selectedAgent === 'consultor') {
+      if (usersCount <= 10) {
+        if (frequency === 'mensal') return 337.45;
+        if (frequency === 'semestral') return 297.75;
+        return 258.05; // anual
+      } else {
+        if (frequency === 'mensal') return 297.75;
+        if (frequency === 'semestral') return 258.05;
+        return 218.35; // anual
+      }
+    } else { // campo
+      if (usersCount <= 10) {
+        if (frequency === 'mensal') return 125.38;
+        if (frequency === 'semestral') return 110.63;
+        return 95.88; // anual
+      } else {
+        if (frequency === 'mensal') return 110.63;
+        if (frequency === 'semestral') return 95.88;
+        return 81.13; // anual
+      }
     }
   };
+
+  const basePrice = selectedAgent === 'consultor' ? 397 : 147.50;
 
   const unitPrice = getUnitPrice();
   const totalPricePerMonth = unitPrice * usersCount;
@@ -148,6 +165,7 @@ ${emojis.user} *DADOS DO CLIENTE*
 ━━━━━━━━━━━━━━━━━━━━━━
 
 ${emojis.plan} *DETALHES DO PLANO*
+*Agente:* ${selectedAgent === 'consultor' ? 'Ceruti Consultor' : 'Ceruti Campo'}
 *Plano:* ${frequency === 'mensal' ? 'Mensal' : (frequency === 'semestral' ? 'Semestral' : 'Anual')}
 *Acessos:* ${usersCount}
 *Valor por Acesso:* ${formatCurrency(unitPrice)}/mês
@@ -205,6 +223,34 @@ ${emojis.clock} _Aguardo as instruções para finalizar._`;
             <div>
               <h3 className="font-black text-2xl text-[#0b1a30]">Ceruti</h3>
               <p className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Treinador de Vendas</p>
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <h4 className="font-bold text-neutral-900 mb-3">Escolha o Agente:</h4>
+            <div className="grid grid-cols-2 gap-2 p-1 bg-neutral-50 border border-neutral-200/50 rounded-2xl">
+              <button
+                type="button"
+                onClick={() => setSelectedAgent('consultor')}
+                className={`py-2 px-3 rounded-xl font-sans font-black text-xs sm:text-sm uppercase tracking-wider transition-all duration-300 ${
+                  selectedAgent === 'consultor'
+                    ? 'bg-gradient-to-r from-[#004d1a] to-[#00a83e] text-white shadow-md'
+                    : 'text-neutral-500 hover:text-neutral-900 bg-transparent'
+                }`}
+              >
+                Ceruti Consultor
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedAgent('campo')}
+                className={`py-2 px-3 rounded-xl font-sans font-black text-xs sm:text-sm uppercase tracking-wider transition-all duration-300 ${
+                  selectedAgent === 'campo'
+                    ? 'bg-gradient-to-r from-[#004d1a] to-[#00a83e] text-white shadow-md'
+                    : 'text-neutral-500 hover:text-neutral-900 bg-transparent'
+                }`}
+              >
+                Ceruti Campo
+              </button>
             </div>
           </div>
 
@@ -291,7 +337,7 @@ ${emojis.clock} _Aguardo as instruções para finalizar._`;
                 Mensalidade (Preço original):
               </span>
               <span className="font-bold text-red-400/80 decoration-red-400 decoration-2 line-through text-sm">
-                {formatCurrency(397 * usersCount)}/mês
+                {formatCurrency(basePrice * usersCount)}/mês
               </span>
             </div>
 
@@ -300,7 +346,7 @@ ${emojis.clock} _Aguardo as instruções para finalizar._`;
                 Total (Preço original):
               </span>
               <span className="font-bold text-red-400/80 decoration-red-400 decoration-2 line-through text-sm">
-                {formatCurrency(397 * usersCount * (frequency === 'mensal' ? 1 : (frequency === 'semestral' ? 6 : 12)))}
+                {formatCurrency(basePrice * usersCount * (frequency === 'mensal' ? 1 : (frequency === 'semestral' ? 6 : 12)))}
               </span>
             </div>
             

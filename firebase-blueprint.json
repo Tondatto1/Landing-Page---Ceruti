@@ -2,7 +2,7 @@
   "entities": {
     "trial_signup": {
       "title": "Trial Signup",
-      "description": "Registers a user for the 3-day free trial captured from the chat widget.",
+      "description": "Registers a user for the 7-day free trial captured from the chat widget.",
       "type": "object",
       "properties": {
         "id": {
@@ -13,6 +13,10 @@
           "type": "string",
           "description": "Full name of the prospect"
         },
+        "company": {
+          "type": "string",
+          "description": "Company name or property"
+        },
         "email": {
           "type": "string",
           "description": "Corporate email address"
@@ -21,13 +25,17 @@
           "type": "string",
           "description": "WhatsApp contact number with DDD"
         },
+        "agentSelected": {
+          "type": "string",
+          "description": "The selected agent for the trial"
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",
           "description": "Submission time"
         }
       },
-      "required": ["name", "email", "phone", "createdAt"]
+      "required": ["name", "company", "email", "phone", "agentSelected", "createdAt"]
     }
   },
   "firestore": {

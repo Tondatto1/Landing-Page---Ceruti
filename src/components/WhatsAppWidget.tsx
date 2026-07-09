@@ -42,8 +42,8 @@ export const WhatsAppWidget = () => {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // New states for form trial questionnaire
-  const [signupStep, setSignupStep] = useState<'idle' | 'name' | 'email' | 'phone'>('idle');
-  const [prospectData, setProspectData] = useState({ name: '', email: '', phone: '' });
+  const [signupStep, setSignupStep] = useState<'idle' | 'name' | 'company' | 'email' | 'phone'>('idle');
+  const [prospectData, setProspectData] = useState({ name: '', company: '', email: '', phone: '', agentSelected: '' });
   const [userInputText, setUserInputText] = useState('');
 
   // Admin Dashboard States
@@ -215,8 +215,7 @@ export const WhatsAppWidget = () => {
       time: formatTime(),
       options: [
         { text: '1️⃣ Desejo testar por 7 dias gratuitamente', action: 'test_3_days' },
-        { text: '2️⃣ Desejo falar com o suporte/atendimento', action: 'support' },
-        { text: '3️⃣ Quero saber mais sobre o Agente Ceruti', action: 'more_about_ceruti' }
+        { text: '2️⃣ Desejo falar com o suporte/atendimento', action: 'support' }
       ]
     };
     setMessages((prev) => [...prev, msg2]);
@@ -252,7 +251,7 @@ export const WhatsAppWidget = () => {
       const botMsg: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
-        text: 'Excelente escolha: o nosso agente ceruti, está pronto para capacitar e impulsionar suas vendas através do WhatsApp.\n\nPara ativarmos e liberarmos o seu *Teste Grátis de 7 Dias*, preciso de 3 informações rápidas.\n\nPor favor, digite o seu *nome completo*:',
+        text: 'Excelente escolha: o nosso agente ceruti, está pronto para capacitar e impulsionar suas vendas através do WhatsApp.\n\nPara ativarmos e liberarmos o seu *Teste Grátis de 7 Dias*, preciso de 4 informações rápidas.\n\nPor favor, digite o seu *nome completo*:',
         time: formatTime()
       };
       setMessages((prev) => [...prev, botMsg]);
@@ -384,6 +383,45 @@ export const WhatsAppWidget = () => {
         ]
       };
       setMessages((prev) => [...prev, botMsg]);
+    } else if (action === 'agent_consultor' || action === 'agent_campo' || action === 'agent_both') {
+      const selectedAgentName = 
+        action === 'agent_consultor' ? 'Ceruti Consultor' :
+        action === 'agent_campo' ? 'Ceruti Campo' : 'Ambos';
+      
+      setProspectData(prev => ({ ...prev, agentSelected: selectedAgentName }));
+
+      const botMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        sender: 'bot',
+        text: `Excelente! Você escolheu o(s) agente(s): *${selectedAgentName}*.\n\nPara liberar agora mesmo o seu período de teste, clique no botão abaixo:`,
+        time: formatTime(),
+        options: [
+          { text: '🔑 Liberar teste de 7 dias', action: 'activate_trial_final' }
+        ]
+      };
+      setMessages((prev) => [...prev, botMsg]);
+    } else if (action === 'activate_trial_final') {
+      // Complete Lead Signup with all 5 fields
+      saveLead(
+        prospectData.name, 
+        prospectData.company || 'Não informada', 
+        prospectData.email, 
+        prospectData.phone, 
+        prospectData.agentSelected || 'Ambos'
+      ).catch((err) => {
+        console.error("Firestore persistence warning (falling back to localStorage only):", err);
+      });
+
+      const botMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        sender: 'bot',
+        text: `🎉 *Período de teste de 7 dias iniciado!*\n\nO(s) agente(s) selecionado(s) (*${prospectData.agentSelected || 'Ambos'}*) irá(ão) enviar uma mensagem de saudação que pode levar até *10 minutos* para chegar no seu WhatsApp.\n\nO que deseja fazer em seguida?`,
+        time: formatTime(),
+        options: [
+          { text: '🔄 Retornar ao menu principal', action: 'reset' }
+        ]
+      };
+      setMessages((prev) => [...prev, botMsg]);
     } else if (action === 'reset') {
       setSignupStep('idle');
       const botMsg: Message = {
@@ -393,8 +431,7 @@ export const WhatsAppWidget = () => {
         time: formatTime(),
         options: [
           { text: '1️⃣ Desejo testar por 7 dias gratuitamente', action: 'test_3_days' },
-          { text: '2️⃣ Desejo falar com o suporte/atendimento', action: 'support' },
-          { text: '3️⃣ Quero saber mais sobre o Agente Ceruti', action: 'more_about_ceruti' }
+          { text: '2️⃣ Desejo falar com o suporte/atendimento', action: 'support' }
         ]
       };
       setMessages((prev) => [...prev, botMsg]);
@@ -423,11 +460,22 @@ export const WhatsAppWidget = () => {
 
     if (signupStep === 'name') {
       setProspectData(prev => ({ ...prev, name: userText }));
+      setSignupStep('company');
+      const botMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        sender: 'bot',
+        text: `Muito prazer, *${userText}*! 👋\n\nQual é o *nome da sua empresa*?`,
+        time: formatTime()
+      };
+      setMessages((prev) => [...prev, botMsg]);
+    } 
+    else if (signupStep === 'company') {
+      setProspectData(prev => ({ ...prev, company: userText }));
       setSignupStep('email');
       const botMsg: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
-        text: `Muito prazer, *${userText}*! 👋\n\nAgora, informe o seu *e-mail* principal:`,
+        text: `Excelente! Agora, informe o seu *e-mail* principal:`,
         time: formatTime()
       };
       setMessages((prev) => [...prev, botMsg]);
@@ -444,26 +492,18 @@ export const WhatsAppWidget = () => {
       setMessages((prev) => [...prev, botMsg]);
     } 
     else if (signupStep === 'phone') {
-      // Complete Lead Signup
+      setProspectData(prev => ({ ...prev, phone: userText }));
       setSignupStep('idle');
-      saveLead(prospectData.name, prospectData.email, userText).catch((err) => {
-        console.error("Firestore persistence warning (falling back to localStorage only):", err);
-      });
-
-      const messageText = `Olá, realizei meu cadastro na página e gostaria de ter acesso ao teste de sete dias do agente Ceruti.`;
-      const encodedMsg = encodeURIComponent(messageText);
 
       const botMsg: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
-        text: `🎉 *Cadastro concluído com sucesso!*\n\nSensacional, *${prospectData.name}*! Seus dados foram salvos e liberados com segurança.\n\nPara iniciar agora mesmo e configurar o Agro Sales Coach no seu WhatsApp comercial, clique no botão abaixo para chamar nosso suporte de ativação de testes:`,
+        text: `Todos os dados foram informados com sucesso! 📝\n\nAgora, por favor selecione qual agente você deseja liberar o período de teste de 7 dias:`,
         time: formatTime(),
-        cta: {
-          text: '🚀 Liberar Teste no WhatsApp',
-          link: `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMsg}`
-        },
         options: [
-          { text: '🔄 Voltar para o menu principal', action: 'reset' }
+          { text: '🤖 Ceruti Consultor', action: 'agent_consultor' },
+          { text: '🌾 Ceruti Campo', action: 'agent_campo' },
+          { text: '🌟 Ambos', action: 'agent_both' }
         ]
       };
       setMessages((prev) => [...prev, botMsg]);
@@ -787,9 +827,11 @@ export const WhatsAppWidget = () => {
                         placeholder={
                           signupStep === 'name' 
                             ? 'Digite seu nome completo...' 
-                            : signupStep === 'email' 
-                              ? 'Digite seu melhor e-mail...' 
-                              : 'Digite seu WhatsApp com DDD...'
+                            : signupStep === 'company'
+                              ? 'Digite o nome da sua empresa...'
+                              : signupStep === 'email' 
+                                ? 'Digite seu melhor e-mail...' 
+                                : 'Digite seu WhatsApp com DDD...'
                         }
                         required
                         className="flex-1 bg-white rounded-full py-2 px-4 text-neutral-800 font-sans text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#008069] shadow-inner"
@@ -1027,11 +1069,19 @@ export const WhatsAppWidget = () => {
                             className="p-4 hover:bg-neutral-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left transition-colors"
                           >
                             <div className="space-y-1">
-                              <h6 className="font-extrabold text-sm text-neutral-900 leading-tight">{lead.name}</h6>
-                              <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4 text-xs font-semibold text-neutral-500">
+                              <h6 className="font-extrabold text-sm text-neutral-900 leading-tight">
+                                {lead.name} {lead.company ? <span className="font-medium text-xs text-neutral-400">({lead.company})</span> : null}
+                              </h6>
+                              <div className="flex flex-wrap items-center gap-1.5 sm:gap-4 text-xs font-semibold text-neutral-500">
                                 <span className="text-[#008069] truncate max-w-[200px]">{lead.email}</span>
                                 <span className="hidden sm:inline w-1 h-1 bg-neutral-300 rounded-full" />
                                 <span>{lead.phone}</span>
+                                {lead.agentSelected && (
+                                  <>
+                                    <span className="hidden sm:inline w-1 h-1 bg-neutral-300 rounded-full" />
+                                    <span className="bg-emerald-100 text-[#008069] text-[10px] px-1.5 py-0.5 rounded font-bold uppercase">{lead.agentSelected}</span>
+                                  </>
+                                )}
                               </div>
                             </div>
                             <div className="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-t-0 pt-2 sm:pt-0 border-neutral-100/50">
