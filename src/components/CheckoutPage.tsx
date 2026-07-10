@@ -129,58 +129,7 @@ export function CheckoutPage() {
 
   const handleCheckout = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const paymentMethodNames = {
-      credit_card: 'Cartão de Crédito',
-      pix: 'PIX',
-      boleto: 'Boleto'
-    };
-
-    const accessNumbersText = usersCount > 1 
-      ? `\n\n━━━━━━━━━━━━━━━━━━━━━━\n\n📱 *NÚMEROS COM ACESSO*\n${accessNumbers.map((n, i) => `*${i + 1}º Acesso:* ${n}`).join('\n')}` 
-      : '';
-
-    const cardText = paymentMethod === 'credit_card' 
-      ? `\n*Número do Cartão:* ${cardNumber}\n*Validade:* ${cardExpiry}\n*CVV:* ${cardCvv}\n*Nome no Cartão:* ${cardName}`
-      : '';
-
-    // Utilizando encodeURIComponent padrão, garantindo que os emojis sejam mantidos
-    const emojis = {
-      alert: '🚨',
-      user: '👤',
-      plan: '💼',
-      card: '💳',
-      clock: '⏳'
-    };
-
-    const message = `${emojis.alert} *NOVO PEDIDO DE ASSINATURA* ${emojis.alert}
-━━━━━━━━━━━━━━━━━━━━━━
-
-${emojis.user} *DADOS DO CLIENTE*
-*Nome:* ${name}
-*E-mail:* ${email}
-*WhatsApp:* ${phone}
-*Documento:* ${documentNumber}
-
-━━━━━━━━━━━━━━━━━━━━━━
-
-${emojis.plan} *DETALHES DO PLANO*
-*Agente:* ${selectedAgent === 'consultor' ? 'Ceruti Consultor' : 'Ceruti Campo'}
-*Plano:* ${frequency === 'mensal' ? 'Mensal' : (frequency === 'semestral' ? 'Semestral' : 'Anual')}
-*Acessos:* ${usersCount}
-*Valor por Acesso:* ${formatCurrency(unitPrice)}/mês
-*Total:* ${formatCurrency(grandTotal)}${accessNumbersText}
-
-━━━━━━━━━━━━━━━━━━━━━━
-
-${emojis.card} *PAGAMENTO*
-*Método:* ${paymentMethodNames[paymentMethod]}${cardText}
-
-━━━━━━━━━━━━━━━━━━━━━━
-${emojis.clock} _Aguardo as instruções para finalizar._`;
-
-    const encodedMessage = encodeURIComponent(message);
-    window.open(`https://api.whatsapp.com/send?phone=5567981246558&text=${encodedMessage}`, '_blank');
+    navigate('/obrigado');
   };
 
   return (
