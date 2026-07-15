@@ -37,7 +37,8 @@ import {
   Zap,
   Brain,
   X,
-  MessageSquare
+  MessageSquare,
+  Layers
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
@@ -809,6 +810,134 @@ export default function App() {
         </div>
         
         {/* Soft elegant gradient transition divider matching previous fold transitions beautifully */}
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00a83e]/30 via-[#0070f3]/25 via-transparent to-transparent z-10" />
+        <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-[#00a83e]/10 via-[#0070f3]/10 to-transparent z-10 blur-[2px] opacity-85" />
+      </section>
+
+      {/* SECTION: POR QUE O CERUTI (VS CHATGPT) */}
+      <section className="bg-gradient-to-b from-[#FAF9F6] via-white to-white py-24 sm:py-28 relative overflow-hidden" id="por-que-ceruti">
+        {/* Ambient background blur blobs */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-tr from-[#00a83e]/4 to-[#0070f3]/4 rounded-full blur-3xl pointer-events-none -z-10" />
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          
+          {/* Section badge */}
+          <div className="flex justify-center mb-6">
+            <motion.div 
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#f2fcf5] border border-[#00a83e]/20 text-[11px] font-sans font-extrabold tracking-wider text-[#00a83e] uppercase"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#00a83e]" />
+              Diferencial Exclusivo
+            </motion.div>
+          </div>
+
+          {/* Heading */}
+          <div className="text-center max-w-4xl mx-auto mb-16">
+            <motion.h2 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, delay: 0.1 }}
+              className="text-3xl sm:text-4xl lg:text-[40px] font-sans font-black text-[#0b1a30] tracking-tighter leading-[1.1] uppercase mb-6"
+            >
+              Se já existe ChatGPT, por que eu precisaria disso?
+            </motion.h2>
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="text-[#3A4338]/90 font-sans font-medium text-lg sm:text-xl max-w-3xl mx-auto leading-relaxed"
+            >
+              Porque vendedor não precisa de mais uma ferramenta. Precisa de resposta certa, no ritmo certo, do jeito certo.
+            </motion.p>
+          </div>
+
+          {/* Grid layout for comparison / statements */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            {/* Statement 1 */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="bg-white border border-neutral-200/60 p-6 sm:p-8 rounded-[24px] shadow-sm hover:shadow-md transition-all flex gap-5 items-start"
+            >
+              <div className="p-3 bg-neutral-100 text-neutral-500 rounded-2xl shrink-0 mt-1">
+                <Brain className="w-6 h-6 text-neutral-600" />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-neutral-400 text-xs uppercase tracking-wider mb-2">Ponto de Partida</h4>
+                <p className="text-[#3A4338] font-bold text-sm sm:text-base leading-relaxed">
+                  IA genérica ajuda, quando se sabe de fato utilizar.
+                </p>
+              </div>
+            </motion.div>
+
+            {/* Statement 2 */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="bg-white border border-neutral-200/60 p-6 sm:p-8 rounded-[24px] shadow-sm hover:shadow-md transition-all flex gap-5 items-start"
+            >
+              <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl shrink-0 mt-1">
+                <TrendingDown className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-rose-700 text-xs uppercase tracking-wider mb-2">Desafio do Dia a Dia</h4>
+                <p className="text-[#3A4338] font-bold text-sm sm:text-base leading-relaxed">
+                  No dia a dia comercial, isso vira uso irregular, tentativa e erro e pouca escala.
+                </p>
+              </div>
+            </motion.div>
+
+            {/* Statement 3 */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="bg-[#f2fcf5] border border-[#00a83e]/20 p-6 sm:p-8 rounded-[24px] shadow-sm hover:shadow-md transition-all flex gap-5 items-start"
+            >
+              <div className="p-3 bg-[#eafdf0] text-[#00a83e] rounded-2xl shrink-0 mt-1">
+                <Layers className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-[#00a83e] text-xs uppercase tracking-wider mb-2">A Solução Ceruti</h4>
+                <p className="text-[#3A4338] font-bold text-sm sm:text-base leading-relaxed">
+                  Nós entregamos uma estrutura simples e organizada para a rotina real.
+                </p>
+              </div>
+            </motion.div>
+
+            {/* Statement 4 */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="bg-[#f0f7ff] border border-[#0070f3]/20 p-6 sm:p-8 rounded-[24px] shadow-sm hover:shadow-md transition-all flex gap-5 items-start"
+            >
+              <div className="p-3 bg-[#ecf3ff] text-[#0070f3] rounded-2xl shrink-0 mt-1">
+                <Zap className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-[#0070f3] text-xs uppercase tracking-wider mb-2">Resultado Prático</h4>
+                <p className="text-[#3A4338] font-bold text-sm sm:text-base leading-relaxed">
+                  Isso significa mais agilidade na ponta e menos sobrecarga para o gestor.
+                </p>
+              </div>
+            </motion.div>
+          </div>
+
+        </div>
+        {/* Soft elegant gradient transition divider */}
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00a83e]/30 via-[#0070f3]/25 via-transparent to-transparent z-10" />
         <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-[#00a83e]/10 via-[#0070f3]/10 to-transparent z-10 blur-[2px] opacity-85" />
       </section>
