@@ -35,7 +35,9 @@ import {
   Video,
   MoreVertical,
   Zap,
-  Brain
+  Brain,
+  X,
+  MessageSquare
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
@@ -53,6 +55,7 @@ export default function App() {
   // Mobile menu toggle
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<'consultor' | 'campo'>('consultor');
+  const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
 
   return (
     <div className="bg-agro-deep text-gray-100 min-h-screen font-sans selection:bg-agro-green selection:text-agro-deep theme-natural-tones w-full overflow-x-clip relative" id="top_container">
@@ -1772,13 +1775,13 @@ export default function App() {
           </div>
           
           <div className="flex flex-col items-center justify-center mt-12 pb-8 gap-4">
-            <Link 
-              to={`/checkout?agent=${selectedAgent}`}
-              className="inline-flex items-center gap-3 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white px-8 sm:px-10 py-4 sm:py-4.5 rounded-2xl font-black text-sm sm:text-[15px] tracking-widest uppercase transition-all shadow-lg shadow-emerald-950/25 hover:shadow-emerald-600/35 hover:-translate-y-1 active:scale-[0.99] border-b-[3px] border-[#003813]"
+            <button 
+              onClick={() => setShowMaintenanceModal(true)}
+              className="inline-flex items-center gap-3 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white px-8 sm:px-10 py-4 sm:py-4.5 rounded-2xl font-black text-sm sm:text-[15px] tracking-widest uppercase transition-all shadow-lg shadow-emerald-950/25 hover:shadow-emerald-600/35 hover:-translate-y-1 active:scale-[0.99] border-b-[3px] border-[#003813] cursor-pointer"
             >
               <Rocket className="w-6 h-6" />
               ASSINAR AGORA
-            </Link>
+            </button>
 
             {/* Certificação de Segurança */}
             <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 px-5 py-2.5 bg-white border border-neutral-200/60 rounded-2xl shadow-sm text-neutral-700 max-w-lg mt-2">
@@ -1865,6 +1868,87 @@ export default function App() {
 
       {/* Floating WhatsApp Chat Widget */}
       <WhatsAppWidget />
+
+      {/* Checkout Maintenance Modal */}
+      <AnimatePresence>
+        {showMaintenanceModal && (
+          <div className="fixed inset-0 bg-neutral-950/60 backdrop-blur-md z-[1000] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="bg-white rounded-[28px] border border-neutral-200/80 shadow-2xl max-w-lg w-full flex flex-col p-6 sm:p-8 overflow-hidden font-sans relative text-center"
+            >
+              {/* Green Decorative Bar */}
+              <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853]" />
+
+              {/* Close Button */}
+              <button
+                onClick={() => setShowMaintenanceModal(false)}
+                className="absolute top-4 right-4 p-2 text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 rounded-full transition-all cursor-pointer"
+                aria-label="Fechar"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Icon Container with Wrench */}
+              <div className="mx-auto mb-6 inline-flex items-center justify-center w-16 h-16 bg-amber-50 rounded-full border border-amber-100 relative">
+                <span className="absolute inset-0 bg-amber-300/10 blur-md rounded-full animate-pulse" />
+                <Wrench className="w-8 h-8 text-amber-600 relative z-10" />
+              </div>
+
+              {/* Title */}
+              <h3 className="font-sans font-black text-2xl tracking-tight text-[#0b1a30] uppercase mb-3">
+                Checkout em Manutenção
+              </h3>
+
+              {/* Message */}
+              <p className="text-neutral-600 font-medium text-sm sm:text-base leading-relaxed mb-6">
+                Estamos atualizando nossa plataforma de pagamentos para oferecer uma experiência ainda mais segura e integrada.
+              </p>
+
+              {/* Recommendation Card */}
+              <div className="bg-emerald-50/50 border border-emerald-100/60 rounded-2xl p-5 mb-8 text-left">
+                <div className="flex gap-3 items-start">
+                  <div className="p-2 bg-emerald-100/50 text-[#00a83e] rounded-xl shrink-0">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-[#0b1a30] text-sm uppercase tracking-wide mb-1">
+                      Experimente Grátis por 7 Dias!
+                    </h4>
+                    <p className="text-xs text-neutral-600 font-semibold leading-relaxed">
+                      Recomendamos que você inicie o seu teste gratuito de 7 dias hoje mesmo. O assistente virtual Hana ajudará na ativação e guiará seu acesso passo a passo.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => {
+                    setShowMaintenanceModal(false);
+                    // Dispatch custom event to trigger WhatsApp 7 days trial flow
+                    window.dispatchEvent(new CustomEvent('open-whatsapp-trial'));
+                  }}
+                  className="w-full inline-flex items-center justify-center gap-2.5 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white py-4 px-6 rounded-2xl font-black text-sm tracking-wider uppercase transition-all shadow-md shadow-emerald-950/20 active:scale-[0.98] border-b-[3px] border-[#003813] cursor-pointer"
+                >
+                  <MessageSquare className="w-5 h-5" />
+                  Teste por 7 dias
+                </button>
+
+                <button
+                  onClick={() => setShowMaintenanceModal(false)}
+                  className="w-full text-xs font-black uppercase tracking-widest text-neutral-400 hover:text-neutral-600 py-2.5 transition-colors cursor-pointer"
+                >
+                  Voltar ao site
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

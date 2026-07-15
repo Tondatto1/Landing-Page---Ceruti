@@ -186,6 +186,34 @@ export const WhatsAppWidget = () => {
 
   // Setup initial message sequence
   useEffect(() => {
+    const handleOpenTrial = () => {
+      setIsOpen(true);
+      setShowBalloon(false);
+      setSignupStep('name');
+      
+      const msg1: Message = {
+        id: '1',
+        sender: 'bot',
+        text: 'Olá! Sou o assistente do Ceruti. 🚀',
+        time: formatTime()
+      };
+      
+      const botMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        sender: 'bot',
+        text: 'Excelente escolha: o nosso agente ceruti, está pronto para capacitar e impulsionar suas vendas através do WhatsApp.\n\nPara ativarmos e liberarmos o seu *Teste Grátis de 7 Dias*, preciso de 4 informações rápidas.\n\nPor favor, digite o seu *nome completo*:',
+        time: formatTime()
+      };
+      
+      setMessages([msg1, botMsg]);
+    };
+
+    window.addEventListener('open-whatsapp-trial', handleOpenTrial);
+    return () => window.removeEventListener('open-whatsapp-trial', handleOpenTrial);
+  }, []);
+
+  // Setup initial message sequence
+  useEffect(() => {
     if (isOpen && messages.length === 0) {
       triggerInitialSequence();
     }
