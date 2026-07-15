@@ -591,19 +591,7 @@ export default function App() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           
-          {/* Section badge for elegant design feeling */}
-          <div className="flex justify-center mb-6">
-            <motion.div 
-              initial={{ opacity: 0, y: 15 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: false }}
-              transition={{ duration: 0.6 }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#f2fcf5] border border-[#00a83e]/20 text-[11px] font-sans font-extrabold tracking-wider text-[#00a83e] uppercase"
-            >
-              <Award className="w-3.5 h-3.5 text-[#00a83e]" />
-              Equipe de Elite no Agronegócio
-            </motion.div>
-          </div>
+
 
           {/* Heading with exquisite branding alignment */}
           <div className="text-center max-w-4xl mx-auto mb-16 sm:mb-20">
@@ -821,19 +809,7 @@ export default function App() {
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           
-          {/* Section badge */}
-          <div className="flex justify-center mb-6">
-            <motion.div 
-              initial={{ opacity: 0, y: 15 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#f2fcf5] border border-[#00a83e]/20 text-[11px] font-sans font-extrabold tracking-wider text-[#00a83e] uppercase"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-[#00a83e]" />
-              Diferencial Exclusivo
-            </motion.div>
-          </div>
+
 
           {/* Heading */}
           <div className="text-center max-w-4xl mx-auto mb-16">
