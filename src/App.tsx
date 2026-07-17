@@ -176,7 +176,7 @@ export default function App() {
             <div className="lg:col-span-6 flex flex-col items-start gap-y-3.5 sm:gap-y-4 lg:gap-y-5 text-left">
 
               <h1 className="order-1 text-3xl sm:text-4xl lg:text-[44px] font-sans font-black text-neutral-900 leading-[1.2] sm:leading-[1.15] lg:leading-[1.1] tracking-tight sm:tracking-tighter lg:tracking-tighter pl-[1px]">
-                Agente de <span className="text-[#00a83e]">IA</span> que treina seus vendedores <span className="text-[#00a83e]">24/7</span> e libera seus gestores para o que realmente <span className="text-[#00a83e]">importa</span>
+                Agente <span className="text-[#00a83e]">Ceruti</span> que treina seus vendedores <span className="text-[#00a83e]">24/7</span> e libera seus gestores para o que realmente <span className="text-[#00a83e]">importa</span>
               </h1>
 
 
