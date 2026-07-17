@@ -936,7 +936,7 @@ export default function App() {
               transition={{ duration: 0.7, delay: 0.1 }}
               className="text-3xl sm:text-4xl lg:text-[44px] font-sans font-black text-[#0b1a30] tracking-tighter leading-[1.08] uppercase"
             >
-              Dois Modelos de Agentes
+              DOIS MODELOS DO AGENTE CERUTI
             </motion.h2>
           </div>
 
@@ -967,7 +967,7 @@ export default function App() {
                 </h3>
                 
                 <p className="text-[#3A4338]/90 text-sm sm:text-base leading-relaxed mb-6 font-medium">
-                  O Ceruti Consultor foi criado para situações que exigem mais análise, contexto e construção de estratégia. Ele aprofunda o cenário, faz diagnóstico e entrega um plano prático para destravar negociações mais complexas.
+                  Feito para gestores e líderes comercias
                 </p>
               </div>
 
@@ -979,7 +979,7 @@ export default function App() {
                     <CheckCheck className="w-3.5 h-3.5 text-[#0070f3]" />
                   </div>
                   <div className="text-xs sm:text-sm text-[#004bb4] font-bold leading-relaxed">
-                    Mais profundidade, diagnóstico e plano de ação estruturado.
+                    Mais profundidade, diagnóstico e plano de ação estruturado
                   </div>
                 </div>
               </div>
@@ -1009,7 +1009,7 @@ export default function App() {
                 </h3>
                 
                 <p className="text-[#3A4338]/90 text-sm sm:text-base leading-relaxed mb-6 font-medium">
-                  O Ceruti Campo foi criado para a rotina da ponta. Ele é mais direto, rápido e objetivo, com respostas imediatas para ajudar o vendedor no dia a dia, no momento em que a dúvida aparece.
+                  Feito para os vendedores da ponta
                 </p>
               </div>
 
@@ -1021,7 +1021,7 @@ export default function App() {
                     <CheckCheck className="w-3.5 h-3.5 text-[#00a83e]" />
                   </div>
                   <div className="text-xs sm:text-sm text-[#006b27] font-bold leading-relaxed">
-                    Mais agilidade, objetividade e resposta imediata em tempo real.
+                    Mais agilidade, objetividade e resposta imediata.
                   </div>
                 </div>
               </div>
