@@ -57,6 +57,14 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<'consultor' | 'campo'>('consultor');
 
+  useEffect(() => {
+    // Track PageView for home page explicitly on mount/render
+    if (typeof window !== "undefined" && window.fbq) {
+      console.log("[Meta Pixel] Tracking home page PageView");
+      window.fbq("track", "PageView");
+    }
+  }, []);
+
   return (
     <div className="bg-agro-deep text-gray-100 min-h-screen font-sans selection:bg-agro-green selection:text-agro-deep theme-natural-tones w-full overflow-x-clip relative" id="top_container">
       

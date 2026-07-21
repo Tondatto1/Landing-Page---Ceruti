@@ -6,6 +6,16 @@ import { OglAurora } from './OglAurora';
 export function ThankYouPage() {
   const navigate = useNavigate();
 
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
+    
+    // Track PageView for thank you page explicitly
+    if (typeof window !== "undefined" && window.fbq) {
+      console.log("[Meta Pixel] Tracking thank you page PageView");
+      window.fbq("track", "PageView");
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-neutral-50 flex flex-col font-sans select-none overflow-x-hidden">
       {/* Header */}

@@ -45,8 +45,16 @@ export function CheckoutPage() {
   useEffect(() => {
     trackInitiateCheckout({}, {
       value: grandTotal,
-      currency: "BRL"
+      currency: "BRL",
+      content_name: `Ceruti Agent Subscription - ${selectedAgent === 'consultor' ? 'Consultor' : 'Campo'}`,
+      content_type: "product"
     });
+
+    // Track PageView for checkout page explicitly
+    if (typeof window !== "undefined" && window.fbq) {
+      console.log("[Meta Pixel] Tracking checkout PageView explicitly");
+      window.fbq("track", "PageView");
+    }
   }, []);
 
   useEffect(() => {

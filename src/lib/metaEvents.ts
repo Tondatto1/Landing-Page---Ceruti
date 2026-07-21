@@ -63,8 +63,7 @@ export async function trackMetaEvent(
   try {
     console.log(`[Meta CAPI] Dispatching server-side event: "${eventName}"`, { eventId, userData, customData });
     
-    // We send a non-blocking post request to our Express backend
-    fetch("/api/meta-events", {
+    const response = await fetch("/api/meta-events", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -76,20 +75,16 @@ export async function trackMetaEvent(
         user_data: userData,
         custom_data: customData
       })
-    })
-    .then(async (res) => {
-      const data = await res.json();
-      if (!res.ok) {
-        console.error(`[Meta CAPI] Server proxy returned error for "${eventName}":`, data);
-      } else {
-        console.log(`[Meta CAPI] Event "${eventName}" successfully proxied via server (Event ID: ${eventId})`);
-      }
-    })
-    .catch((err) => {
-      console.error(`[Meta CAPI] Network error dispatching event "${eventName}":`, err);
     });
+    
+    const data = await response.json();
+    if (!response.ok) {
+      console.error(`[Meta CAPI] Server proxy returned error for "${eventName}":`, data);
+    } else {
+      console.log(`[Meta CAPI] Event "${eventName}" successfully proxied via server (Event ID: ${eventId})`);
+    }
   } catch (err) {
-    console.error("[Meta CAPI] Error dispatching CAPI event:", err);
+    console.error(`[Meta CAPI] Network or code error dispatching event "${eventName}":`, err);
   }
 
   return eventId;
