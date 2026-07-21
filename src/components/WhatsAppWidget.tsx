@@ -1,29 +1,143 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  MessageCircle, 
-  X, 
-  Send, 
-  CheckCheck, 
-  Sparkles, 
-  Lock, 
-  Search, 
-  Trash2, 
-  Download, 
-  CheckCircle, 
-  LogOut 
+import {
+  MessageCircle,
+  X,
+  Send,
+  CheckCheck,
+  Sparkles,
+  Lock,
+  Search,
+  Trash2,
+  Download,
+  CheckCircle,
+  LogOut
 } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import { HanaAvatar } from './HanaAvatar';
-import { 
-  saveLead, 
-  getLeads, 
-  deleteLeadWithFirestore, 
-  downloadLeadsCSV, 
-  fetchFirestoreLeads, 
-  TrialLead 
+import {
+  getLeads,
+  deleteLeadWithFirestore,
+  downloadLeadsCSV,
+  fetchFirestoreLeads,
+  TrialLead
 } from '../lib/leads';
+
+type TrialAgentType = 'campo' | 'consultor';
+
+const TRIALS_API_BASE_URL =
+  (import.meta as unknown as { env?: Record<string, string | undefined> }).env
+    ?.VITE_API_BASE_URL?.replace(/\/$/, '') ?? 'https://api.ceruti.ia.br';
+
+const VALID_BRAZILIAN_DDDS = new Set([
+  '11', '12', '13', '14', '15', '16', '17', '18', '19',
+  '21', '22', '24', '27', '28',
+  '31', '32', '33', '34', '35', '37', '38',
+  '41', '42', '43', '44', '45', '46', '47', '48', '49',
+  '51', '53', '54', '55',
+  '61', '62', '63', '64', '65', '66', '67', '68', '69',
+  '71', '73', '74', '75', '77', '79',
+  '81', '82', '83', '84', '85', '86', '87', '88', '89',
+  '91', '92', '93', '94', '95', '96', '97', '98', '99',
+]);
+
+const TRIAL_INPUT_MAX_LENGTH = {
+  name: 120,
+  company: 160,
+  email: 254,
+  phone: 32,
+} as const;
+
+const normalizePersonName = (raw: string) =>
+  raw
+    .normalize('NFC')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLocaleLowerCase('pt-BR')
+    .replace(
+      /(^|[\s'-])\p{L}/gu,
+      (part) => part.toLocaleUpperCase('pt-BR'),
+    );
+
+const isValidName = (name: string) =>
+  name.length >= 2 &&
+  name.length <= TRIAL_INPUT_MAX_LENGTH.name &&
+  /^[\p{L}]+(?:[ '-][\p{L}]+)*$/u.test(name);
+
+const normalizeCompanyName = (raw: string) =>
+  raw.normalize('NFC').trim().replace(/\s+/g, ' ');
+
+const isValidCompanyName = (company: string) =>
+  company.length >= 2 &&
+  company.length <= TRIAL_INPUT_MAX_LENGTH.company &&
+  (company.match(/[\p{L}\p{N}]/gu)?.length ?? 0) >= 2;
+
+const normalizeEmail = (raw: string) =>
+  raw.trim().toLocaleLowerCase();
+
+const isValidEmail = (email: string) => {
+  if (email.length > TRIAL_INPUT_MAX_LENGTH.email) return false;
+
+  const emailParts = email.split('@');
+  if (emailParts.length !== 2) return false;
+
+  const [localPart, domain] = emailParts;
+  if (
+    !localPart ||
+    localPart.length > 64 ||
+    localPart.startsWith('.') ||
+    localPart.endsWith('.') ||
+    localPart.includes('..') ||
+    !/^[a-z0-9!#$%&'*+/=?^_`{|}~.-]+$/i.test(localPart)
+  ) {
+    return false;
+  }
+
+  if (!domain || domain.length > 253 || domain.includes('..')) return false;
+
+  const domainLabels = domain.split('.');
+  if (domainLabels.length < 2) return false;
+  if (
+    domainLabels.some(
+      (label) =>
+        label.length > 63 ||
+        !/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i.test(label),
+    )
+  ) {
+    return false;
+  }
+
+  return /^[a-z]{2,63}$/i.test(domainLabels.at(-1) ?? '');
+};
+
+const normalizeBrazilianWhatsapp = (raw: string): string | null => {
+  const trimmedPhone = raw.trim();
+  if (
+    trimmedPhone.length < 8 ||
+    trimmedPhone.length > TRIAL_INPUT_MAX_LENGTH.phone ||
+    !/^\+?[\d\s().-]+$/.test(trimmedPhone)
+  ) {
+    return null;
+  }
+
+  let digits = trimmedPhone.replace(/\D/g, '');
+  if (digits.startsWith('00')) digits = digits.slice(2);
+  if (digits.length === 10 || digits.length === 11) digits = `55${digits}`;
+
+  if (!digits.startsWith('55') || ![12, 13].includes(digits.length)) {
+    return null;
+  }
+
+  const national = digits.slice(2);
+  const ddd = national.slice(0, 2);
+  const subscriber = national.slice(2);
+  if (!VALID_BRAZILIAN_DDDS.has(ddd)) return null;
+  if (subscriber.length === 9 && !subscriber.startsWith('9')) return null;
+  if (!/^[2-9]\d{7,8}$/.test(subscriber)) return null;
+
+  return `+${digits}`;
+};
 
 interface Message {
   id: string;
@@ -43,8 +157,17 @@ export const WhatsAppWidget = () => {
 
   // New states for form trial questionnaire
   const [signupStep, setSignupStep] = useState<'idle' | 'name' | 'company' | 'email' | 'phone'>('idle');
-  const [prospectData, setProspectData] = useState({ name: '', company: '', email: '', phone: '', agentSelected: '' });
+  const [prospectData, setProspectData] = useState<{
+    name: string;
+    company: string;
+    email: string;
+    phone: string;
+    agentTypes: TrialAgentType[];
+  }>({ name: '', company: '', email: '', phone: '', agentTypes: [] });
   const [userInputText, setUserInputText] = useState('');
+  const [inputError, setInputError] = useState<string | null>(null);
+  const [isSubmittingTrial, setIsSubmittingTrial] = useState(false);
+  const trialIdempotencyKeyRef = useRef<string | null>(null);
 
   // Admin Dashboard States
   const [showAdminModal, setShowAdminModal] = useState(false);
@@ -186,34 +309,6 @@ export const WhatsAppWidget = () => {
 
   // Setup initial message sequence
   useEffect(() => {
-    const handleOpenTrial = () => {
-      setIsOpen(true);
-      setShowBalloon(false);
-      setSignupStep('name');
-      
-      const msg1: Message = {
-        id: '1',
-        sender: 'bot',
-        text: 'Olá! Sou o assistente do Ceruti. 🚀',
-        time: formatTime()
-      };
-      
-      const botMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        sender: 'bot',
-        text: 'Excelente escolha: o nosso agente ceruti, está pronto para capacitar e impulsionar suas vendas através do WhatsApp.\n\nPara ativarmos e liberarmos o seu *Teste Grátis de 7 Dias*, preciso de 4 informações rápidas.\n\nPor favor, digite o seu *nome completo*:',
-        time: formatTime()
-      };
-      
-      setMessages([msg1, botMsg]);
-    };
-
-    window.addEventListener('open-whatsapp-trial', handleOpenTrial);
-    return () => window.removeEventListener('open-whatsapp-trial', handleOpenTrial);
-  }, []);
-
-  // Setup initial message sequence
-  useEffect(() => {
     if (isOpen && messages.length === 0) {
       triggerInitialSequence();
     }
@@ -254,7 +349,21 @@ export const WhatsAppWidget = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
+  const resetChat = () => {
+    setMessages([]);
+    setIsTyping(false);
+    setSignupStep('idle');
+    setInputError(null);
+    setUserInputText('');
+    setProspectData({ name: '', company: '', email: '', phone: '', agentTypes: [] });
+    setIsSubmittingTrial(false);
+    trialIdempotencyKeyRef.current = null;
+  };
+
   const handleOptionClick = async (action: string, optionText: string) => {
+    if (action === 'activate_trial_final' && isSubmittingTrial) return;
+    if (action === 'activate_trial_final') setIsSubmittingTrial(true);
+
     // Add user message
     const userMsg: Message = {
       id: Date.now().toString(),
@@ -272,14 +381,18 @@ export const WhatsAppWidget = () => {
     );
 
     await new Promise((resolve) => setTimeout(resolve, 1200));
-    setIsTyping(false);
+    if (action !== 'activate_trial_final') {
+      setIsTyping(false);
+    }
 
     if (action === 'test_3_days') {
+      setInputError(null);
+      setUserInputText('');
       setSignupStep('name');
       const botMsg: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
-        text: 'Excelente escolha: o nosso agente ceruti, está pronto para capacitar e impulsionar suas vendas através do WhatsApp.\n\nPara ativarmos e liberarmos o seu *Teste Grátis de 7 Dias*, preciso de 4 informações rápidas.\n\nPor favor, digite o seu *nome completo*:',
+        text: 'Excelente escolha: o nosso agente ceruti, está pronto para capacitar e impulsionar suas vendas através do WhatsApp.\n\nPara ativarmos e liberarmos o seu *Teste Grátis de 7 Dias*, preciso de 4 informações rápidas.\n\nPor favor, digite o seu *nome*:',
         time: formatTime()
       };
       setMessages((prev) => [...prev, botMsg]);
@@ -412,16 +525,23 @@ export const WhatsAppWidget = () => {
       };
       setMessages((prev) => [...prev, botMsg]);
     } else if (action === 'agent_consultor' || action === 'agent_campo' || action === 'agent_both') {
-      const selectedAgentName = 
+      const agentTypes: TrialAgentType[] =
+        action === 'agent_consultor'
+          ? ['consultor']
+          : action === 'agent_campo'
+            ? ['campo']
+            : ['campo', 'consultor'];
+      const selectedAgentName =
         action === 'agent_consultor' ? 'Ceruti Consultor' :
         action === 'agent_campo' ? 'Ceruti Campo' : 'Ambos';
-      
-      setProspectData(prev => ({ ...prev, agentSelected: selectedAgentName }));
+
+      setProspectData(prev => ({ ...prev, agentTypes }));
+      trialIdempotencyKeyRef.current = crypto.randomUUID();
 
       const botMsg: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
-        text: `Excelente! Você escolheu o(s) agente(s): *${selectedAgentName}*.\n\nPara liberar agora mesmo o seu período de teste, clique no botão abaixo:`,
+        text: `Excelente! Você escolheu o(s) agente(s): *${selectedAgentName}*.\n\nAo clicar em liberar, você consente com o tratamento dos dados informados para ativação e suporte do trial, conforme a LGPD.`,
         time: formatTime(),
         options: [
           { text: '🔑 Liberar teste de 7 dias', action: 'activate_trial_final' }
@@ -429,48 +549,135 @@ export const WhatsAppWidget = () => {
       };
       setMessages((prev) => [...prev, botMsg]);
     } else if (action === 'activate_trial_final') {
-      // Complete Lead Signup with all 5 fields
-      saveLead(
-        prospectData.name, 
-        prospectData.company || 'Não informada', 
-        prospectData.email, 
-        prospectData.phone, 
-        prospectData.agentSelected || 'Ambos'
-      ).catch((err) => {
-        console.error("Firestore persistence warning (falling back to localStorage only):", err);
-      });
+      const idempotencyKey =
+        trialIdempotencyKeyRef.current ?? crypto.randomUUID();
+      trialIdempotencyKeyRef.current = idempotencyKey;
 
-      const botMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        sender: 'bot',
-        text: `🎉 *Período de teste de 7 dias iniciado!*\n\nO(s) agente(s) selecionado(s) (*${prospectData.agentSelected || 'Ambos'}*) irá(ão) enviar uma mensagem de saudação que pode levar até *10 minutos* para chegar no seu WhatsApp.\n\nO que deseja fazer em seguida?`,
-        time: formatTime(),
-        options: [
-          { text: '🔄 Retornar ao menu principal', action: 'reset' }
-        ]
-      };
-      setMessages((prev) => [...prev, botMsg]);
+      try {
+        const response = await fetch(`${TRIALS_API_BASE_URL}/trials`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': idempotencyKey,
+          },
+          body: JSON.stringify({
+            name: prospectData.name,
+            company: prospectData.company,
+            email: prospectData.email,
+            phone: prospectData.phone,
+            agentTypes: prospectData.agentTypes,
+          }),
+        });
+
+        if (response.status === 409) {
+          const responseBody: unknown = await response.json().catch(() => null);
+          const errorCode =
+            typeof responseBody === 'object' &&
+            responseBody !== null &&
+            'code' in responseBody &&
+            typeof responseBody.code === 'string'
+              ? responseBody.code
+              : null;
+
+          if (errorCode === 'trial_phone_not_eligible') {
+            const botMsg: Message = {
+              id: (Date.now() + 1).toString(),
+              sender: 'bot',
+              text: 'Este número não está elegível para um novo período de teste. Conheça nossos planos ou fale com o suporte.',
+              time: formatTime(),
+              options: [
+                { text: '💬 Falar com o suporte', action: 'support' },
+                { text: '📋 Conhecer os planos', action: 'view_plans' },
+              ],
+            };
+            setMessages((prev) => [...prev, botMsg]);
+            return;
+          }
+        }
+
+        if (response.status !== 200 && response.status !== 201) {
+          throw new Error('trial_activation_failed');
+        }
+
+        const selectedBothAgents = prospectData.agentTypes.length === 2;
+        const selectedAgentName =
+          prospectData.agentTypes[0] === 'campo'
+            ? 'Ceruti Campo'
+            : 'Ceruti Consultor';
+        const trialConfirmationText = selectedBothAgents
+          ? 'Seu WhatsApp foi liberado para usar o *Ceruti Campo* e o *Ceruti Consultor*. Os dois agentes enviarão mensagens para você diretamente pelo WhatsApp.'
+          : `Seu WhatsApp foi liberado para usar o *${selectedAgentName}*. O agente enviará mensagens para você diretamente pelo WhatsApp.`;
+        const botMsg: Message = {
+          id: (Date.now() + 1).toString(),
+          sender: 'bot',
+          text: `🎉 *Período de teste de 7 dias iniciado!*\n\n${trialConfirmationText}`,
+          time: formatTime(),
+          options: [
+            { text: '🔄 Retornar ao menu principal', action: 'reset' }
+          ]
+        };
+        setMessages((prev) => [...prev, botMsg]);
+      } catch (error) {
+        const botMsg: Message = {
+          id: (Date.now() + 1).toString(),
+          sender: 'bot',
+          text: 'Não foi possível concluir a liberação agora. Tente novamente; se o problema continuar, fale com o suporte.',
+          time: formatTime(),
+          options: [
+            { text: '🔄 Tentar liberar novamente', action: 'activate_trial_final' },
+            { text: '💬 Falar com o suporte', action: 'support' },
+          ],
+        };
+        setMessages((prev) => [...prev, botMsg]);
+        console.error(error)
+      } finally {
+        setIsTyping(false);
+        setIsSubmittingTrial(false);
+      }
+    } else if (action === 'view_plans') {
+      resetChat();
+      setIsOpen(false);
+      window.location.assign('/#planos');
     } else if (action === 'reset') {
-      setSignupStep('idle');
-      const botMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        sender: 'bot',
-        text: 'Como posso te ajudar hoje? Selecione uma das opções abaixo para começarmos:',
-        time: formatTime(),
-        options: [
-          { text: '1️⃣ Desejo testar por 7 dias gratuitamente', action: 'test_3_days' },
-          { text: '2️⃣ Desejo falar com o suporte/atendimento', action: 'support' }
-        ]
-      };
-      setMessages((prev) => [...prev, botMsg]);
+      resetChat();
+      await triggerInitialSequence();
     }
   };
 
   const handleCustomInputSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (signupStep === 'idle' || !userInputText.trim()) return;
+    if (signupStep === 'idle') return;
 
-    const userText = userInputText.trim();
+    let userText = userInputText.trim();
+
+    if (signupStep === 'name') {
+      userText = normalizePersonName(userInputText);
+      if (!isValidName(userText)) {
+        setInputError('Informe um nome válido com 2 a 120 caracteres, sem números ou símbolos.');
+        return;
+      }
+    } else if (signupStep === 'company') {
+      userText = normalizeCompanyName(userInputText);
+      if (!isValidCompanyName(userText)) {
+        setInputError('Informe o nome da empresa com 2 a 160 caracteres.');
+        return;
+      }
+    } else if (signupStep === 'email') {
+      userText = normalizeEmail(userInputText);
+      if (!isValidEmail(userText)) {
+        setInputError('Informe um e-mail válido, como nome@empresa.com.br.');
+        return;
+      }
+    } else if (signupStep === 'phone') {
+      const normalizedPhone = normalizeBrazilianWhatsapp(userInputText);
+      if (!normalizedPhone) {
+        setInputError('Informe um WhatsApp brasileiro válido com DDD, usando apenas números e caracteres de formatação.');
+        return;
+      }
+      userText = normalizedPhone;
+    }
+
+    setInputError(null);
     setUserInputText('');
 
     // Add user message to log
@@ -496,7 +703,7 @@ export const WhatsAppWidget = () => {
         time: formatTime()
       };
       setMessages((prev) => [...prev, botMsg]);
-    } 
+    }
     else if (signupStep === 'company') {
       setProspectData(prev => ({ ...prev, company: userText }));
       setSignupStep('email');
@@ -507,7 +714,7 @@ export const WhatsAppWidget = () => {
         time: formatTime()
       };
       setMessages((prev) => [...prev, botMsg]);
-    } 
+    }
     else if (signupStep === 'email') {
       setProspectData(prev => ({ ...prev, email: userText }));
       setSignupStep('phone');
@@ -518,7 +725,7 @@ export const WhatsAppWidget = () => {
         time: formatTime()
       };
       setMessages((prev) => [...prev, botMsg]);
-    } 
+    }
     else if (signupStep === 'phone') {
       setProspectData(prev => ({ ...prev, phone: userText }));
       setSignupStep('idle');
@@ -616,7 +823,7 @@ export const WhatsAppWidget = () => {
     }
   };
 
-  const filteredLeads = leadList.filter(lead => 
+  const filteredLeads = leadList.filter(lead =>
     lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     lead.phone.includes(searchTerm)
@@ -644,7 +851,7 @@ export const WhatsAppWidget = () => {
                     <Sparkles className="w-4 h-4 text-[#00a83e] animate-pulse shrink-0" />
                     <span>Teste por 7 dias</span>
                   </div>
-                  
+
                   <div className="flex items-center gap-1 text-[11px] sm:text-[12px] font-extrabold text-[#00a83e] mt-1 select-none transition-colors duration-200 group-hover:text-emerald-700">
                     <span className="opacity-95 group-hover:opacity-100">Garanta seu acesso</span>
                     <span className="text-[10px]">⚡</span>
@@ -721,7 +928,7 @@ export const WhatsAppWidget = () => {
                   <div className="bg-[#008069] text-white py-3.5 px-4 flex items-center justify-between shadow-sm relative shrink-0">
                     <div className="flex items-center gap-3">
                       {/* Hidden administration panel portal triggers on 5 rapid clicks on the 'C' brand avatar */}
-                      <div 
+                      <div
                         onClick={handleAvatarClick}
                         className="relative w-10 h-10 rounded-full overflow-hidden flex items-center justify-center border border-white/20 shadow-inner cursor-pointer select-none bg-neutral-100"
                         title="Hana - assistente virtual"
@@ -750,7 +957,7 @@ export const WhatsAppWidget = () => {
                   </div>
 
                   {/* Chat Messages Log Area */}
-                  <div 
+                  <div
                     className="flex-1 overflow-y-auto p-4 space-y-4"
                     style={{
                       backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")',
@@ -790,6 +997,10 @@ export const WhatsAppWidget = () => {
                                 href={msg.cta.link}
                                 target="_blank"
                                 rel="noopener noreferrer"
+                                onClick={() => {
+                                  resetChat();
+                                  setIsOpen(false);
+                                }}
                                 className="flex items-center justify-center gap-2 w-full py-3.5 px-4 bg-[#25D366] text-white font-extrabold uppercase text-[11px] tracking-wider rounded-xl hover:bg-[#20ba5c] hover:scale-[1.02] shadow-[0_4px_12px_rgba(37,211,102,0.3)] transition-all duration-300"
                               >
                                 <MessageCircle className="w-4 h-4 fill-white" />
@@ -815,7 +1026,8 @@ export const WhatsAppWidget = () => {
                                 <button
                                   key={i}
                                   onClick={() => handleOptionClick(opt.action, opt.text)}
-                                  className={`text-left w-full transition-all duration-300 active:scale-98 rounded-xl ${
+                                  disabled={isSubmittingTrial && opt.action === 'activate_trial_final'}
+                                  className={`text-left w-full transition-all duration-300 active:scale-98 rounded-xl disabled:opacity-60 disabled:cursor-not-allowed ${
                                     isTestOption
                                       ? "bg-gradient-to-r from-[#004d1a] to-[#00a83e] hover:from-[#006020] hover:to-[#00b944] text-white font-black text-xs sm:text-[13px] py-3.5 px-4 border-b-2 border-[#003813] shadow-[0_4px_15px_rgba(0,168,62,0.3)] animate-pulse cursor-pointer"
                                       : "bg-white hover:bg-teal-50 hover:text-[#008069] text-gray-700 font-semibold text-xs sm:text-[13px] py-2.5 px-3.5 border border-neutral-200 shadow-sm cursor-pointer"
@@ -845,26 +1057,67 @@ export const WhatsAppWidget = () => {
                   {/* Form / Dummy Input Footer */}
                   <form
                     onSubmit={handleCustomInputSubmit}
-                    className="bg-[#f0f2f5] px-3.5 py-3 flex items-center gap-2.5 border-t border-neutral-200 shrink-0"
+                    noValidate
+                    className="bg-[#f0f2f5] px-3.5 py-3 flex items-end gap-2.5 border-t border-neutral-200 shrink-0"
                   >
                     {signupStep !== 'idle' ? (
-                      <input
-                        type={signupStep === 'email' ? 'email' : 'text'}
-                        value={userInputText}
-                        onChange={(e) => setUserInputText(e.target.value)}
-                        placeholder={
-                          signupStep === 'name' 
-                            ? 'Digite seu nome completo...' 
-                            : signupStep === 'company'
-                              ? 'Digite o nome da sua empresa...'
-                              : signupStep === 'email' 
-                                ? 'Digite seu melhor e-mail...' 
-                                : 'Digite seu WhatsApp com DDD...'
-                        }
-                        required
-                        className="flex-1 bg-white rounded-full py-2 px-4 text-neutral-800 font-sans text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#008069] shadow-inner"
-                        autoFocus
-                      />
+                      <div className="flex-1 min-w-0">
+                        <input
+                          type={signupStep === 'email' ? 'email' : signupStep === 'phone' ? 'tel' : 'text'}
+                          value={userInputText}
+                          onChange={(e) => {
+                            setUserInputText(e.target.value);
+                            if (inputError) setInputError(null);
+                          }}
+                          placeholder={
+                            signupStep === 'name'
+                              ? 'Digite seu nome...'
+                              : signupStep === 'company'
+                                ? 'Digite o nome da sua empresa...'
+                                : signupStep === 'email'
+                                  ? 'Digite seu melhor e-mail...'
+                                  : 'Digite seu WhatsApp com DDD...'
+                          }
+                          required
+                          maxLength={
+                            signupStep === 'name'
+                              ? TRIAL_INPUT_MAX_LENGTH.name
+                              : signupStep === 'company'
+                                ? TRIAL_INPUT_MAX_LENGTH.company
+                                : signupStep === 'email'
+                                  ? TRIAL_INPUT_MAX_LENGTH.email
+                                  : TRIAL_INPUT_MAX_LENGTH.phone
+                          }
+                          pattern={signupStep === 'phone' ? '\\+?[0-9\\s().-]+' : undefined}
+                          inputMode={signupStep === 'email' ? 'email' : signupStep === 'phone' ? 'tel' : 'text'}
+                          aria-invalid={Boolean(inputError)}
+                          aria-describedby={inputError ? 'trial-input-error' : undefined}
+                          autoComplete={
+                            signupStep === 'name'
+                              ? 'name'
+                              : signupStep === 'email'
+                                ? 'email'
+                                : signupStep === 'phone'
+                                  ? 'tel'
+                                  : 'organization'
+                          }
+                          className={`w-full bg-white rounded-full py-2 px-4 text-neutral-800 font-sans text-xs sm:text-sm focus:outline-none focus:ring-2 shadow-inner ${
+                            inputError
+                              ? 'ring-2 ring-red-500 focus:ring-red-500'
+                              : 'focus:ring-[#008069]'
+                          }`}
+                          autoFocus
+                        />
+                        {inputError && (
+                          <p
+                            id="trial-input-error"
+                            role="alert"
+                            className="mt-1.5 px-2 text-[11px] leading-tight font-medium text-red-600"
+                          >
+                            {inputError}
+                          </p>
+                        )}
+                      </div>
                     ) : (
                       <input
                         type="text"
@@ -910,8 +1163,8 @@ export const WhatsAppWidget = () => {
             {isOpen ? (
               <X className="w-7 h-7 stroke-[2.5]" />
             ) : (
-              <svg 
-                className="w-8 h-8 sm:w-9 sm:h-9 fill-current stroke-none drop-shadow-sm select-none" 
+              <svg
+                className="w-8 h-8 sm:w-9 sm:h-9 fill-current stroke-none drop-shadow-sm select-none"
                 viewBox="0 0 24 24"
                 xmlns="http://www.w3.org/2000/svg"
               >
@@ -1024,8 +1277,8 @@ export const WhatsAppWidget = () => {
                         }}
                         required
                         className={`w-full px-4 py-3 bg-neutral-50 border rounded-xl text-center text-xs font-bold placeholder-gray-400 focus:outline-none focus:ring-4 focus:bg-white transition-all ${
-                          passwordError 
-                            ? 'border-red-500 focus:ring-red-500/10' 
+                          passwordError
+                            ? 'border-red-500 focus:ring-red-500/10'
                             : 'border-neutral-300 focus:ring-[#008069]/10 focus:border-[#008069]'
                         }`}
                       />
@@ -1092,8 +1345,8 @@ export const WhatsAppWidget = () => {
                     ) : (
                       <div className="divide-y divide-neutral-100">
                         {filteredLeads.map((lead) => (
-                          <div 
-                            key={lead.id} 
+                          <div
+                            key={lead.id}
                             className="p-4 hover:bg-neutral-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left transition-colors"
                           >
                             <div className="space-y-1">
