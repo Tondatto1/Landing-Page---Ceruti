@@ -41,7 +41,7 @@ import {
   Layers
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Aurora } from './components/Aurora';
 import { MagicBento } from './components/MagicBento';
 import ScrollStack, { ScrollStackItem } from './components/ScrollStack';
@@ -53,6 +53,7 @@ import { WhatsAppWidget } from './components/WhatsAppWidget';
 import { HanaAvatar, CerutiAvatar } from './components/HanaAvatar';
 
 export default function App() {
+  const navigate = useNavigate();
   // Mobile menu toggle
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<'consultor' | 'campo'>('consultor');
@@ -1879,13 +1880,13 @@ export default function App() {
           </div>
           
           <div className="flex flex-col items-center justify-center mt-12 pb-8 gap-4">
-            <Link 
-              to={`/checkout?agent=${selectedAgent}`}
-              className="inline-flex items-center gap-3 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white px-8 sm:px-10 py-4 sm:py-4.5 rounded-2xl font-black text-sm sm:text-[15px] tracking-widest uppercase transition-all shadow-lg shadow-emerald-950/25 hover:shadow-emerald-600/35 hover:-translate-y-1 active:scale-[0.99] border-b-[3px] border-[#003813]"
+            <button 
+              onClick={() => navigate(`/checkout?agent=${selectedAgent}`)}
+              className="inline-flex items-center gap-3 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white px-8 sm:px-10 py-4 sm:py-4.5 rounded-2xl font-black text-sm sm:text-[15px] tracking-widest uppercase transition-all shadow-lg shadow-emerald-950/25 hover:shadow-emerald-600/35 hover:-translate-y-1 active:scale-[0.99] border-b-[3px] border-[#003813] cursor-pointer"
             >
               <Rocket className="w-6 h-6" />
               ASSINAR AGORA
-            </Link>
+            </button>
 
             {/* Certificação de Segurança */}
             <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 px-5 py-2.5 bg-white border border-neutral-200/60 rounded-2xl shadow-sm text-neutral-700 max-w-lg mt-2">
@@ -1972,6 +1973,8 @@ export default function App() {
 
       {/* Floating WhatsApp Chat Widget */}
       <WhatsAppWidget />
+
+
     </div>
   );
 }
