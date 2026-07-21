@@ -10,6 +10,7 @@ import {
   FileText
 } from 'lucide-react';
 import { WhatsAppWidget } from './WhatsAppWidget';
+import { trackMetaEvent } from '../lib/metaPixel';
 
 export function CheckoutPage() {
   const navigate = useNavigate();
@@ -39,6 +40,24 @@ export function CheckoutPage() {
     }, 100);
     return () => clearTimeout(scrollTimer);
   }, []);
+
+  // Track InitiateCheckout when checkout parameters change or stabilize
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const value = getUnitPrice() * usersCount * (frequency === 'mensal' ? 1 : (frequency === 'semestral' ? 6 : 12));
+      trackMetaEvent('InitiateCheckout', {
+        value,
+        currency: 'BRL',
+        content_name: `Assinatura Ceruti - ${selectedAgent}`,
+        content_category: 'Treinador de Vendas',
+        content_ids: [selectedAgent],
+        content_type: 'product',
+        num_items: usersCount,
+      });
+    }, 1000); // Debounce track to avoid spamming on user adjustments
+
+    return () => clearTimeout(timer);
+  }, [selectedAgent, frequency, usersCount]);
 
   useEffect(() => {
     setAccessNumbers(prev => {
@@ -129,6 +148,20 @@ export function CheckoutPage() {
 
   const handleCheckout = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Save purchase details to localStorage for the Thank You page tracking
+    const purchaseDetails = {
+      name,
+      email,
+      phone,
+      value: grandTotal,
+      currency: 'BRL',
+      agent: selectedAgent,
+      frequency,
+      usersCount
+    };
+    localStorage.setItem('ceruti_last_checkout', JSON.stringify(purchaseDetails));
+
     navigate('/obrigado');
   };
 

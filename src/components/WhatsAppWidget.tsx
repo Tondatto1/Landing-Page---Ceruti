@@ -23,6 +23,7 @@ import {
   fetchFirestoreLeads,
   TrialLead
 } from '../lib/leads';
+import { trackMetaEvent } from '../lib/metaPixel';
 
 type TrialAgentType = 'campo' | 'consultor';
 
@@ -598,6 +599,17 @@ export const WhatsAppWidget = () => {
         if (response.status !== 200 && response.status !== 201) {
           throw new Error('trial_activation_failed');
         }
+
+        // Fire Meta Pixel & Conversions API Lead Event
+        trackMetaEvent('Lead', {
+          content_name: 'Ativação do Teste Grátis de 7 Dias',
+          content_category: 'Agente IA',
+          content_ids: prospectData.agentTypes,
+        }, {
+          name: prospectData.name,
+          email: prospectData.email,
+          phone: prospectData.phone,
+        });
 
         const selectedBothAgents = prospectData.agentTypes.length === 2;
         const selectedAgentName =

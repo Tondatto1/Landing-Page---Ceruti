@@ -1,10 +1,47 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, Clock, MessageSquare, ArrowRight, Home, ShieldCheck } from 'lucide-react';
 import { OglAurora } from './OglAurora';
+import { trackMetaEvent } from '../lib/metaPixel';
 
 export function ThankYouPage() {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Retrieve checkout data from localStorage
+    const rawData = localStorage.getItem('ceruti_last_checkout');
+    if (rawData) {
+      try {
+        const details = JSON.parse(rawData);
+        
+        // Track the Purchase event with Meta Pixel & Conversions API
+        trackMetaEvent('Purchase', {
+          value: details.value || 0,
+          currency: details.currency || 'BRL',
+          content_name: `Assinatura Ceruti - ${details.agent || 'Geral'}`,
+          content_ids: [details.agent || 'geral'],
+          content_type: 'product',
+          num_items: details.usersCount || 1,
+        }, {
+          name: details.name,
+          email: details.email,
+          phone: details.phone,
+        });
+
+        // Clear data so it doesn't trigger again on reload
+        localStorage.removeItem('ceruti_last_checkout');
+      } catch (err) {
+        console.error('[ThankYouPage Purchase Track Error]', err);
+      }
+    } else {
+      // Fallback tracking if they navigated directly or refreshed
+      trackMetaEvent('Purchase', {
+        value: 0,
+        currency: 'BRL',
+        content_name: 'Assinatura Ceruti - Direto',
+      });
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-neutral-50 flex flex-col font-sans select-none overflow-x-hidden">
