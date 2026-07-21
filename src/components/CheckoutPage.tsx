@@ -41,21 +41,15 @@ export function CheckoutPage() {
     return () => clearTimeout(scrollTimer);
   }, []);
 
-  // Track InitiateCheckout on page mount
   useEffect(() => {
     trackInitiateCheckout({}, {
       value: grandTotal,
       currency: "BRL",
-      content_name: `Ceruti Agent Subscription - ${selectedAgent === 'consultor' ? 'Consultor' : 'Campo'}`,
+      content_name: `Ceruti AI - Treinador de Vendas (${selectedAgent === 'consultor' ? 'Consultor' : 'Campo'})`,
       content_type: "product"
     });
-
-    // Track PageView for checkout page explicitly
-    if (typeof window !== "undefined" && window.fbq) {
-      console.log("[Meta Pixel] Tracking checkout PageView explicitly");
-      window.fbq("track", "PageView");
-    }
   }, []);
+
 
   useEffect(() => {
     setAccessNumbers(prev => {
@@ -162,7 +156,7 @@ export function CheckoutPage() {
     }, {
       value: grandTotal,
       currency: "BRL",
-      content_name: `Ceruti Agent - ${selectedAgent === 'consultor' ? 'Consultor' : 'Campo'}`,
+      content_name: `Assinatura Ceruti AI - ${selectedAgent === 'consultor' ? 'Consultor' : 'Campo'}`,
       num_items: usersCount
     });
 

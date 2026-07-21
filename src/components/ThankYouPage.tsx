@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, Clock, MessageSquare, ArrowRight, Home, ShieldCheck } from 'lucide-react';
 import { OglAurora } from './OglAurora';
+import { trackPageView } from '../lib/metaEvents';
 
 export function ThankYouPage() {
   const navigate = useNavigate();
@@ -9,11 +10,11 @@ export function ThankYouPage() {
   React.useEffect(() => {
     window.scrollTo(0, 0);
     
-    // Track PageView for thank you page explicitly
-    if (typeof window !== "undefined" && window.fbq) {
-      console.log("[Meta Pixel] Tracking thank you page PageView");
-      window.fbq("track", "PageView");
-    }
+    // Track PageView on Thank You screen
+    trackPageView({
+      content_name: "Página de Obrigado - Ceruti AI",
+      content_type: "website"
+    });
   }, []);
 
   return (

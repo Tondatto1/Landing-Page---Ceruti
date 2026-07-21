@@ -47,6 +47,7 @@ import { MagicBento } from './components/MagicBento';
 import ScrollStack, { ScrollStackItem } from './components/ScrollStack';
 
 import { VideoEmbed } from './components/VideoEmbed';
+import { trackPageView } from './lib/metaEvents';
 import { FAQ } from './components/FAQ';
 import AnimatedList from './components/AnimatedList';
 import { WhatsAppWidget } from './components/WhatsAppWidget';
@@ -58,11 +59,10 @@ export default function App() {
   const [selectedAgent, setSelectedAgent] = useState<'consultor' | 'campo'>('consultor');
 
   useEffect(() => {
-    // Track PageView for home page explicitly on mount/render
-    if (typeof window !== "undefined" && window.fbq) {
-      console.log("[Meta Pixel] Tracking home page PageView");
-      window.fbq("track", "PageView");
-    }
+    trackPageView({
+      content_name: "Página Inicial Ceruti AI",
+      content_type: "website"
+    });
   }, []);
 
   return (

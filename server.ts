@@ -1,7 +1,7 @@
 import express from "express";
 import path from "path";
-import crypto from "crypto";
 import dotenv from "dotenv";
+import crypto from "crypto";
 import { createServer as createViteServer } from "vite";
 
 // Load environment variables
@@ -13,7 +13,7 @@ const PORT = 3000;
 // Middleware to parse JSON request body
 app.use(express.json());
 
-// Meta Credentials from environment or provided fallback
+// Meta Credentials
 const META_PIXEL_ID = process.env.META_PIXEL_ID || "1531474608383640";
 const META_CAPI_TOKEN = process.env.META_CAPI_TOKEN || "EAASXB6whuN8BSDXR9zhJdLqW77SBlVs9NpQaPTTLNcdPxuq3A7nXQGJjqPtveZA5k17yT5G1pULLDFDymnG2DrXcg99JZCR7c7rbYfBuh58ab51VZCnqZB0JvyWtSREEcPMSVL1lT25dY6LC029azIt691Rc1pPYY4OMWFniFl2Jj6foDOYet3iDFVYDD0GW7QZDZD";
 
@@ -61,7 +61,7 @@ app.post("/api/meta-events", async (req, res) => {
       "";
     const client_user_agent = req.headers["user-agent"] || "";
 
-    // Prepare hashed user data
+    // Prepare hashed user data according to Meta specifications
     const payloadUserData: Record<string, any> = {
       client_ip_address,
       client_user_agent,
@@ -85,6 +85,12 @@ app.post("/api/meta-events", async (req, res) => {
       if (lastName) {
         payloadUserData.ln = [sha256(lastName)];
       }
+    }
+    if (user_data.fbp) {
+      payloadUserData.fbp = user_data.fbp;
+    }
+    if (user_data.fbc) {
+      payloadUserData.fbc = user_data.fbc;
     }
 
     // Build the Meta Conversions API event object
