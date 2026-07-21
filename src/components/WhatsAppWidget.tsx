@@ -24,6 +24,7 @@ import {
   fetchFirestoreLeads, 
   TrialLead 
 } from '../lib/leads';
+import { trackLead } from '../lib/metaEvents';
 
 interface Message {
   id: string;
@@ -438,6 +439,16 @@ export const WhatsAppWidget = () => {
         prospectData.agentSelected || 'Ambos'
       ).catch((err) => {
         console.error("Firestore persistence warning (falling back to localStorage only):", err);
+      });
+
+      // Track Lead with Meta Pixel and Conversions API
+      trackLead({
+        name: prospectData.name,
+        email: prospectData.email,
+        phone: prospectData.phone
+      }, {
+        company: prospectData.company || 'Não informada',
+        agent_selected: prospectData.agentSelected || 'Ambos'
       });
 
       const botMsg: Message = {

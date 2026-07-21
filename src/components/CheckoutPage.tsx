@@ -10,6 +10,7 @@ import {
   FileText
 } from 'lucide-react';
 import { WhatsAppWidget } from './WhatsAppWidget';
+import { trackInitiateCheckout, trackPurchase } from '../lib/metaEvents';
 
 export function CheckoutPage() {
   const navigate = useNavigate();
@@ -38,6 +39,14 @@ export function CheckoutPage() {
       window.scrollTo({ top: 0, behavior: 'instant' });
     }, 100);
     return () => clearTimeout(scrollTimer);
+  }, []);
+
+  // Track InitiateCheckout on page mount
+  useEffect(() => {
+    trackInitiateCheckout({}, {
+      value: grandTotal,
+      currency: "BRL"
+    });
   }, []);
 
   useEffect(() => {
@@ -127,8 +136,28 @@ export function CheckoutPage() {
     }
   };
 
-  const handleCheckout = (e: React.FormEvent) => {
+  const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Save user details to localStorage for reference
+    localStorage.setItem('buyerName', name);
+    localStorage.setItem('buyerEmail', email);
+    localStorage.setItem('buyerPhone', phone);
+    localStorage.setItem('purchaseValue', grandTotal.toString());
+    localStorage.setItem('selectedAgent', selectedAgent);
+
+    // Track Purchase event with Meta Pixel and Conversions API
+    await trackPurchase({
+      name,
+      email,
+      phone
+    }, {
+      value: grandTotal,
+      currency: "BRL",
+      content_name: `Ceruti Agent - ${selectedAgent === 'consultor' ? 'Consultor' : 'Campo'}`,
+      num_items: usersCount
+    });
+
     navigate('/obrigado');
   };
 
