@@ -10,7 +10,6 @@ import {
   FileText
 } from 'lucide-react';
 import { WhatsAppWidget } from './WhatsAppWidget';
-import { trackInitiateCheckout, trackPurchase } from '../lib/metaEvents';
 
 export function CheckoutPage() {
   const navigate = useNavigate();
@@ -40,16 +39,6 @@ export function CheckoutPage() {
     }, 100);
     return () => clearTimeout(scrollTimer);
   }, []);
-
-  useEffect(() => {
-    trackInitiateCheckout({}, {
-      value: grandTotal,
-      currency: "BRL",
-      content_name: `Ceruti AI - Treinador de Vendas (${selectedAgent === 'consultor' ? 'Consultor' : 'Campo'})`,
-      content_type: "product"
-    });
-  }, []);
-
 
   useEffect(() => {
     setAccessNumbers(prev => {
@@ -138,28 +127,8 @@ export function CheckoutPage() {
     }
   };
 
-  const handleCheckout = async (e: React.FormEvent) => {
+  const handleCheckout = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Save user details to localStorage for reference
-    localStorage.setItem('buyerName', name);
-    localStorage.setItem('buyerEmail', email);
-    localStorage.setItem('buyerPhone', phone);
-    localStorage.setItem('purchaseValue', grandTotal.toString());
-    localStorage.setItem('selectedAgent', selectedAgent);
-
-    // Track Purchase event with Meta Pixel and Conversions API
-    await trackPurchase({
-      name,
-      email,
-      phone
-    }, {
-      value: grandTotal,
-      currency: "BRL",
-      content_name: `Assinatura Ceruti AI - ${selectedAgent === 'consultor' ? 'Consultor' : 'Campo'}`,
-      num_items: usersCount
-    });
-
     navigate('/obrigado');
   };
 

@@ -47,7 +47,6 @@ import { MagicBento } from './components/MagicBento';
 import ScrollStack, { ScrollStackItem } from './components/ScrollStack';
 
 import { VideoEmbed } from './components/VideoEmbed';
-import { trackPageView } from './lib/metaEvents';
 import { FAQ } from './components/FAQ';
 import AnimatedList from './components/AnimatedList';
 import { WhatsAppWidget } from './components/WhatsAppWidget';
@@ -57,13 +56,6 @@ export default function App() {
   // Mobile menu toggle
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<'consultor' | 'campo'>('consultor');
-
-  useEffect(() => {
-    trackPageView({
-      content_name: "Página Inicial Ceruti AI",
-      content_type: "website"
-    });
-  }, []);
 
   return (
     <div className="bg-agro-deep text-gray-100 min-h-screen font-sans selection:bg-agro-green selection:text-agro-deep theme-natural-tones w-full overflow-x-clip relative" id="top_container">

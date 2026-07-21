@@ -2,20 +2,9 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, Clock, MessageSquare, ArrowRight, Home, ShieldCheck } from 'lucide-react';
 import { OglAurora } from './OglAurora';
-import { trackPageView } from '../lib/metaEvents';
 
 export function ThankYouPage() {
   const navigate = useNavigate();
-
-  React.useEffect(() => {
-    window.scrollTo(0, 0);
-    
-    // Track PageView on Thank You screen
-    trackPageView({
-      content_name: "Página de Obrigado - Ceruti AI",
-      content_type: "website"
-    });
-  }, []);
 
   return (
     <div className="min-h-screen bg-neutral-50 flex flex-col font-sans select-none overflow-x-hidden">
