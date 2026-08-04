@@ -104,6 +104,18 @@ app.post("/api/meta-conversions", async (req, res) => {
 });
 
 async function startServer() {
+  // Serve static assets directly from LP---PDC-main/LP---PDC-main/public and root public
+  const lpPublicPath = path.join(process.cwd(), "LP---PDC-main", "LP---PDC-main", "public");
+  const rootPublicPath = path.join(process.cwd(), "public");
+
+  app.use(express.static(rootPublicPath));
+  app.use(express.static(lpPublicPath));
+
+  // Alias for cerutti_matsuda.png -> ceruti_matsuda.png
+  app.get("/cerutti_matsuda.png", (req, res) => {
+    res.sendFile(path.join(lpPublicPath, "ceruti_matsuda.png"));
+  });
+
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
