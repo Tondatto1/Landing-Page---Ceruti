@@ -7,7 +7,14 @@ import {
   ShieldCheck, 
   Users,
   QrCode,
-  FileText
+  FileText,
+  Sparkles,
+  Check,
+  GraduationCap,
+  CheckCircle2,
+  Clock,
+  MessageSquare,
+  ArrowRight
 } from 'lucide-react';
 import { WhatsAppWidget } from './WhatsAppWidget';
 import { trackMetaEvent } from '../lib/metaPixel';
@@ -21,6 +28,8 @@ export function CheckoutPage() {
   const [usersCountStr, setUsersCountStr] = useState<string>('1');
   const usersCount = Math.max(1, parseInt(usersCountStr) || 1);
   const [paymentMethod, setPaymentMethod] = useState<'credit_card' | 'pix' | 'boleto'>('pix');
+  const [includeOrderBump, setIncludeOrderBump] = useState<boolean>(false);
+  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -41,23 +50,29 @@ export function CheckoutPage() {
     return () => clearTimeout(scrollTimer);
   }, []);
 
+  // Order Bump pricing calculations
+  const bumpMonthlyPrice = 47;
+  const contractMonths = frequency === 'mensal' ? 1 : (frequency === 'semestral' ? 6 : 12);
+  const bumpTotalAmount = bumpMonthlyPrice * contractMonths;
+
   // Track InitiateCheckout when checkout parameters change or stabilize
   useEffect(() => {
     const timer = setTimeout(() => {
-      const value = getUnitPrice() * usersCount * (frequency === 'mensal' ? 1 : (frequency === 'semestral' ? 6 : 12));
+      const bumpAdd = includeOrderBump ? bumpTotalAmount : 0;
+      const value = (getUnitPrice() * usersCount * contractMonths) + bumpAdd;
       trackMetaEvent('InitiateCheckout', {
         value,
         currency: 'BRL',
-        content_name: `Assinatura Ceruti - ${selectedAgent}`,
+        content_name: `Assinatura Ceruti - ${selectedAgent}${includeOrderBump ? ' + Treinamentos' : ''}`,
         content_category: 'Treinador de Vendas',
-        content_ids: [selectedAgent],
+        content_ids: includeOrderBump ? [selectedAgent, 'order_bump_treinamentos'] : [selectedAgent],
         content_type: 'product',
         num_items: usersCount,
       });
     }, 1000); // Debounce track to avoid spamming on user adjustments
 
     return () => clearTimeout(timer);
-  }, [selectedAgent, frequency, usersCount]);
+  }, [selectedAgent, frequency, usersCount, includeOrderBump]);
 
   useEffect(() => {
     setAccessNumbers(prev => {
@@ -99,10 +114,14 @@ export function CheckoutPage() {
   const basePrice = selectedAgent === 'consultor' ? 397 : 147.50;
 
   const unitPrice = getUnitPrice();
-  const totalPricePerMonth = unitPrice * usersCount;
-  const grandTotal = frequency === 'mensal' 
-    ? totalPricePerMonth 
-    : (frequency === 'semestral' ? totalPricePerMonth * 6 : totalPricePerMonth * 12);
+  const baseMonthlyTotal = unitPrice * usersCount;
+  const totalPricePerMonth = baseMonthlyTotal + (includeOrderBump ? bumpMonthlyPrice : 0);
+
+  const baseGrandTotal = frequency === 'mensal' 
+    ? baseMonthlyTotal 
+    : (frequency === 'semestral' ? baseMonthlyTotal * 6 : baseMonthlyTotal * 12);
+
+  const grandTotal = baseGrandTotal + (includeOrderBump ? bumpTotalAmount : 0);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -149,7 +168,7 @@ export function CheckoutPage() {
   const handleCheckout = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Save purchase details to localStorage for the Thank You page tracking
+    // Save purchase details to localStorage for the Thank You / Upsell page tracking
     const purchaseDetails = {
       name,
       email,
@@ -158,11 +177,13 @@ export function CheckoutPage() {
       currency: 'BRL',
       agent: selectedAgent,
       frequency,
-      usersCount
+      usersCount,
+      includeOrderBump,
+      bumpTotalPrice: includeOrderBump ? bumpTotalAmount : 0
     };
     localStorage.setItem('ceruti_last_checkout', JSON.stringify(purchaseDetails));
 
-    navigate('/obrigado');
+    setShowSuccessModal(true);
   };
 
   return (
@@ -352,8 +373,18 @@ export function CheckoutPage() {
               </div>
             )}
 
+            {includeOrderBump && (
+              <div className="flex justify-between items-center mb-2 pt-2 border-t border-dashed border-amber-300/80 text-xs sm:text-sm">
+                <span className="text-amber-900 font-extrabold flex items-center gap-1.5">
+                  <GraduationCap className="w-4 h-4 text-amber-600 shrink-0" />
+                  Treinamentos (+R$ 47/mês):
+                </span>
+                <span className="font-extrabold text-amber-900">
+                  +{formatCurrency(bumpTotalAmount)}
+                </span>
+              </div>
+            )}
 
-            
             <div className="flex flex-col items-center mt-6 pt-6 border-t border-neutral-200 gap-2 sm:gap-3 pb-2 text-center">
               <span className="font-black text-neutral-500 text-xs sm:text-sm uppercase tracking-widest">
                 Mensalidade
@@ -480,6 +511,66 @@ export function CheckoutPage() {
                 </div>
               </div>
             )}
+
+            {/* Order Bump - Treinamentos */}
+            <div className="mt-4 pt-6 border-t border-neutral-200">
+              <div 
+                onClick={() => setIncludeOrderBump(!includeOrderBump)}
+                className={`relative rounded-2xl p-4 sm:p-5 transition-all duration-300 cursor-pointer select-none border-2 ${
+                  includeOrderBump 
+                    ? 'bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-amber-500/15 border-amber-500 shadow-lg shadow-amber-500/15 ring-2 ring-amber-500/20' 
+                    : 'bg-gradient-to-br from-amber-50/50 via-orange-50/30 to-amber-100/40 border-dashed border-amber-400/90 hover:border-amber-500 hover:bg-amber-50/80'
+                }`}
+              >
+                {/* Top Header & Badges */}
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-black text-[10px] sm:text-[11px] uppercase tracking-wider px-2.5 py-0.5 rounded-full shadow-xs">
+                      <Sparkles className="w-3 h-3 fill-white" />
+                      RECOMENDADO
+                    </span>
+                    <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-900 font-black text-[10px] sm:text-[11px] uppercase tracking-wider px-2.5 py-0.5 rounded-full border border-amber-300/70">
+                      🔥 8 EM CADA 10 PROFISSIONAIS LEVAM
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-black text-amber-900 uppercase tracking-tight block">
+                      + R$ 47,00<span className="text-[10px] text-amber-700 font-bold">/mês</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Checkbox & Details */}
+                <div className="flex items-start gap-3.5">
+                  <div className="pt-0.5 shrink-0">
+                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
+                      includeOrderBump 
+                        ? 'bg-amber-500 border-amber-600 text-white shadow-md shadow-amber-500/30' 
+                        : 'border-amber-400 bg-white hover:border-amber-500'
+                    }`}>
+                      {includeOrderBump && <Check className="w-4 h-4 stroke-[3]" />}
+                    </div>
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-black text-neutral-900 text-sm sm:text-base leading-snug mb-1">
+                      Acesso Completo a Todos os Nossos Treinamentos
+                    </h4>
+                    <p className="text-xs sm:text-sm text-neutral-600 font-medium leading-relaxed mb-3">
+                      Capacitação em vendas, negociações, quebra de objeções e tudo o que seu time necessita para vender mais!
+                    </p>
+
+                    {/* Dynamic Duration Badge */}
+                    <div className="inline-flex items-center gap-2 bg-white/90 border border-amber-300/80 rounded-xl px-3 py-1.5 text-xs text-amber-900 font-bold shadow-xs">
+                      <GraduationCap className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span>
+                        Acesso liberado por <strong>{contractMonths} {contractMonths === 1 ? 'mês' : 'meses'}</strong> (R$ {bumpTotalAmount},00 total acumulado)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* Payment Method Selection */}
             <div className="mt-4 pt-6 border-t border-neutral-200">
@@ -655,6 +746,60 @@ export function CheckoutPage() {
       </div>
     </div>
       
+    {/* Success Confirmation Modal */}
+    {showSuccessModal && (
+      <div className="fixed inset-0 bg-neutral-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+        <div className="max-w-lg w-full bg-white rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden text-center border border-emerald-100">
+          {/* Top Green Accent Bar */}
+          <div className="absolute top-0 left-0 right-0 h-2.5 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853]" />
+
+          {/* Icon */}
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-emerald-50 rounded-full border border-emerald-100 mb-5 relative">
+            <span className="absolute inset-0 bg-emerald-400/20 blur-lg rounded-full animate-pulse"></span>
+            <CheckCircle2 className="w-10 h-10 text-[#00a83e] relative z-10" />
+          </div>
+
+          {/* Title */}
+          <h2 className="text-2xl sm:text-3xl font-black text-[#0b1a30] tracking-tight mb-2 uppercase">
+            Obrigado pela Compra!
+          </h2>
+          <p className="text-neutral-600 font-medium text-sm sm:text-base max-w-md mx-auto mb-6 leading-relaxed">
+            Sua assinatura foi recebida com sucesso e o seu acesso já está sendo processado.
+          </p>
+
+          {/* Steps / Info Grid */}
+          <div className="flex flex-col gap-3 text-left mb-8 max-w-md mx-auto">
+            <div className="p-4 bg-blue-50/60 border border-blue-100/70 rounded-2xl flex gap-3.5 items-center">
+              <div className="p-2.5 bg-blue-100/70 text-blue-600 rounded-xl shrink-0">
+                <MessageSquare className="w-5 h-5" />
+              </div>
+              <h3 className="font-bold text-neutral-800 text-xs sm:text-sm leading-snug">
+                O agente enviará uma mensagem de saudação no seu WhatsApp.
+              </h3>
+            </div>
+
+            <div className="p-4 bg-emerald-50/70 border border-emerald-100/70 rounded-2xl flex gap-3.5 items-center">
+              <div className="p-2.5 bg-emerald-100/70 text-[#00a83e] rounded-xl shrink-0">
+                <Clock className="w-5 h-5" />
+              </div>
+              <h3 className="font-bold text-neutral-800 text-xs sm:text-sm leading-snug">
+                Seu acesso estará ativo e liberado em até 10 minutos.
+              </h3>
+            </div>
+          </div>
+
+          {/* Redirection Button */}
+          <button
+            onClick={() => navigate('/obrigadoofertapdc')}
+            className="w-full py-4 px-6 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white font-extrabold text-sm sm:text-base uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-600/30 hover:scale-[1.01] active:scale-[0.99] transition-all duration-300 flex items-center justify-center gap-2 group"
+          >
+            <span>VOCÊ RECEBEU UM PRESENTE 🎉</span>
+            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          </button>
+        </div>
+      </div>
+    )}
+
     {/* Floating WhatsApp Chat Widget */}
     <WhatsAppWidget />
   </>

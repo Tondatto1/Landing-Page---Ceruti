@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 export interface Testimonial {
   id: string;
   name: string;
@@ -58,41 +53,11 @@ export interface PlanConfig {
 }
 
 export interface LeadFormData {
-  name?: string;
-  fullName?: string;
-  email?: string;
+  fullName: string;
+  email: string;
   phone: string;
-  company?: string;
-  companyName?: string;
-  role?: string;
-  teamSize?: string | number;
-  segment?: string;
-  planType?: 'mensal' | 'semestral';
+  companyName: string;
+  role: string;
+  teamSize: string;
+  segment: string;
 }
-
-export interface ObjectionSimulation {
-  id: string;
-  title: string;
-  scenario: string;
-  whatsappMessage: string;
-  diagnosis: {
-    icp: string;
-    analysis: string;
-    process: string;
-  };
-  practicalPlan: {
-    scenario: string;
-    action: string;
-    steps: string[];
-    example: string;
-    obstacles: string[];
-    solutions: string[];
-    expectedResult: string;
-  };
-  postPlan: {
-    script: string;
-    followUp: string;
-    pitch: string;
-  };
-}
-

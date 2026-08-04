@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Programa de capacitação</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script>
+      (function() {
+        var img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = '/A - Favicon  - Letra Azul - Fundo branco.jpg';
+        img.onload = function() {
+          var canvas = document.createElement('canvas');
+          canvas.width = 64;
+          canvas.height = 64;
+          var ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.beginPath();
+            ctx.arc(32, 32, 32, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.clip();
+            ctx.drawImage(img, 0, 0, 64, 64);
+            var link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+            link.type = 'image/png';
+            link.rel = 'shortcut icon';
+            link.href = canvas.toDataURL('image/png');
+            document.getElementsByTagName('head')[0].appendChild(link);
+          }
+        };
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

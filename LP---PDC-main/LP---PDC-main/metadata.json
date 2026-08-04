@@ -1,0 +1,6 @@
+{
+  "name": "Capacitação Comercial Agro",
+  "description": "Página oficial do programa de capacitação comercial para empresas do agronegócio com o Método PCP.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
