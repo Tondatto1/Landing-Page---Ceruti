@@ -18,9 +18,12 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/obrigado" element={<ThankYouPage />} />
         <Route path="/obrigadoofertapdc" element={<ObrigadoOfertaPdcPage />} />
+        <Route path="/obrigado-oferta-pdc" element={<ObrigadoOfertaPdcPage />} />
         <Route path="/politica-de-privacidade" element={<PrivacyPolicyPage />} />
         <Route path="/politica-de-reembolso" element={<RefundPolicyPage />} />
         <Route path="/termos-de-servico" element={<TermsOfServicePage />} />
+        <Route path="/termos-de-uso" element={<TermsOfServicePage />} />
+        <Route path="*" element={<App />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>,

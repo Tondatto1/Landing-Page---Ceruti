@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Sprout, Phone, Mail, MapPin, Instagram, Youtube, ArrowUp, MessageCircle } from 'lucide-react';
 
 interface FooterProps {
@@ -104,8 +105,8 @@ export const Footer: React.FC<FooterProps> = ({ onOpenCtaModal }) => {
           </div>
 
           <div className="flex items-center gap-6">
-            <a href="#" className="hover:text-emerald-700 transition">Termos de Uso</a>
-            <a href="#" className="hover:text-emerald-700 transition">Política de Privacidade</a>
+            <Link to="/termos-de-servico" className="hover:text-emerald-700 transition">Termos de Uso</Link>
+            <Link to="/politica-de-privacidade" className="hover:text-emerald-700 transition">Política de Privacidade</Link>
             <button 
               onClick={scrollToTop} 
               className="p-2 bg-white hover:bg-slate-100 text-slate-700 rounded-lg transition border border-slate-200 shadow-sm cursor-pointer"

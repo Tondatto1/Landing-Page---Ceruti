@@ -23,30 +23,30 @@ export const Header: React.FC<HeaderProps> = () => {
       <div className="marquee-wrapper w-full overflow-hidden whitespace-nowrap py-3.5 bg-gradient-to-r from-[#042f2e] via-[#0b1728] to-[#064e3b] text-white flex items-center font-black tracking-wider text-xs sm:text-sm md:text-base uppercase shadow-inner select-none">
         <div className="animate-marquee-slow flex items-center shrink-0 space-x-12 pr-12">
           <span>
-            ESTA É SUA ÚNICA OPORTUNIDADE DE RECEBER <span className="text-amber-300 underline decoration-amber-400 decoration-2 underline-offset-2">35% DE DESCONTO NO NOSSO PROGRAMA DE CAPACITAÇÃO</span>. VOCÊ NUNCA MAIS VERÁ ESTA PÁGINA.
+            ESTA É SUA ÚNICA OPORTUNIDADE DE RECEBER <span className="text-amber-300 underline decoration-amber-400 decoration-2 underline-offset-2">35% DE DESCONTO</span> NO NOSSO PROGRAMA DE CAPACITAÇÃO. VOCÊ <span className="text-amber-300 underline decoration-amber-400 decoration-2 underline-offset-2">NUNCA</span> MAIS VERÁ ESTA PÁGINA.
           </span>
           <span className="text-amber-400/80">•</span>
           <span>
-            ESTA É SUA ÚNICA OPORTUNIDADE DE RECEBER <span className="text-amber-300 underline decoration-amber-400 decoration-2 underline-offset-2">35% DE DESCONTO NO NOSSO PROGRAMA DE CAPACITAÇÃO</span>. VOCÊ NUNCA MAIS VERÁ ESTA PÁGINA.
+            ESTA É SUA ÚNICA OPORTUNIDADE DE RECEBER <span className="text-amber-300 underline decoration-amber-400 decoration-2 underline-offset-2">35% DE DESCONTO</span> NO NOSSO PROGRAMA DE CAPACITAÇÃO. VOCÊ <span className="text-amber-300 underline decoration-amber-400 decoration-2 underline-offset-2">NUNCA</span> MAIS VERÁ ESTA PÁGINA.
           </span>
           <span className="text-amber-400/80">•</span>
           <span>
-            ESTA É SUA ÚNICA OPORTUNIDADE DE RECEBER <span className="text-amber-300 underline decoration-amber-400 decoration-2 underline-offset-2">35% DE DESCONTO NO NOSSO PROGRAMA DE CAPACITAÇÃO</span>. VOCÊ NUNCA MAIS VERÁ ESTA PÁGINA.
+            ESTA É SUA ÚNICA OPORTUNIDADE DE RECEBER <span className="text-amber-300 underline decoration-amber-400 decoration-2 underline-offset-2">35% DE DESCONTO</span> NO NOSSO PROGRAMA DE CAPACITAÇÃO. VOCÊ <span className="text-amber-300 underline decoration-amber-400 decoration-2 underline-offset-2">NUNCA</span> MAIS VERÁ ESTA PÁGINA.
           </span>
           <span className="text-amber-400/80">•</span>
         </div>
 
         <div className="animate-marquee-slow flex items-center shrink-0 space-x-12 pr-12" aria-hidden="true">
           <span>
-            ESTA É SUA ÚNICA OPORTUNIDADE DE RECEBER <span className="text-amber-300 underline decoration-amber-400 decoration-2 underline-offset-2">35% DE DESCONTO NO NOSSO PROGRAMA DE CAPACITAÇÃO</span>. VOCÊ NUNCA MAIS VERÁ ESTA PÁGINA.
+            ESTA É SUA ÚNICA OPORTUNIDADE DE RECEBER <span className="text-amber-300 underline decoration-amber-400 decoration-2 underline-offset-2">35% DE DESCONTO</span> NO NOSSO PROGRAMA DE CAPACITAÇÃO. VOCÊ <span className="text-amber-300 underline decoration-amber-400 decoration-2 underline-offset-2">NUNCA</span> MAIS VERÁ ESTA PÁGINA.
           </span>
           <span className="text-amber-400/80">•</span>
           <span>
-            ESTA É SUA ÚNICA OPORTUNIDADE DE RECEBER <span className="text-amber-300 underline decoration-amber-400 decoration-2 underline-offset-2">35% DE DESCONTO NO NOSSO PROGRAMA DE CAPACITAÇÃO</span>. VOCÊ NUNCA MAIS VERÁ ESTA PÁGINA.
+            ESTA É SUA ÚNICA OPORTUNIDADE DE RECEBER <span className="text-amber-300 underline decoration-amber-400 decoration-2 underline-offset-2">35% DE DESCONTO</span> NO NOSSO PROGRAMA DE CAPACITAÇÃO. VOCÊ <span className="text-amber-300 underline decoration-amber-400 decoration-2 underline-offset-2">NUNCA</span> MAIS VERÁ ESTA PÁGINA.
           </span>
           <span className="text-amber-400/80">•</span>
           <span>
-            ESTA É SUA ÚNICA OPORTUNIDADE DE RECEBER <span className="text-amber-300 underline decoration-amber-400 decoration-2 underline-offset-2">35% DE DESCONTO NO NOSSO PROGRAMA DE CAPACITAÇÃO</span>. VOCÊ NUNCA MAIS VERÁ ESTA PÁGINA.
+            ESTA É SUA ÚNICA OPORTUNIDADE DE RECEBER <span className="text-amber-300 underline decoration-amber-400 decoration-2 underline-offset-2">35% DE DESCONTO</span> NO NOSSO PROGRAMA DE CAPACITAÇÃO. VOCÊ <span className="text-amber-300 underline decoration-amber-400 decoration-2 underline-offset-2">NUNCA</span> MAIS VERÁ ESTA PÁGINA.
           </span>
           <span className="text-amber-400/80">•</span>
         </div>
