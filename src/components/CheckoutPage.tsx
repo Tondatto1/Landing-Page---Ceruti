@@ -304,7 +304,7 @@ export function CheckoutPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+      <div className="checkout-page min-h-screen bg-gray-50 flex flex-col font-sans">
       {/* Top Header */}
       <header className="w-full bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between shadow-sm sticky top-0 z-30">
         <div className="flex items-center gap-4">
@@ -331,11 +331,10 @@ export function CheckoutPage() {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 w-full max-w-6xl mx-auto flex flex-col lg:flex-row items-stretch overflow-hidden px-4 py-8 sm:px-6 gap-6 sm:gap-8">
+      <div className="checkout-layout flex-1 w-full max-w-6xl mx-auto flex flex-col lg:flex-row items-stretch overflow-hidden px-4 py-8 sm:px-6 gap-6 sm:gap-8">
         
         {/* Left Side: Product Summary */}
-        <div className="w-full lg:w-5/12 relative z-10 flex flex-col h-fit rounded-[24px] overflow-hidden shadow-sm border border-neutral-100/50">
-          <div className="absolute top-1/2 left-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0%,rgba(0,168,62,0.8)_25%,transparent_50%,rgba(0,112,243,0.8)_75%,transparent_100%)] opacity-70 blur-xl animate-[spin_20s_linear_infinite] -z-20 -translate-x-1/2 -translate-y-1/2"></div>
+        <div className="checkout-summary w-full lg:w-5/12 relative z-10 flex flex-col h-fit rounded-[24px] overflow-hidden shadow-sm border border-neutral-100/50">
           <div className="absolute inset-[1px] bg-[#fafcff] rounded-[23px] -z-10"></div>
           <div className="w-full h-full bg-transparent p-6 sm:p-10 flex flex-col relative z-0">
 
@@ -431,8 +430,7 @@ export function CheckoutPage() {
             </div>
           </div>
 
-          <div className="mb-6 relative z-10 p-5 sm:p-6 rounded-[24px] overflow-hidden shadow-[0_4px_20px_rgba(0,112,243,0.05)] border border-neutral-100/50">
-            <div className="absolute top-1/2 left-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0%,rgba(0,168,62,0.8)_25%,transparent_50%,rgba(0,112,243,0.8)_75%,transparent_100%)] opacity-70 blur-xl animate-[spin_20s_linear_infinite] -z-20 -translate-x-1/2 -translate-y-1/2"></div>
+          <div className="checkout-access-count mb-6 relative z-10 p-5 sm:p-6 rounded-[24px] overflow-hidden shadow-[0_4px_20px_rgba(0,112,243,0.05)] border border-neutral-100/50">
             <div className="absolute inset-[1px] bg-[#fafcff] rounded-[23px] -z-10"></div>
             
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 relative z-0">
@@ -534,8 +532,7 @@ export function CheckoutPage() {
         </div>
 
         {/* Right Side: Payment Form */}
-        <div className="w-full lg:w-7/12 relative z-10 flex flex-col h-fit rounded-[24px] overflow-hidden shadow-sm border border-neutral-100/50 bg-white">
-          <div className="absolute top-1/2 left-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0%,rgba(0,112,243,0.8)_25%,transparent_50%,rgba(0,168,62,0.8)_75%,transparent_100%)] opacity-70 blur-xl animate-[spin_20s_linear_infinite_reverse] -z-20 -translate-x-1/2 -translate-y-1/2 transform"></div>
+        <div className="checkout-form-card w-full lg:w-7/12 relative z-10 flex flex-col h-fit rounded-[24px] overflow-hidden shadow-sm border border-neutral-100/50 bg-white">
           <div className="absolute inset-[1px] bg-white rounded-[23px] -z-10"></div>
           <div className="w-full h-full bg-transparent p-6 sm:p-10 flex flex-col relative z-0">
             <div className="mb-8">
@@ -543,7 +540,7 @@ export function CheckoutPage() {
             <p className="text-neutral-500 font-medium">Preencha seus dados para liberar seu acesso instantaneamente.</p>
           </div>
 
-          <form onSubmit={handleCheckout} className="flex flex-col gap-6 flex-1">
+          <form onSubmit={handleCheckout} className="checkout-form flex flex-col gap-6 flex-1">
             {/* Personal Data */}
             <div className="space-y-4">
               <div>
@@ -649,10 +646,10 @@ export function CheckoutPage() {
             )}
 
             {/* Order Bump - Treinamentos */}
-            <div className="mt-4 pt-6 border-t border-neutral-200 space-y-4">
-              <div 
+            <div className="checkout-addons mt-4 pt-6 border-t border-neutral-200 space-y-4">
+              <div
                 onClick={() => setIncludeOrderBump(!includeOrderBump)}
-                className={`relative rounded-2xl p-4 sm:p-5 transition-all duration-300 cursor-pointer select-none border-2 ${
+                className={`checkout-addon relative rounded-2xl p-4 sm:p-5 transition-all duration-300 cursor-pointer select-none border-2 ${
                   includeOrderBump 
                     ? 'bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-amber-500/15 border-amber-500 shadow-lg shadow-amber-500/15 ring-2 ring-amber-500/20' 
                     : 'bg-gradient-to-br from-amber-50/50 via-orange-50/30 to-amber-100/40 border-dashed border-amber-400/90 hover:border-amber-500 hover:bg-amber-50/80'
@@ -708,9 +705,9 @@ export function CheckoutPage() {
               </div>
 
               {/* Order Bump - CRM Agro */}
-              <div 
+              <div
                 onClick={() => setIncludeCrmBump(!includeCrmBump)}
-                className={`relative rounded-2xl p-4 sm:p-5 transition-all duration-300 cursor-pointer select-none border-2 ${
+                className={`checkout-addon relative rounded-2xl p-4 sm:p-5 transition-all duration-300 cursor-pointer select-none border-2 ${
                   includeCrmBump 
                     ? 'bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-amber-500/15 border-amber-500 shadow-lg shadow-amber-500/15 ring-2 ring-amber-500/20' 
                     : 'bg-gradient-to-br from-amber-50/50 via-orange-50/30 to-amber-100/40 border-dashed border-amber-400/90 hover:border-amber-500 hover:bg-amber-50/80'
@@ -763,7 +760,7 @@ export function CheckoutPage() {
             </div>
 
             {/* Payment Method Selection */}
-            <div className="mt-4 pt-6 border-t border-neutral-200">
+            <div className="checkout-payment-methods mt-4 pt-6 border-t border-neutral-200">
               <label className="block text-base font-bold text-neutral-900 mb-4">Forma de pagamento (Asaas)</label>
               <div className="grid grid-cols-3 gap-3">
                 <button
