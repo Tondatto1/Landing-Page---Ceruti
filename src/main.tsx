@@ -16,6 +16,7 @@ createRoot(document.getElementById('root')!).render(
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/checkout/success" element={<ThankYouPage />} />
         <Route path="/checkout/*" element={<CheckoutPage />} />
         <Route path="/obrigado" element={<ThankYouPage />} />
         <Route path="/obrigado/*" element={<ThankYouPage />} />

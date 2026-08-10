@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   ArrowLeft,
@@ -19,6 +19,16 @@ import {
 } from 'lucide-react';
 import { WhatsAppWidget } from './WhatsAppWidget';
 import { trackMetaEvent } from '../lib/metaPixel';
+import {
+  BillingApiError,
+  createCheckoutAttempt,
+  parseBoletoCheckout,
+  parseTransparentCardCheckout,
+  postBillingCheckout,
+  type BillingCheckoutRequest,
+  type CheckoutAttempt,
+  type CreditCardCheckoutRequest,
+} from '../services/billingCheckout';
 
 export function CheckoutPage() {
   const navigate = useNavigate();
@@ -28,10 +38,17 @@ export function CheckoutPage() {
   const [frequency, setFrequency] = useState<'mensal' | 'semestral' | 'anual'>('mensal');
   const [usersCountStr, setUsersCountStr] = useState<string>('1');
   const usersCount = Math.max(1, parseInt(usersCountStr) || 1);
-  const [paymentMethod, setPaymentMethod] = useState<'credit_card' | 'pix' | 'boleto'>('pix');
+  const [paymentMethod, setPaymentMethod] = useState<'credit_card' | 'pix_automatic' | 'boleto'>('pix_automatic');
   const [includeOrderBump, setIncludeOrderBump] = useState<boolean>(false);
   const [includeCrmBump, setIncludeCrmBump] = useState<boolean>(false);
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
+  const [checkoutError, setCheckoutError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [checkoutResult, setCheckoutResult] = useState<
+    | { kind: 'pix'; qrCodeImage: string; payload: string }
+    | { kind: 'boleto'; bankSlipUrl?: string; processing: boolean }
+    | null
+  >(null);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -43,6 +60,9 @@ export function CheckoutPage() {
   const [cardExpiry, setCardExpiry] = useState('');
   const [cardCvv, setCardCvv] = useState('');
   const [cardName, setCardName] = useState('');
+  const [cardPostalCode, setCardPostalCode] = useState('');
+  const [cardAddressNumber, setCardAddressNumber] = useState('');
+  const checkoutAttemptRef = useRef<CheckoutAttempt | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -51,6 +71,30 @@ export function CheckoutPage() {
     }, 100);
     return () => clearTimeout(scrollTimer);
   }, []);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('ceruti_checkout_contact');
+      if (!saved) return;
+      const contact = JSON.parse(saved) as { name?: unknown; email?: unknown };
+      if (typeof contact.name === 'string') setName(contact.name);
+      if (typeof contact.email === 'string') setEmail(contact.email);
+    } catch {
+      // Browser autocomplete continues to work even if local storage is unavailable.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!name.trim() && !email.trim()) return;
+    try {
+      localStorage.setItem('ceruti_checkout_contact', JSON.stringify({
+        name: name.trim(),
+        email: email.trim(),
+      }));
+    } catch {
+      // Saving a convenience preference must never interrupt checkout.
+    }
+  }, [name, email]);
 
   // Order Bump pricing calculations
   const bumpMonthlyPrice = 47;
@@ -64,7 +108,7 @@ export function CheckoutPage() {
     const timer = setTimeout(() => {
       const bumpAdd = (includeOrderBump ? bumpTotalAmount : 0) + (includeCrmBump ? crmTotalAmount : 0);
       const value = (getUnitPrice() * usersCount * contractMonths) + bumpAdd;
-      const content_ids = [selectedAgent];
+      const content_ids: string[] = [selectedAgent];
       if (includeOrderBump) content_ids.push('order_bump_treinamentos');
       if (includeCrmBump) content_ids.push('order_bump_crm_agro');
 
@@ -173,27 +217,89 @@ export function CheckoutPage() {
     }
   };
 
-  const handleCheckout = (e: React.FormEvent) => {
+  const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setCheckoutError('');
+    setCheckoutResult(null);
 
-    // Save purchase details to localStorage for the Thank You / Upsell page tracking
-    const purchaseDetails = {
-      name,
-      email,
-      phone,
-      value: grandTotal,
-      currency: 'BRL',
-      agent: selectedAgent,
-      frequency,
-      usersCount,
-      includeOrderBump,
-      bumpTotalPrice: includeOrderBump ? bumpTotalAmount : 0,
-      includeCrmBump,
-      crmTotalPrice: includeCrmBump ? crmTotalAmount : 0
+    // The current Billing API does not expose an add-on field. Never charge a
+    // base subscription while visually promising the selected order bump.
+    if (includeOrderBump || includeCrmBump) {
+      setCheckoutError('Os adicionais ainda não estão disponíveis para cobrança online. Desmarque-os para concluir a assinatura base.');
+      return;
+    }
+
+    const cleanedPhone = phone.replace(/\D/g, '');
+    const cleanedDocument = documentNumber.replace(/\D/g, '');
+    const cleanedAccessNumbers = accessNumbers.map((value) => value.replace(/\D/g, '')).filter(Boolean);
+    if (cleanedPhone.length < 10 || cleanedDocument.length < 11 || (usersCount > 1 && cleanedAccessNumbers.length !== usersCount)) {
+      setCheckoutError('Confira os dados de contato e os números de acesso antes de continuar.');
+      return;
+    }
+
+    const frequencyByLabel = { mensal: 'monthly', semestral: 'semiannual', anual: 'annual' } as const;
+    const baseRequest: Omit<BillingCheckoutRequest, 'paymentMethod'> = {
+      agentType: selectedAgent,
+      frequency: frequencyByLabel[frequency],
+      accessQuantity: usersCount,
+      customer: { name: name.trim(), email: email.trim(), phone: cleanedPhone, documentNumber: cleanedDocument },
+      ...(cleanedAccessNumbers.length ? { accessNumbers: cleanedAccessNumbers } : {}),
     };
-    localStorage.setItem('ceruti_last_checkout', JSON.stringify(purchaseDetails));
 
-    setShowSuccessModal(true);
+    let requestBody: BillingCheckoutRequest | CreditCardCheckoutRequest;
+    if (paymentMethod === 'credit_card') {
+      const cardDigits = cardNumber.replace(/\D/g, '');
+      const expiryDigits = cardExpiry.replace(/\D/g, '');
+      const postalCode = cardPostalCode.replace(/\D/g, '');
+      const expiryMonth = expiryDigits.slice(0, 2);
+      const expiryYear = expiryDigits.length === 4 ? `20${expiryDigits.slice(2)}` : '';
+      if (!cardName.trim() || cardDigits.length < 13 || !/^(0[1-9]|1[0-2])$/.test(expiryMonth) || !expiryYear || cardCvv.length < 3 || postalCode.length !== 8 || !cardAddressNumber.trim()) {
+        setCheckoutError('Confira todos os dados do cartão, incluindo CEP e número do endereço.');
+        return;
+      }
+      requestBody = {
+        ...baseRequest,
+        paymentMethod: 'credit_card',
+        creditCard: { holderName: cardName.trim(), number: cardDigits, expiryMonth, expiryYear, ccv: cardCvv },
+        creditCardHolderInfo: {
+          name: name.trim(), email: email.trim(), cpfCnpj: cleanedDocument, postalCode,
+          addressNumber: cardAddressNumber.trim(), phone: cleanedPhone, mobilePhone: cleanedPhone,
+        },
+      };
+    } else {
+      requestBody = { ...baseRequest, paymentMethod };
+    }
+
+    checkoutAttemptRef.current = createCheckoutAttempt(checkoutAttemptRef.current, requestBody, () => crypto.randomUUID());
+    setIsSubmitting(true);
+    try {
+      const response = await postBillingCheckout(checkoutAttemptRef.current, requestBody);
+      if (paymentMethod === 'credit_card') {
+        const transparent = parseTransparentCardCheckout(response.data, response.status);
+        if (!transparent) throw new BillingApiError('A resposta do pagamento não pôde ser validada. Tente novamente.', { recoverable: false });
+        window.location.assign(transparent.completionUrl);
+        return;
+      }
+
+      const data = response.data as { ok?: unknown; paymentFlow?: unknown; pix?: { qrCodeImage?: unknown; payload?: unknown } };
+      if (data.ok === true && data.paymentFlow === 'PIX_AUTOMATIC' && typeof data.pix?.qrCodeImage === 'string' && typeof data.pix.payload === 'string') {
+        setCheckoutResult({ kind: 'pix', qrCodeImage: data.pix.qrCodeImage, payload: data.pix.payload });
+        setShowSuccessModal(true);
+        return;
+      }
+      const boleto = parseBoletoCheckout(response.data);
+      if (boleto) {
+        setCheckoutResult({ kind: 'boleto', processing: boleto.state === 'PROCESSING', ...(boleto.state === 'READY' ? { bankSlipUrl: boleto.bankSlipUrl } : {}) });
+        setShowSuccessModal(true);
+        return;
+      }
+      throw new BillingApiError('A resposta do pagamento não pôde ser validada. Tente novamente.', { recoverable: false });
+    } catch (error) {
+      setCheckoutError(error instanceof BillingApiError ? error.message : 'Não foi possível iniciar o pagamento agora. Tente novamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -446,6 +552,8 @@ export function CheckoutPage() {
                   type="text" 
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  name="name"
+                  autoComplete="name"
                   required
                   placeholder="Seu nome ou nome da empresa"
                   className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
@@ -458,6 +566,8 @@ export function CheckoutPage() {
                     type="email" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    name="email"
+                    autoComplete="email"
                     required
                     placeholder="email@empresa.com.br"
                     className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
@@ -469,6 +579,8 @@ export function CheckoutPage() {
                     type="tel" 
                     value={phone}
                     onChange={handlePhoneChange}
+                    name="tel"
+                    autoComplete="tel"
                     required
                     placeholder="(00) 00000-0000"
                     className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
@@ -481,6 +593,8 @@ export function CheckoutPage() {
                   type="text" 
                   value={documentNumber}
                   onChange={(e) => setDocumentNumber(e.target.value)}
+                  name="document"
+                  autoComplete="off"
                   required
                   placeholder="000.000.000-00 ou 00.000.000/0000-00"
                   className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
@@ -654,9 +768,9 @@ export function CheckoutPage() {
               <div className="grid grid-cols-3 gap-3">
                 <button
                   type="button"
-                  onClick={() => setPaymentMethod('pix')}
+                  onClick={() => setPaymentMethod('pix_automatic')}
                   className={`flex flex-col items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all ${
-                    paymentMethod === 'pix' 
+                    paymentMethod === 'pix_automatic'
                       ? 'border-[#00a83e] bg-[#eafdf0] text-[#00a83e] shadow-md shadow-[#00a83e]/10' 
                       : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 hover:bg-gray-50'
                   }`}
@@ -720,6 +834,8 @@ export function CheckoutPage() {
                       type="text" 
                       value={cardNumber}
                       onChange={handleCardNumberChange}
+                      name="cc-number"
+                      autoComplete="cc-number"
                       required={paymentMethod === 'credit_card'}
                       placeholder="0000 0000 0000 0000" 
                       className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
@@ -732,6 +848,8 @@ export function CheckoutPage() {
                         type="text" 
                         value={cardExpiry}
                         onChange={handleCardExpiryChange}
+                        name="cc-exp"
+                        autoComplete="cc-exp"
                         required={paymentMethod === 'credit_card'}
                         placeholder="MM/AA" 
                         maxLength={5}
@@ -747,6 +865,8 @@ export function CheckoutPage() {
                           const val = e.target.value.replace(/\D/g, '');
                           if (val.length <= 4) setCardCvv(val);
                         }}
+                        name="cc-csc"
+                        autoComplete="cc-csc"
                         required={paymentMethod === 'credit_card'}
                         placeholder="123" 
                         maxLength={4}
@@ -760,14 +880,50 @@ export function CheckoutPage() {
                       type="text" 
                       value={cardName}
                       onChange={(e) => setCardName(e.target.value)}
+                      name="cc-name"
+                      autoComplete="cc-name"
                       required={paymentMethod === 'credit_card'}
                       placeholder="Como impresso no cartão" 
                       className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
                     />
                   </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1">CEP</label>
+                      <input
+                        type="text"
+                        value={cardPostalCode}
+                        onChange={(e) => setCardPostalCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                        name="postal-code"
+                        autoComplete="postal-code"
+                        required={paymentMethod === 'credit_card'}
+                        placeholder="00000-000"
+                        className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1">Número</label>
+                      <input
+                        type="text"
+                        value={cardAddressNumber}
+                        onChange={(e) => setCardAddressNumber(e.target.value.slice(0, 20))}
+                        name="address-number"
+                        autoComplete="address-line2"
+                        required={paymentMethod === 'credit_card'}
+                        placeholder="123"
+                        className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
+
+            {checkoutError && (
+              <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+                {checkoutError}
+              </div>
+            )}
 
             {/* Submit Button */}
             <div className="mt-8">
@@ -782,18 +938,26 @@ export function CheckoutPage() {
                  </div>
               </div>
 
-              <div className="relative group">
-                {/* Perpetual Glow Effect */}
-                <div className="absolute -inset-1 bg-gradient-to-r from-[#00a83e] via-[#00cf4d] to-[#00a83e] rounded-[16px] blur opacity-75 animate-pulse"></div>
-                
-                <button 
-                  type="submit"
-                  className="relative w-full flex items-center justify-center gap-3 bg-[#00a83e] hover:bg-[#009035] text-white px-8 py-5 rounded-xl font-black text-lg tracking-widest uppercase transition-all shadow-[0_10px_25px_rgba(0,168,62,0.3)] hover:-translate-y-1 active:translate-y-0"
-                >
-                  <Lock className="w-6 h-6 text-current opacity-80" />
-                  CONCLUIR ASSINATURA
-                </button>
-              </div>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="checkout-submit-button"
+                aria-label={isSubmitting ? 'Processando assinatura' : 'Concluir assinatura'}
+              >
+                <span className="checkout-submit-left" aria-hidden="true">
+                  <span className="checkout-submit-card">
+                    <span className="checkout-submit-card-line" />
+                    <span className="checkout-submit-card-dots" />
+                  </span>
+                  <span className="checkout-submit-receipt">
+                    <span className="checkout-submit-receipt-line" />
+                    <span className="checkout-submit-receipt-screen">$</span>
+                    <span className="checkout-submit-receipt-numbers" />
+                    <span className="checkout-submit-receipt-numbers checkout-submit-receipt-numbers--second" />
+                  </span>
+                </span>
+                <span className="checkout-submit-text">{isSubmitting ? 'Processando...' : 'Concluir assinatura'}</span>
+              </button>
               
               <div className="relative mt-6 pb-2">
                 <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 opacity-60">
@@ -837,11 +1001,28 @@ export function CheckoutPage() {
 
           {/* Title */}
           <h2 className="text-2xl sm:text-3xl font-black text-[#0b1a30] tracking-tight mb-2 uppercase">
-            Obrigado pela Compra!
+            {checkoutResult?.kind === 'pix' ? 'Pague com Pix' : checkoutResult?.kind === 'boleto' ? 'Pagamento por boleto' : 'Pagamento iniciado'}
           </h2>
           <p className="text-neutral-600 font-medium text-sm sm:text-base max-w-md mx-auto mb-6 leading-relaxed">
-            Sua assinatura foi recebida com sucesso e o seu acesso já está sendo processado.
+            {checkoutResult?.kind === 'pix'
+              ? 'Escaneie o QR Code ou copie o código Pix para concluir o pagamento.'
+              : checkoutResult?.kind === 'boleto'
+                ? (checkoutResult.processing ? 'Seu boleto está sendo preparado. Aguarde alguns instantes e tente novamente.' : 'Abra o boleto para concluir o pagamento.')
+                : 'Aguarde a confirmação do pagamento para liberar o acesso.'}
           </p>
+
+          {checkoutResult?.kind === 'pix' && (
+            <div className="mb-6 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
+              <img src={checkoutResult.qrCodeImage} alt="QR Code Pix" className="mx-auto h-44 w-44 rounded-lg bg-white p-2" />
+              <button
+                type="button"
+                onClick={() => void navigator.clipboard?.writeText(checkoutResult.payload)}
+                className="mt-4 w-full rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm font-bold text-emerald-800 transition-colors hover:bg-emerald-100"
+              >
+                COPIAR CÓDIGO PIX
+              </button>
+            </div>
+          )}
 
           {/* Steps / Info Grid */}
           <div className="flex flex-col gap-3 text-left mb-8 max-w-md mx-auto">
@@ -864,14 +1045,25 @@ export function CheckoutPage() {
             </div>
           </div>
 
-          {/* Redirection Button */}
-          <button
-            onClick={() => navigate('/obrigadoofertapdc')}
-            className="w-full py-4 px-6 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white font-extrabold text-sm sm:text-base uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-600/30 hover:scale-[1.01] active:scale-[0.99] transition-all duration-300 flex items-center justify-center gap-2 group"
-          >
-            <span>VOCÊ RECEBEU UM PRESENTE 🎉</span>
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </button>
+          {checkoutResult?.kind === 'boleto' && checkoutResult.bankSlipUrl ? (
+            <a
+              href={checkoutResult.bankSlipUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-4 px-6 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white font-extrabold text-sm sm:text-base uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-600/30 hover:scale-[1.01] active:scale-[0.99] transition-all duration-300 flex items-center justify-center gap-2 group"
+            >
+              <span>ABRIR BOLETO</span>
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </a>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowSuccessModal(false)}
+              className="w-full py-4 px-6 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white font-extrabold text-sm sm:text-base uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-600/30 hover:scale-[1.01] active:scale-[0.99] transition-all duration-300 flex items-center justify-center gap-2 group"
+            >
+              <span>VOLTAR AO CHECKOUT</span>
+            </button>
+          )}
         </div>
       </div>
     )}
