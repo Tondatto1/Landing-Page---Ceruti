@@ -2,7 +2,7 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import {BrowserRouter, Routes, Route} from 'react-router-dom';
 import App from './App.tsx';
-import {CheckoutPage} from './components/CheckoutPage.tsx';
+import {CheckoutPageRedesign} from './components/CheckoutPageRedesign.tsx';
 import {ThankYouPage} from './components/ThankYouPage.tsx';
 import {ObrigadoOfertaPdcPage} from './components/ObrigadoOfertaPdcPage.tsx';
 import {PrivacyPolicyPage} from './components/PrivacyPolicyPage.tsx';
@@ -15,9 +15,9 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<App />} />
-        <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/checkout" element={<CheckoutPageRedesign />} />
         <Route path="/checkout/success" element={<ThankYouPage />} />
-        <Route path="/checkout/*" element={<CheckoutPage />} />
+        <Route path="/checkout/*" element={<CheckoutPageRedesign />} />
         <Route path="/obrigado" element={<ThankYouPage />} />
         <Route path="/obrigado/*" element={<ThankYouPage />} />
         <Route path="/obrigadoofertapdc" element={<ObrigadoOfertaPdcPage />} />
