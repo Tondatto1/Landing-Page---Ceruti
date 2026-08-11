@@ -56,7 +56,7 @@ export default function App() {
   const navigate = useNavigate();
   // Mobile menu toggle
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [selectedAgent, setSelectedAgent] = useState<'consultor' | 'campo'>('consultor');
+  const [selectedAgent, setSelectedAgent] = useState<'consultor' | 'campo'>('campo');
 
   return (
     <div className="bg-agro-deep text-gray-100 min-h-screen font-sans selection:bg-agro-green selection:text-agro-deep theme-natural-tones w-full overflow-x-clip relative" id="top_container">
@@ -81,7 +81,6 @@ export default function App() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8 text-sm font-semibold text-neutral-600">
-            <a href="#dois-modelos" className="hover:text-black transition-colors">Os dois modelos</a>
             <a href="#resultados" className="hover:text-black transition-colors">Resultados práticos</a>
             <a href="#depoimentos" className="hover:text-black transition-colors">Depoimentos</a>
           </nav>
@@ -114,13 +113,6 @@ export default function App() {
               exit={{ opacity: 0, height: 0 }}
               className="md:hidden border-t border-neutral-100 bg-white/95 backdrop-blur-md px-4 py-6 space-y-4 shadow-lg"
             >
-              <a 
-                href="#dois-modelos" 
-                onClick={() => setMobileMenuOpen(false)}
-                className="block text-neutral-700 hover:text-[#00a83e] text-base py-1 font-medium"
-              >
-                Os dois modelos
-              </a>
               <a 
                 href="#resultados" 
                 onClick={() => setMobileMenuOpen(false)}
@@ -918,313 +910,6 @@ export default function App() {
         <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-[#00a83e]/10 via-[#0070f3]/10 to-transparent z-10 blur-[2px] opacity-85" />
       </section>
 
-      {/* SECTION: DOIS MODELOS DE AGENTES */}
-      <section className="bg-gradient-to-b from-white via-neutral-50/50 to-[#FAF9F6] py-20 sm:py-24 relative overflow-hidden" id="dois-modelos">
-        {/* Decorative background grid and elements */}
-        <div className="absolute inset-0 opacity-[0.02] pointer-events-none bg-[radial-gradient(#00a83e_1px,transparent_1px)] [background-size:24px_24px] z-0"></div>
-        <div className="absolute top-1/4 -right-48 w-96 h-96 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(0,112,243,0.06)_0%,transparent_70%)]" />
-        <div className="absolute bottom-1/4 -left-48 w-96 h-96 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(0,168,62,0.06)_0%,transparent_70%)]" />
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          
-          {/* Heading */}
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <motion.h2 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.7, delay: 0.1 }}
-              className="text-3xl sm:text-4xl lg:text-[44px] font-sans font-black text-[#0b1a30] tracking-tighter leading-[1.08] uppercase"
-            >
-              DOIS MODELOS DO AGENTE CERUTI
-            </motion.h2>
-          </div>
-
-          {/* Dual layout container with high contrast cards */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            
-            {/* CARD 1: CERUTI CONSULTOR */}
-            <motion.div 
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.7 }}
-              whileHover={{ y: -5 }}
-              className="relative bg-white border border-neutral-200/60 rounded-[32px] p-8 sm:p-10 shadow-[0_12px_40px_rgba(11,26,48,0.03)] hover:shadow-[0_24px_50px_rgba(11,26,48,0.08)] transition-all duration-300 flex flex-col justify-between group overflow-hidden"
-            >
-              <div className="absolute top-0 left-0 w-2 h-full bg-[#0070f3] opacity-80" />
-              
-              <div>
-                {/* Header Row */}
-                <div className="flex items-center justify-between mb-6">
-                  <div className="w-14 h-14 rounded-2xl bg-[#ecf3ff] flex items-center justify-center border border-[#d2e4ff] text-[#0070f3] group-hover:scale-105 transition-transform duration-300 shadow-sm">
-                    <Brain className="w-7 h-7" />
-                  </div>
-                </div>
-
-                <h3 className="text-2xl font-sans font-black text-[#0b1a30] tracking-tight uppercase mb-4">
-                  Ceruti Consultor
-                </h3>
-                
-                <p className="text-[#3A4338]/90 text-sm sm:text-base leading-relaxed mb-6 font-medium">
-                  Feito para gestores e líderes comercias
-                </p>
-              </div>
-
-              {/* Direct Difference Highlight Area */}
-              <div className="mt-6 pt-6 border-t border-neutral-100">
-                <span className="text-xs font-sans font-black text-neutral-400 uppercase tracking-wider block mb-3">Foco e Diferencial:</span>
-                <div className="bg-[#f5f9ff] border border-[#e2efff] rounded-2xl p-4 flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-[#0070f3]/10 flex items-center justify-center shrink-0 mt-0.5">
-                    <CheckCheck className="w-3.5 h-3.5 text-[#0070f3]" />
-                  </div>
-                  <div className="text-xs sm:text-sm text-[#004bb4] font-bold leading-relaxed">
-                    Mais profundidade, diagnóstico e plano de ação estruturado
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* CARD 2: CERUTI CAMPO */}
-            <motion.div 
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.7 }}
-              whileHover={{ y: -5 }}
-              className="relative bg-white border border-neutral-200/60 rounded-[32px] p-8 sm:p-10 shadow-[0_12px_40px_rgba(11,26,48,0.03)] hover:shadow-[0_24px_50px_rgba(0,168,62,0.08)] transition-all duration-300 flex flex-col justify-between group overflow-hidden"
-            >
-              <div className="absolute top-0 left-0 w-2 h-full bg-[#00a83e] opacity-80" />
-              
-              <div>
-                {/* Header Row */}
-                <div className="flex items-center justify-between mb-6">
-                  <div className="w-14 h-14 rounded-2xl bg-[#eafdf0] flex items-center justify-center border border-[#cbeed4] text-[#00a83e] group-hover:scale-105 transition-transform duration-300 shadow-sm">
-                    <Zap className="w-7 h-7" />
-                  </div>
-                </div>
-
-                <h3 className="text-2xl font-sans font-black text-[#0b1a30] tracking-tight uppercase mb-4">
-                  Ceruti Campo
-                </h3>
-                
-                <p className="text-[#3A4338]/90 text-sm sm:text-base leading-relaxed mb-6 font-medium">
-                  Feito para os vendedores da ponta
-                </p>
-              </div>
-
-              {/* Direct Difference Highlight Area */}
-              <div className="mt-6 pt-6 border-t border-neutral-100">
-                <span className="text-xs font-sans font-black text-neutral-400 uppercase tracking-wider block mb-3">Foco e Diferencial:</span>
-                <div className="bg-[#f0fdf4] border border-[#d2f4dc] rounded-2xl p-4 flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-[#00a83e]/10 flex items-center justify-center shrink-0 mt-0.5">
-                    <CheckCheck className="w-3.5 h-3.5 text-[#00a83e]" />
-                  </div>
-                  <div className="text-xs sm:text-sm text-[#006b27] font-bold leading-relaxed">
-                    Mais agilidade, objetividade e resposta imediata.
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
-          </div>
-
-
-
-        </div>
-        
-        {/* Soft elegant gradient transition divider matching other sections */}
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00a83e]/30 via-[#0070f3]/25 via-transparent to-transparent z-10" />
-        <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-[#00a83e]/10 via-[#0070f3]/10 to-transparent z-10 blur-[2px] opacity-85" />
-      </section>
-
-      <section className="bg-gradient-to-b from-white via-white to-[#FAF9F6] py-24 relative overflow-hidden" id="como-funciona">
-        {/* Subtle decorative dot grid background for that professional slide feeling */}
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#00a83e_1px,transparent_1px)] [background-size:24px_24px] z-0"></div>
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          
-          {/* Header styled exactly like the attached mockup */}
-          <div className="text-center max-w-3xl mx-auto space-y-5 mb-20">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-sans font-black text-[#0c1f22] tracking-tight uppercase">
-              COMO FUNCIONA O CERUTI CONSULTOR?
-            </h2>
-            <div className="w-16 h-1.5 bg-[#00a83e] mx-auto rounded-full"></div>
-          </div>
-
-          {/* Stepped Timeline Progress Track - Interactive Horizontal on Desktop, Vertical on Mobile */}
-          <div className="relative mt-16 max-w-6xl mx-auto">
-            
-            {/* Horizontal Timeline bar (hidden on mobile) */}
-            <div className="hidden lg:block absolute top-[94px] left-[12%] right-[12%] h-[2px] bg-neutral-200/80 z-0">
-              <div className="absolute top-0 left-0 h-full w-[100%] bg-gradient-to-r from-[#00a83e] via-[#0070f3] to-[#00a83e] rounded-full"></div>
-            </div>
-
-            {/* Steps Container Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-12 lg:gap-8 relative z-10">
-              
-              {/* STEP 1: VENDEDOR PERGUNTA */}
-              <div className="flex flex-col items-center group relative">
-                <div className="relative bg-white border border-neutral-200/60 rounded-[32px] p-8 text-center flex flex-col items-center shadow-[0_20px_50px_rgba(0,168,62,0.03)] hover:shadow-[0_30px_70px_rgba(0,168,62,0.07)] hover:-translate-y-1.5 transition-all duration-300 w-full max-w-[280px] min-h-[310px] justify-between border-b-[3px] border-b-[#00a83e]/80">
-                  
-                  {/* Badge centered on top boundary */}
-                  <span className="absolute -top-5 left-1/2 transform -translate-x-1/2 bg-[#00a83e] text-white font-sans font-black w-10 h-10 rounded-full flex items-center justify-center text-base shadow-[0_4px_12px_rgba(0,168,62,0.3)] border-2 border-white">
-                    1
-                  </span>
-
-                  {/* Icon illustration: green speech bubble with dots */}
-                  <div className="w-32 h-32 rounded-[24px] bg-[#eefaf2] border border-[#d2f4dc] flex items-center justify-center mt-2 group-hover:scale-105 transition-transform duration-300">
-                    <svg className="w-16 h-16 text-[#00a83e]" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2050/svg">
-                      <rect x="15" y="25" width="70" height="46" rx="20" fill="white" stroke="#00a83e" strokeWidth="4" />
-                      <path d="M35 71L25 83V71H35Z" fill="white" stroke="#00a83e" strokeWidth="4" strokeLinejoin="round" />
-                      <circle cx="38" cy="48" r="4.5" fill="#00a83e" />
-                      <circle cx="50" cy="48" r="4.5" fill="#00a83e" />
-                      <circle cx="62" cy="48" r="4.5" fill="#00a83e" />
-                    </svg>
-                  </div>
-
-                  {/* Title and details */}
-                  <div className="mt-6 space-y-2">
-                    <h4 className="font-sans font-black text-lg text-[#0c1f22]">Envio do Problema</h4>
-                    <p className="text-xs text-neutral-500 font-semibold leading-relaxed px-1">
-                      Profissional envia o seu problema
-                    </p>
-                  </div>
-
-                </div>
-                {/* Horizontal flow pointer arrow for desktop */}
-                <div className="hidden lg:flex absolute top-[80px] -right-[20px] z-20 text-[#0070f3] animate-pulse">
-                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </div>
-
-              {/* STEP 2: DIAGNÓSTICO */}
-              <div className="flex flex-col items-center group relative border-[#0000]/0">
-                <div className="relative bg-white border border-neutral-200/60 rounded-[32px] p-8 text-center flex flex-col items-center shadow-[0_20px_50px_rgba(0,112,243,0.03)] hover:shadow-[0_30px_70px_rgba(0,112,243,0.07)] hover:-translate-y-1.5 transition-all duration-300 w-full max-w-[280px] min-h-[310px] justify-between border-b-[3px] border-b-[#0070f3]/80">
-                  
-                  {/* Badge centered on top boundary */}
-                  <span className="absolute -top-5 left-1/2 transform -translate-x-1/2 bg-[#0070f3] text-white font-sans font-black w-10 h-10 rounded-full flex items-center justify-center text-base shadow-[0_4px_12px_rgba(0,112,243,0.3)] border-2 border-white">
-                    2
-                  </span>
-
-                  {/* Icon illustration: blue magnifying glass */}
-                  <div className="w-32 h-32 rounded-[24px] bg-[#f0f7ff] border border-[#d1e6ff] flex items-center justify-center mt-2 group-hover:scale-105 transition-transform duration-300">
-                    <svg className="w-16 h-16 text-[#0070f3]" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2050/svg">
-                      <circle cx="46" cy="46" r="20" fill="white" stroke="#0070f3" strokeWidth="4.5" />
-                      <line x1="60.5" y1="60.5" x2="80" y2="80" stroke="#0070f3" strokeWidth="5" strokeLinecap="round" />
-                      <path d="M38 38C38 38 41 34 47 34" stroke="#0070f3" strokeWidth="3" strokeLinecap="round" />
-                    </svg>
-                  </div>
-
-                  {/* Title and details */}
-                  <div className="mt-6 space-y-2">
-                    <h4 className="font-sans font-black text-lg text-[#0c1f22]">Diagnóstico</h4>
-                    <p className="text-xs text-neutral-500 font-semibold leading-relaxed px-1">
-                      Agente Ceruti faz perguntas para entender melhor o cenário
-                    </p>
-                  </div>
-
-                </div>
-                {/* Horizontal flow pointer arrow for desktop */}
-                <div className="hidden lg:flex absolute top-[80px] -right-[20px] z-20 text-[#00a83e] animate-pulse">
-                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </div>
-
-              {/* STEP 3: PLANO PRÁTICO */}
-              <div className="flex flex-col items-center group relative border-[#0000]/0">
-                <div className="relative bg-white border border-neutral-200/60 rounded-[32px] p-8 text-center flex flex-col items-center shadow-[0_20px_50px_rgba(0,168,62,0.03)] hover:shadow-[0_30px_70px_rgba(0,168,62,0.07)] hover:-translate-y-1.5 transition-all duration-300 w-full max-w-[280px] min-h-[310px] justify-between border-b-[3px] border-b-[#00a83e]/80">
-                  
-                  {/* Badge centered on top boundary */}
-                  <span className="absolute -top-5 left-1/2 transform -translate-x-1/2 bg-[#00a83e] text-white font-sans font-black w-10 h-10 rounded-full flex items-center justify-center text-base shadow-[0_4px_12px_rgba(0,168,62,0.3)] border-2 border-white">
-                    3
-                  </span>
-
-                  {/* Icon illustration: green checklist document */}
-                  <div className="w-32 h-32 rounded-[24px] bg-[#eefaf2] border border-[#d2f4dc] flex items-center justify-center mt-2 group-hover:scale-105 transition-transform duration-300">
-                    <svg className="w-14 h-14 text-[#00a83e]" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2050/svg">
-                      <rect x="22" y="16" width="56" height="68" rx="10" fill="white" stroke="#00a83e" strokeWidth="4" />
-                      <path d="M34 32H44M34 50H50M34 68H44" stroke="#00a83e" strokeWidth="4" strokeLinecap="round" />
-                      <path d="M58 28L63 33L74 22" stroke="#10b981" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M58 48L63 53L74 42" stroke="#10b981" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M58 66L63 71L74 60" stroke="#10b981" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-
-                  {/* Title and details */}
-                  <div className="mt-6 space-y-2">
-                    <h4 className="font-sans font-black text-lg text-[#0c1f22]">Plano de solução</h4>
-                    <p className="text-xs text-neutral-500 font-semibold leading-relaxed px-1">
-                      Agente Ceruti entrega um plano para solucionar o problema
-                    </p>
-                  </div>
-
-                </div>
-                {/* Horizontal flow pointer arrow for desktop */}
-                <div className="hidden lg:flex absolute top-[80px] -right-[20px] z-20 text-[#0070f3] animate-pulse">
-                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </div>
-
-              {/* STEP 4: PÓS-PLANO */}
-              <div className="flex flex-col items-center group">
-                <div className="relative bg-white border border-neutral-200/60 rounded-[32px] p-8 text-center flex flex-col items-center shadow-[0_20px_50px_rgba(0,112,243,0.03)] hover:shadow-[0_30px_70px_rgba(0,112,243,0.07)] hover:-translate-y-1.5 transition-all duration-300 w-full max-w-[280px] min-h-[310px] justify-between border-b-[3px] border-b-[#0070f3]/80">
-                  
-                  {/* Badge centered on top boundary */}
-                  <span className="absolute -top-5 left-1/2 transform -translate-x-1/2 bg-[#0070f3] text-white font-sans font-black w-10 h-10 rounded-full flex items-center justify-center text-base shadow-[0_4px_12px_rgba(0,112,243,0.3)] border-2 border-white">
-                    4
-                  </span>
-
-                  {/* Icon illustration: blue rocket taking off */}
-                  <div className="w-32 h-32 rounded-[24px] bg-[#f0f7ff] border border-[#d1e6ff] flex items-center justify-center mt-2 group-hover:scale-105 transition-transform duration-300">
-                    <svg className="w-16 h-16 text-[#0070f3]" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2050/svg">
-                      <path d="M68 22C68 22 55 25 45 35C35 45 32 58 32 58C32 58 41 55 49 49C57 43 68 22 68 22Z" fill="white" stroke="#0070f3" strokeWidth="4" strokeLinejoin="round" />
-                      <path d="M41 59L28 72C24 76 27 80 27 80C27 80 31 83 35 79L48 66" stroke="#0070f3" strokeWidth="4.5" strokeLinecap="round" />
-                      <path d="M53 37C55 35 59 35 61 37C63 39 63 43 61 45" stroke="#0070f3" strokeWidth="3" strokeLinecap="round" />
-                      <circle cx="28" cy="80" r="1.5" fill="#0070f3" />
-                      {/* Left and Right Small wings */}
-                      <path d="M38 48C34 50 30 55 30 55L34 59" stroke="#0070f3" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M48 38C50 34 55 30 55 30L59 34" stroke="#0070f3" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-
-                  {/* Title and details */}
-                  <div className="mt-6 space-y-2">
-                    <h4 className="font-sans font-black text-lg text-[#0c1f22]">Pós plano</h4>
-                    <p className="text-xs text-neutral-500 font-semibold leading-relaxed px-1">
-                      Agente Ceruti abre para criação de scripts, refinamento do plano etc...
-                    </p>
-                  </div>
-
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-          {/* CTA Button */}
-          <div className="flex justify-center mt-12 relative z-20">
-            <a 
-              href="#planos" 
-              className="inline-flex items-center gap-3 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-lg shadow-emerald-950/25 hover:shadow-emerald-600/35 hover:scale-[1.01] active:scale-[0.99] border-b-[3px] border-[#003813]"
-            >
-              <MessageCircle className="w-5 h-5 text-current" />
-              Quero ter acesso
-            </a>
-          </div>
-
-        </div>
-        {/* Soft elegant gradient transition divider */}
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00a83e]/30 via-[#0070f3]/25 via-transparent to-transparent z-10" />
-        <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-[#00a83e]/10 via-[#0070f3]/10 to-transparent z-10 blur-[2px] opacity-85" />
-      </section>
-
       {/* SECTION: COMO FUNCIONA O CERUTI CAMPO */}
       <section className="bg-gradient-to-b from-[#FAF9F6] via-white to-white py-24 relative overflow-hidden" id="como-funciona-campo">
         {/* Subtle decorative dot grid background for that professional slide feeling */}
@@ -1639,38 +1324,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Selector de Agente com Caixa de Opções */}
-          <div className="max-w-md mx-auto mt-8 mb-6 p-6 bg-white border border-neutral-200/60 rounded-3xl shadow-[0_10px_30px_rgba(0,168,62,0.03)] text-center relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#00a83e] to-[#0070f3]"></div>
-            <label className="block text-xs font-black tracking-wider text-neutral-400 uppercase mb-3.5">
-              Escolha o agente que deseja:
-            </label>
-            <div className="grid grid-cols-2 gap-2 p-1 bg-neutral-50 border border-neutral-200/50 rounded-2xl">
-              <button
-                type="button"
-                onClick={() => setSelectedAgent('consultor')}
-                className={`py-3 px-4 rounded-xl font-sans font-black text-xs sm:text-sm uppercase tracking-wider transition-all duration-300 ${
-                  selectedAgent === 'consultor'
-                    ? 'bg-gradient-to-r from-[#004d1a] to-[#00a83e] text-white shadow-md'
-                    : 'text-neutral-500 hover:text-neutral-900 bg-transparent'
-                }`}
-              >
-                Ceruti Consultor
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedAgent('campo')}
-                className={`py-3 px-4 rounded-xl font-sans font-black text-xs sm:text-sm uppercase tracking-wider transition-all duration-300 ${
-                  selectedAgent === 'campo'
-                    ? 'bg-gradient-to-r from-[#004d1a] to-[#00a83e] text-white shadow-md'
-                    : 'text-neutral-500 hover:text-neutral-900 bg-transparent'
-                }`}
-              >
-                Ceruti Campo
-              </button>
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 mt-10 items-start justify-center max-w-5xl mx-auto">
             {/* COLUMN 1 */}
             <div className="flex flex-col w-full pt-6 relative">
@@ -1694,7 +1347,7 @@ export default function App() {
                   <span className="relative inline-block group">
                     <span className="absolute inset-0 bg-red-400/20 blur-md rounded-full transition-all duration-300"></span>
                     <span className="relative inline-flex items-center justify-center px-4 py-1 rounded-full bg-red-50/80 border border-red-100 text-red-500 text-sm font-black line-through decoration-red-500/70 decoration-[2px]">
-                      {selectedAgent === 'consultor' ? 'R$ 397,00' : 'R$ 147,50'}
+                      R$ 147,50
                     </span>
                   </span>
                 </div>
@@ -1709,9 +1362,9 @@ export default function App() {
                     <div className="flex items-baseline gap-0.5 sm:gap-0 lg:gap-0.5 xl:gap-1 mb-3.5">
                       <span className="font-bold text-sm sm:text-xs md:text-sm lg:text-xs xl:text-sm text-neutral-400 mt-0.5">R$</span>
                       <span className="font-black text-2xl xs:text-3xl sm:text-xl md:text-2xl lg:text-xl xl:text-3xl text-[#0b1a30] tracking-tighter leading-none">
-                        {selectedAgent === 'consultor' ? '337' : '125'}
+                        125
                         <span className="text-sm sm:text-xs md:text-sm lg:text-xs xl:text-lg font-bold">
-                          {selectedAgent === 'consultor' ? ',45' : ',38'}
+                          ,38
                         </span>
                       </span>
                     </div>
@@ -1732,9 +1385,9 @@ export default function App() {
                     <div className="flex items-baseline gap-0.5 sm:gap-0 lg:gap-0.5 xl:gap-1 mb-3.5">
                       <span className="font-bold text-sm sm:text-xs md:text-sm lg:text-xs xl:text-sm text-neutral-400 mt-0.5">R$</span>
                       <span className="font-black text-2xl xs:text-3xl sm:text-xl md:text-2xl lg:text-xl xl:text-3xl text-[#0b1a30] tracking-tighter leading-none">
-                        {selectedAgent === 'consultor' ? '297' : '110'}
+                        110
                         <span className="text-sm sm:text-xs md:text-sm lg:text-xs xl:text-lg font-bold">
-                          {selectedAgent === 'consultor' ? ',75' : ',63'}
+                          ,63
                         </span>
                       </span>
                     </div>
@@ -1758,9 +1411,9 @@ export default function App() {
                     <div className="flex items-baseline gap-0.5 sm:gap-0 lg:gap-0.5 xl:gap-1 mb-3.5">
                       <span className="font-bold text-sm sm:text-xs md:text-sm lg:text-xs xl:text-sm text-neutral-400 mt-0.5">R$</span>
                       <span className="font-black text-2xl xs:text-3xl sm:text-xl md:text-2xl lg:text-xl xl:text-3xl text-[#0b1a30] tracking-tighter leading-none">
-                        {selectedAgent === 'consultor' ? '258' : '95'}
+                        95
                         <span className="text-sm sm:text-xs md:text-sm lg:text-xs xl:text-lg font-bold">
-                          {selectedAgent === 'consultor' ? ',05' : ',88'}
+                          ,88
                         </span>
                       </span>
                     </div>
@@ -1797,7 +1450,7 @@ export default function App() {
                   <span className="relative inline-block group">
                     <span className="absolute inset-0 bg-red-400/20 blur-md rounded-full transition-all duration-300"></span>
                     <span className="relative inline-flex items-center justify-center px-4 py-1 rounded-full bg-red-50/80 border border-red-100 text-red-500 text-sm font-black line-through decoration-red-500/70 decoration-[2px]">
-                      {selectedAgent === 'consultor' ? 'R$ 397,00' : 'R$ 147,50'}
+                      R$ 147,50
                     </span>
                   </span>
                 </div>
@@ -1812,9 +1465,9 @@ export default function App() {
                     <div className="flex items-baseline gap-0.5 sm:gap-0 lg:gap-0.5 xl:gap-1 mb-3.5">
                       <span className="font-bold text-sm sm:text-xs md:text-sm lg:text-xs xl:text-sm text-neutral-400 mt-0.5">R$</span>
                       <span className="font-black text-2xl xs:text-3xl sm:text-xl md:text-2xl lg:text-xl xl:text-3xl text-[#0b1a30] tracking-tighter leading-none">
-                        {selectedAgent === 'consultor' ? '297' : '110'}
+                        110
                         <span className="text-sm sm:text-xs md:text-sm lg:text-xs xl:text-lg font-bold">
-                          {selectedAgent === 'consultor' ? ',75' : ',63'}
+                          ,63
                         </span>
                       </span>
                     </div>
@@ -1835,9 +1488,9 @@ export default function App() {
                     <div className="flex items-baseline gap-0.5 sm:gap-0 lg:gap-0.5 xl:gap-1 mb-3.5">
                       <span className="font-bold text-sm sm:text-xs md:text-sm lg:text-xs xl:text-sm text-neutral-400 mt-0.5">R$</span>
                       <span className="font-black text-2xl xs:text-3xl sm:text-xl md:text-2xl lg:text-xl xl:text-3xl text-[#0b1a30] tracking-tighter leading-none">
-                        {selectedAgent === 'consultor' ? '258' : '95'}
+                        95
                         <span className="text-sm sm:text-xs md:text-sm lg:text-xs xl:text-lg font-bold">
-                          {selectedAgent === 'consultor' ? ',05' : ',88'}
+                          ,88
                         </span>
                       </span>
                     </div>
@@ -1861,9 +1514,9 @@ export default function App() {
                     <div className="flex items-baseline gap-0.5 sm:gap-0 lg:gap-0.5 xl:gap-1 mb-3.5">
                       <span className="font-bold text-sm sm:text-xs md:text-sm lg:text-xs xl:text-sm text-neutral-400 mt-0.5">R$</span>
                       <span className="font-black text-2xl xs:text-3xl sm:text-xl md:text-2xl lg:text-xl xl:text-3xl text-[#0b1a30] tracking-tighter leading-none">
-                        {selectedAgent === 'consultor' ? '218' : '81'}
+                        81
                         <span className="text-sm sm:text-xs md:text-sm lg:text-xs xl:text-lg font-bold">
-                          {selectedAgent === 'consultor' ? ',35' : ',13'}
+                          ,13
                         </span>
                       </span>
                     </div>
@@ -1881,7 +1534,7 @@ export default function App() {
           
           <div className="flex flex-col items-center justify-center mt-12 pb-8 gap-4">
             <button 
-              onClick={() => navigate(`/checkout?agent=${selectedAgent}`)}
+              onClick={() => navigate('/checkout?agent=campo')}
               className="inline-flex items-center gap-3 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white px-8 sm:px-10 py-4 sm:py-4.5 rounded-2xl font-black text-sm sm:text-[15px] tracking-widest uppercase transition-all shadow-lg shadow-emerald-950/25 hover:shadow-emerald-600/35 hover:-translate-y-1 active:scale-[0.99] border-b-[3px] border-[#003813] cursor-pointer"
             >
               <Rocket className="w-6 h-6" />
@@ -1924,9 +1577,9 @@ export default function App() {
               <div className="flex items-center space-x-2">
                 <img 
                   id="footer_logo"
-                  src="/LETRA ESCURA - FUNDO TRANS - HOR.png" 
+                  src="/logo - letra branca - transp.png" 
                   alt="Ceruti" 
-                  className="h-9 w-auto object-contain" 
+                  className="h-10 sm:h-12 w-auto object-contain" 
                   referrerPolicy="no-referrer"
                 />
               </div>
@@ -1960,7 +1613,6 @@ export default function App() {
               © 2026 Ceruti. Todos os direitos reservados. Desenvolvido para o agronegócio brasileiro de alta performance.
             </p>
             <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-6 gap-y-3 font-medium text-gray-400">
-              <a href="#dois-modelos" className="hover:text-white transition-colors">Os dois modelos</a>
               <a href="#resultados" className="hover:text-white transition-colors">Resultados práticos</a>
               <a href="#depoimentos" className="hover:text-white transition-colors">Depoimentos</a>
               <span className="text-white/10 hidden lg:inline">|</span>
