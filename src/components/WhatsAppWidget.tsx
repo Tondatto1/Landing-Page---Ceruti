@@ -566,7 +566,7 @@ export const WhatsAppWidget = () => {
             company: prospectData.company,
             email: prospectData.email,
             phone: prospectData.phone,
-            agentTypes: prospectData.agentTypes,
+            agentTypes: prospectData.agentTypes.length > 0 ? prospectData.agentTypes : ['campo'],
           }),
         });
 
@@ -739,18 +739,17 @@ export const WhatsAppWidget = () => {
       setMessages((prev) => [...prev, botMsg]);
     }
     else if (signupStep === 'phone') {
-      setProspectData(prev => ({ ...prev, phone: userText }));
+      trialIdempotencyKeyRef.current = crypto.randomUUID();
+      setProspectData(prev => ({ ...prev, phone: userText, agentTypes: ['campo'] }));
       setSignupStep('idle');
 
       const botMsg: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
-        text: `Todos os dados foram informados com sucesso! 📝\n\nAgora, por favor selecione qual agente você deseja liberar o período de teste de 7 dias:`,
+        text: `Excelente!\n\nAo clicar em liberar, você consente com o tratamento dos dados informados para ativação e suporte do teste, conforme a LGPD.`,
         time: formatTime(),
         options: [
-          { text: '🤖 Ceruti Consultor', action: 'agent_consultor' },
-          { text: '🌾 Ceruti Campo', action: 'agent_campo' },
-          { text: '🌟 Ambos', action: 'agent_both' }
+          { text: '🔑 Liberar teste de 7 dias', action: 'activate_trial_final' }
         ]
       };
       setMessages((prev) => [...prev, botMsg]);

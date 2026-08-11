@@ -15,7 +15,8 @@ import {
   CheckCircle2,
   Clock,
   MessageSquare,
-  ArrowRight
+  ArrowRight,
+  Flame
 } from 'lucide-react';
 import { WhatsAppWidget } from './WhatsAppWidget';
 import { trackMetaEvent } from '../lib/metaPixel';
@@ -95,15 +96,9 @@ export function CheckoutPage() {
 
   // Pricing Logic
   const getUnitPrice = () => {
-    if (usersCount <= 10) {
-      if (frequency === 'mensal') return 125.38;
-      if (frequency === 'semestral') return 110.63;
-      return 95.88; // anual
-    } else {
-      if (frequency === 'mensal') return 110.63;
-      if (frequency === 'semestral') return 95.88;
-      return 81.13; // anual
-    }
+    if (frequency === 'mensal') return 57.00;
+    if (frequency === 'semestral') return 47.00;
+    return 37.00; // anual
   };
 
   const basePrice = 147.50;
@@ -230,6 +225,15 @@ export function CheckoutPage() {
             </div>
           </div>
 
+          {/* BANNER EM DESTAQUE - DESCONTO EXCLUSIVO 100 ASSINANTES */}
+          <div className="mb-6">
+            <div className="flex items-center justify-center gap-2 p-3 bg-gradient-to-r from-[#003e15] via-[#006e2e] to-[#003e15] rounded-xl shadow-md border-2 border-amber-400 animate-pulse text-[11px] sm:text-xs font-black tracking-wide uppercase text-center">
+              <Flame className="w-4 h-4 text-amber-300 shrink-0 drop-shadow" />
+              <span className="force-white !text-white font-black drop-shadow-sm" style={{ color: '#ffffff' }}>OFERTA ESPECIAL PARA OS 100 PRÓXIMOS ASSINANTES!</span>
+              <Flame className="w-4 h-4 text-amber-300 shrink-0 drop-shadow" />
+            </div>
+          </div>
+
           <div className="mb-8">
             <h4 className="font-bold text-neutral-900 mb-4">Escolha a frequência:</h4>
             <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5">
@@ -246,7 +250,7 @@ export function CheckoutPage() {
                 <div className={`text-[8px] sm:text-[10px] mt-0.5 uppercase tracking-wider font-extrabold ${
                   frequency === 'mensal' ? 'text-[#0070f3]/90' : 'text-emerald-600'
                 }`}>
-                  {usersCount <= 10 ? '15% OFF' : '25% OFF'}
+                  60% OFF
                 </div>
               </button>
               <button
@@ -262,7 +266,7 @@ export function CheckoutPage() {
                 <div className={`text-[8px] sm:text-[10px] mt-0.5 uppercase tracking-wider font-extrabold ${
                   frequency === 'semestral' ? 'text-[#0070f3]/90' : 'text-emerald-600'
                 }`}>
-                  {usersCount <= 10 ? '25% OFF' : '35% OFF'}
+                  67% OFF
                 </div>
               </button>
               <button
@@ -278,7 +282,7 @@ export function CheckoutPage() {
                 <div className={`text-[8px] sm:text-[10px] mt-0.5 uppercase tracking-wider font-extrabold ${
                   frequency === 'anual' ? 'text-[#0070f3]/90' : 'text-emerald-600'
                 }`}>
-                  {usersCount <= 10 ? '35% OFF' : '45% OFF'}
+                  74% OFF
                 </div>
               </button>
             </div>
