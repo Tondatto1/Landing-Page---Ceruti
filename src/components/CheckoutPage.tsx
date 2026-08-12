@@ -28,11 +28,21 @@ import {
   type BillingCheckoutRequest,
   type CheckoutAttempt,
   type CreditCardCheckoutRequest,
+  type ResumeCheckoutRequest,
+  type ResumeCreditCardCheckoutRequest,
 } from '../services/billingCheckout';
+import {
+  CheckoutResumeApiError,
+  getCapturedCheckoutResumeToken,
+  getCheckoutResumeContext,
+  type CheckoutResumeContext,
+} from '../services/checkoutResume';
 
 export function CheckoutPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const resumeTokenRef = useRef<string | null>(getCapturedCheckoutResumeToken());
+  const isResumeMode = resumeTokenRef.current !== null;
   const initialAgent = (searchParams.get('agent') === 'campo') ? 'campo' : 'consultor';
   const [selectedAgent, setSelectedAgent] = useState<'consultor' | 'campo'>(initialAgent);
   const [frequency, setFrequency] = useState<'mensal' | 'semestral' | 'anual'>('mensal');
@@ -63,6 +73,9 @@ export function CheckoutPage() {
   const [cardPostalCode, setCardPostalCode] = useState('');
   const [cardAddressNumber, setCardAddressNumber] = useState('');
   const checkoutAttemptRef = useRef<CheckoutAttempt | null>(null);
+  const [resumeState, setResumeState] = useState<'loading' | 'ready' | 'error'>(isResumeMode ? 'loading' : 'ready');
+  const [resumeErrorCode, setResumeErrorCode] = useState('');
+  const [resumeContext, setResumeContext] = useState<CheckoutResumeContext | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -74,6 +87,7 @@ export function CheckoutPage() {
 
   useEffect(() => {
     try {
+      if (isResumeMode) return;
       const saved = localStorage.getItem('ceruti_checkout_contact');
       if (!saved) return;
       const contact = JSON.parse(saved) as { name?: unknown; email?: unknown };
@@ -82,10 +96,10 @@ export function CheckoutPage() {
     } catch {
       // Browser autocomplete continues to work even if local storage is unavailable.
     }
-  }, []);
+  }, [isResumeMode]);
 
   useEffect(() => {
-    if (!name.trim() && !email.trim()) return;
+    if (isResumeMode || (!name.trim() && !email.trim())) return;
     try {
       localStorage.setItem('ceruti_checkout_contact', JSON.stringify({
         name: name.trim(),
@@ -94,7 +108,31 @@ export function CheckoutPage() {
     } catch {
       // Saving a convenience preference must never interrupt checkout.
     }
-  }, [name, email]);
+  }, [email, isResumeMode, name]);
+
+  useEffect(() => {
+    const token = resumeTokenRef.current;
+    if (!token) return;
+    const controller = new AbortController();
+    void getCheckoutResumeContext(token, controller.signal)
+      .then((context) => {
+        if (controller.signal.aborted) return;
+        setResumeContext(context);
+        setSelectedAgent('campo');
+        setName(context.customer.name);
+        setEmail(context.customer.email);
+        setPhone(context.customer.phone);
+        setFrequency(context.defaultFrequency === 'monthly' ? 'mensal' : context.defaultFrequency === 'semiannual' ? 'semestral' : 'anual');
+        setUsersCountStr(String(context.defaultAccessQuantity));
+        setResumeState('ready');
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        setResumeErrorCode(error instanceof CheckoutResumeApiError ? error.code : 'RESUME_UNAVAILABLE');
+        setResumeState('error');
+      });
+    return () => controller.abort();
+  }, []);
 
   // Order Bump pricing calculations
   const bumpMonthlyPrice = 47;
@@ -105,6 +143,7 @@ export function CheckoutPage() {
 
   // Track InitiateCheckout when checkout parameters change or stabilize
   useEffect(() => {
+    if (isResumeMode && resumeState !== 'ready') return;
     const timer = setTimeout(() => {
       const bumpAdd = (includeOrderBump ? bumpTotalAmount : 0) + (includeCrmBump ? crmTotalAmount : 0);
       const value = (getUnitPrice() * usersCount * contractMonths) + bumpAdd;
@@ -124,19 +163,20 @@ export function CheckoutPage() {
     }, 1000); // Debounce track to avoid spamming on user adjustments
 
     return () => clearTimeout(timer);
-  }, [selectedAgent, frequency, usersCount, includeOrderBump, includeCrmBump]);
+  }, [selectedAgent, frequency, usersCount, includeOrderBump, includeCrmBump, isResumeMode, resumeState]);
 
   useEffect(() => {
     setAccessNumbers(prev => {
+      const targetLength = isResumeMode ? Math.max(0, usersCount - 1) : usersCount;
       const newArr = [...prev];
-      if (newArr.length < usersCount) {
-        while(newArr.length < usersCount) newArr.push('');
-      } else if (newArr.length > usersCount) {
-        newArr.length = usersCount;
+      if (newArr.length < targetLength) {
+        while(newArr.length < targetLength) newArr.push('');
+      } else if (newArr.length > targetLength) {
+        newArr.length = targetLength;
       }
       return newArr;
     });
-  }, [usersCount]);
+  }, [isResumeMode, usersCount]);
 
   // Pricing Logic
   const getUnitPrice = () => {
@@ -220,6 +260,10 @@ export function CheckoutPage() {
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
+    if (isResumeMode && (!resumeTokenRef.current || !resumeContext || resumeState !== 'ready')) {
+      setCheckoutError('Não foi possível validar este link de assinatura. Solicite um novo link.');
+      return;
+    }
     setCheckoutError('');
     setCheckoutResult(null);
 
@@ -233,7 +277,12 @@ export function CheckoutPage() {
     const cleanedPhone = phone.replace(/\D/g, '');
     const cleanedDocument = documentNumber.replace(/\D/g, '');
     const cleanedAccessNumbers = accessNumbers.map((value) => value.replace(/\D/g, '')).filter(Boolean);
-    if (cleanedPhone.length < 10 || cleanedDocument.length < 11 || (usersCount > 1 && cleanedAccessNumbers.length !== usersCount)) {
+    const expectedAdditionalAccessNumbers = isResumeMode ? Math.max(0, usersCount - 1) : usersCount;
+    if (
+      cleanedDocument.length < 11
+      || (!isResumeMode && cleanedPhone.length < 10)
+      || (usersCount > 1 && cleanedAccessNumbers.length !== expectedAdditionalAccessNumbers)
+    ) {
       setCheckoutError('Confira os dados de contato e os números de acesso antes de continuar.');
       return;
     }
@@ -247,7 +296,11 @@ export function CheckoutPage() {
       ...(cleanedAccessNumbers.length ? { accessNumbers: cleanedAccessNumbers } : {}),
     };
 
-    let requestBody: BillingCheckoutRequest | CreditCardCheckoutRequest;
+    let requestBody:
+      | BillingCheckoutRequest
+      | CreditCardCheckoutRequest
+      | ResumeCheckoutRequest
+      | ResumeCreditCardCheckoutRequest;
     if (paymentMethod === 'credit_card') {
       const cardDigits = cardNumber.replace(/\D/g, '');
       const expiryDigits = cardExpiry.replace(/\D/g, '');
@@ -258,17 +311,37 @@ export function CheckoutPage() {
         setCheckoutError('Confira todos os dados do cartão, incluindo CEP e número do endereço.');
         return;
       }
-      requestBody = {
-        ...baseRequest,
-        paymentMethod: 'credit_card',
-        creditCard: { holderName: cardName.trim(), number: cardDigits, expiryMonth, expiryYear, ccv: cardCvv },
-        creditCardHolderInfo: {
-          name: name.trim(), email: email.trim(), cpfCnpj: cleanedDocument, postalCode,
-          addressNumber: cardAddressNumber.trim(), phone: cleanedPhone, mobilePhone: cleanedPhone,
-        },
-      };
+      requestBody = isResumeMode
+        ? {
+          resumeToken: resumeTokenRef.current!,
+          frequency: frequencyByLabel[frequency],
+          accessQuantity: usersCount,
+          paymentMethod: 'credit_card',
+          documentNumber: cleanedDocument,
+          ...(cleanedAccessNumbers.length ? { additionalAccessNumbers: cleanedAccessNumbers } : {}),
+          creditCard: { holderName: cardName.trim(), number: cardDigits, expiryMonth, expiryYear, ccv: cardCvv },
+          creditCardHolderInfo: { cpfCnpj: cleanedDocument, postalCode, addressNumber: cardAddressNumber.trim() },
+        }
+        : {
+          ...baseRequest,
+          paymentMethod: 'credit_card',
+          creditCard: { holderName: cardName.trim(), number: cardDigits, expiryMonth, expiryYear, ccv: cardCvv },
+          creditCardHolderInfo: {
+            name: name.trim(), email: email.trim(), cpfCnpj: cleanedDocument, postalCode,
+            addressNumber: cardAddressNumber.trim(), phone: cleanedPhone, mobilePhone: cleanedPhone,
+          },
+        };
     } else {
-      requestBody = { ...baseRequest, paymentMethod };
+      requestBody = isResumeMode
+        ? {
+          resumeToken: resumeTokenRef.current!,
+          frequency: frequencyByLabel[frequency],
+          accessQuantity: usersCount,
+          paymentMethod,
+          documentNumber: cleanedDocument,
+          ...(cleanedAccessNumbers.length ? { additionalAccessNumbers: cleanedAccessNumbers } : {}),
+        }
+        : { ...baseRequest, paymentMethod };
     }
 
     checkoutAttemptRef.current = createCheckoutAttempt(checkoutAttemptRef.current, requestBody, () => crypto.randomUUID());
@@ -301,6 +374,29 @@ export function CheckoutPage() {
       setIsSubmitting(false);
     }
   };
+
+  const resumeErrorMessage: Record<string, string> = {
+    RESUME_NOT_FOUND: 'Este link de assinatura não é válido. Solicite um novo link.',
+    RESUME_EXPIRED: 'Este link de assinatura expirou. Solicite um novo link.',
+    RESUME_TRIAL_STILL_ACTIVE: 'Seu período de teste ainda está ativo. Volte ao WhatsApp se precisar de ajuda.',
+    RESUME_ALREADY_CONVERTED: 'Esta assinatura já foi concluída. Consulte seu acesso ou fale com o suporte.',
+    RESUME_ALREADY_USED: 'Já existe uma assinatura em andamento para este link. Aguarde ou fale com o suporte.',
+    RESUME_UNAVAILABLE: 'Não foi possível abrir este checkout agora. Tente novamente em alguns instantes.',
+  };
+
+  if (isResumeMode && resumeState !== 'ready') {
+    return (
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center px-4 font-sans">
+        <div className="max-w-md rounded-3xl border border-neutral-200 bg-white p-8 text-center shadow-xl">
+          <ShieldCheck className="mx-auto mb-4 h-10 w-10 text-[#00a83e]" />
+          <p className="text-base font-bold text-neutral-800">
+            {resumeState === 'loading' ? 'Preparando seu checkout seguro...' : (resumeErrorMessage[resumeErrorCode] ?? resumeErrorMessage.RESUME_UNAVAILABLE)}
+          </p>
+          {resumeState === 'error' && <button type="button" onClick={() => navigate('/')} className="mt-6 font-bold text-[#00a83e]">Voltar ao início</button>}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -353,7 +449,8 @@ export function CheckoutPage() {
             <div className="grid grid-cols-2 gap-2 p-1 bg-neutral-50 border border-neutral-200/50 rounded-2xl">
               <button
                 type="button"
-                onClick={() => setSelectedAgent('consultor')}
+                onClick={() => !isResumeMode && setSelectedAgent('consultor')}
+                disabled={isResumeMode}
                 className={`py-2 px-3 rounded-xl font-sans font-black text-xs sm:text-sm uppercase tracking-wider transition-all duration-300 ${
                   selectedAgent === 'consultor'
                     ? 'bg-gradient-to-r from-[#004d1a] to-[#00a83e] text-white shadow-md'
@@ -364,7 +461,8 @@ export function CheckoutPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setSelectedAgent('campo')}
+                onClick={() => !isResumeMode && setSelectedAgent('campo')}
+                disabled={isResumeMode}
                 className={`py-2 px-3 rounded-xl font-sans font-black text-xs sm:text-sm uppercase tracking-wider transition-all duration-300 ${
                   selectedAgent === 'campo'
                     ? 'bg-gradient-to-r from-[#004d1a] to-[#00a83e] text-white shadow-md'
@@ -381,7 +479,8 @@ export function CheckoutPage() {
             <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5">
               <button
                 type="button"
-                onClick={() => setFrequency('mensal')}
+                onClick={() => (!isResumeMode || resumeContext?.allowedFrequencies.includes('monthly')) && setFrequency('mensal')}
+                disabled={isResumeMode && !resumeContext?.allowedFrequencies.includes('monthly')}
                 className={`px-1 py-2 sm:px-3 sm:p-4 rounded-xl border-2 text-xs sm:text-sm font-black text-center transition-all ${
                   frequency === 'mensal' 
                     ? 'border-[#0070f3] bg-[#f0f7ff] text-[#0070f3] shadow-inner' 
@@ -397,7 +496,8 @@ export function CheckoutPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setFrequency('semestral')}
+                onClick={() => (!isResumeMode || resumeContext?.allowedFrequencies.includes('semiannual')) && setFrequency('semestral')}
+                disabled={isResumeMode && !resumeContext?.allowedFrequencies.includes('semiannual')}
                 className={`px-1 py-2 sm:px-3 sm:p-4 rounded-xl border-2 text-xs sm:text-sm font-black text-center transition-all ${
                   frequency === 'semestral' 
                     ? 'border-[#0070f3] bg-[#f0f7ff] text-[#0070f3] shadow-inner' 
@@ -413,7 +513,8 @@ export function CheckoutPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setFrequency('anual')}
+                onClick={() => (!isResumeMode || resumeContext?.allowedFrequencies.includes('annual')) && setFrequency('anual')}
+                disabled={isResumeMode && !resumeContext?.allowedFrequencies.includes('annual')}
                 className={`px-1 py-2 sm:px-3 sm:p-4 rounded-xl border-2 text-xs sm:text-sm font-black text-center transition-all ${
                   frequency === 'anual' 
                     ? 'border-[#0070f3] bg-[#f0f7ff] text-[#0070f3] shadow-inner' 
@@ -444,8 +545,17 @@ export function CheckoutPage() {
                 <input 
                   type="number" 
                   min="1"
+                  max={isResumeMode ? resumeContext?.maxAccessQuantity : undefined}
                   value={usersCountStr}
-                  onChange={(e) => setUsersCountStr(e.target.value)}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    const limit = resumeContext?.maxAccessQuantity;
+                    if (isResumeMode && limit && Number(next) > limit) {
+                      setUsersCountStr(String(limit));
+                      return;
+                    }
+                    setUsersCountStr(next);
+                  }}
                   className="w-full pl-12 pr-4 py-3 sm:py-4 bg-white border-2 border-[#0070f3]/20 rounded-xl focus:outline-none focus:border-[#0070f3] focus:ring-4 ring-[#0070f3]/10 font-black text-xl text-neutral-900 transition-all cursor-text text-center sm:text-left shadow-inner"
                 />
               </div>
@@ -551,6 +661,7 @@ export function CheckoutPage() {
                   onChange={(e) => setName(e.target.value)}
                   name="name"
                   autoComplete="name"
+                  readOnly={isResumeMode}
                   required
                   placeholder="Seu nome ou nome da empresa"
                   className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
@@ -563,8 +674,9 @@ export function CheckoutPage() {
                     type="email" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    name="email"
-                    autoComplete="email"
+                  name="email"
+                  autoComplete="email"
+                  readOnly={isResumeMode}
                     required
                     placeholder="email@empresa.com.br"
                     className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
@@ -576,8 +688,9 @@ export function CheckoutPage() {
                     type="tel" 
                     value={phone}
                     onChange={handlePhoneChange}
-                    name="tel"
-                    autoComplete="tel"
+                  name="tel"
+                  autoComplete="tel"
+                  readOnly={isResumeMode}
                     required
                     placeholder="(00) 00000-0000"
                     className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
@@ -937,7 +1050,7 @@ export function CheckoutPage() {
 
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || (isResumeMode && resumeState !== 'ready')}
                 className="checkout-submit-button"
                 aria-label={isSubmitting ? 'Processando assinatura' : 'Concluir assinatura'}
               >

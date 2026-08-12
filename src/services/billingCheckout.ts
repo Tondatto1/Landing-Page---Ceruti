@@ -37,6 +37,25 @@ export type CreditCardCheckoutRequest = Omit<BillingCheckoutRequest, 'paymentMet
   };
 };
 
+export type ResumeCheckoutRequest = {
+  resumeToken: string;
+  frequency: 'monthly' | 'semiannual' | 'annual';
+  accessQuantity: number;
+  paymentMethod: BillingPaymentMethod;
+  documentNumber: string;
+  additionalAccessNumbers?: string[];
+};
+
+export type ResumeCreditCardCheckoutRequest = Omit<ResumeCheckoutRequest, 'paymentMethod'> & {
+  paymentMethod: 'credit_card';
+  creditCard: CreditCardCheckoutRequest['creditCard'];
+  creditCardHolderInfo: {
+    cpfCnpj: string;
+    postalCode: string;
+    addressNumber: string;
+  };
+};
+
 export type SmokeCreditCardCheckoutRequest = {
   agentType: 'campo';
   paymentMethod: 'CREDIT_CARD';
@@ -273,9 +292,18 @@ const PUBLIC_ERROR_MESSAGES_BY_CODE: Partial<Record<string, string>> = {
     'O número de celular informado é inválido. Confira o DDD e o número e tente novamente.',
   ACCESS_NUMBER_ALREADY_ACTIVE:
     'Este número de acesso já está ativo para este agente. Use outro número de acesso para continuar.',
+  RESUME_NOT_FOUND: 'Este link de assinatura não é válido. Solicite um novo link.',
+  RESUME_EXPIRED: 'Este link de assinatura expirou. Solicite um novo link.',
+  RESUME_TRIAL_STILL_ACTIVE: 'Seu período de teste ainda está ativo.',
+  RESUME_ALREADY_CONVERTED: 'Esta assinatura já foi concluída.',
+  RESUME_ALREADY_USED: 'Já existe uma assinatura em andamento para este link.',
 };
 
-type CheckoutRequest = BillingCheckoutRequest | CreditCardCheckoutRequest;
+type CheckoutRequest =
+  | BillingCheckoutRequest
+  | CreditCardCheckoutRequest
+  | ResumeCheckoutRequest
+  | ResumeCreditCardCheckoutRequest;
 
 export function createCheckoutAttempt(
   current: CheckoutAttempt | null,
@@ -289,12 +317,14 @@ export function createCheckoutAttempt(
     return current;
   }
 
-  const persisted = body.paymentMethod === 'credit_card' ? null : readPersistedAttempt(fingerprint);
+  const persisted = body.paymentMethod === 'credit_card' || isResumeCheckoutRequest(body)
+    ? null
+    : readPersistedAttempt(fingerprint);
   const attempt = persisted ?? {
     fingerprint,
     key: `checkout-${createUuid()}`,
   };
-  if (body.paymentMethod !== 'credit_card') persistAttempt(attempt);
+  if (body.paymentMethod !== 'credit_card' && !isResumeCheckoutRequest(body)) persistAttempt(attempt);
   return attempt;
 }
 
@@ -308,6 +338,25 @@ export function createSmokeCheckoutAttempt(
 }
 
 function createNonSensitiveFingerprint(body: CheckoutRequest): string {
+  if (isResumeCheckoutRequest(body)) {
+    const identity = JSON.stringify({
+      resumeToken: body.resumeToken,
+      frequency: body.frequency,
+      accessQuantity: body.accessQuantity,
+      paymentMethod: body.paymentMethod,
+      documentNumber: body.documentNumber,
+      additionalAccessNumbers: body.additionalAccessNumbers ?? [],
+      ...(isResumeCreditCardCheckoutRequest(body)
+        ? { cardAttempt: `${body.creditCard.holderName}|${body.creditCard.number}|${body.creditCard.expiryMonth}|${body.creditCard.expiryYear}|${body.creditCard.ccv}` }
+        : {}),
+    });
+    let hash = 2166136261;
+    for (let index = 0; index < identity.length; index += 1) {
+      hash ^= identity.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+    return `resume-checkout-fingerprint-${(hash >>> 0).toString(16).padStart(8, '0')}`;
+  }
   const identity = JSON.stringify({
     agentType: body.agentType,
     frequency: body.frequency,
@@ -331,7 +380,11 @@ function createNonSensitiveFingerprint(body: CheckoutRequest): string {
 }
 
 function isCreditCardCheckoutRequest(body: CheckoutRequest): body is CreditCardCheckoutRequest {
-  return body.paymentMethod === 'credit_card' && 'creditCard' in body;
+  return body.paymentMethod === 'credit_card' && 'creditCard' in body && 'customer' in body;
+}
+
+function isResumeCreditCardCheckoutRequest(body: CheckoutRequest): body is ResumeCreditCardCheckoutRequest {
+  return body.paymentMethod === 'credit_card' && 'resumeToken' in body && 'creditCard' in body;
 }
 
 function checkoutAttemptStorage(): Storage | null {
@@ -721,7 +774,10 @@ function assertCheckoutRequest(body: CheckoutRequest, attempt: CheckoutAttempt):
     throw createPublicBillingError(422, 'VALIDATION_ERROR', undefined, 'validation');
   }
 
-  if (!isPublicCheckoutRequest(body) || (body.paymentMethod === 'credit_card' && !isTransparentCardRequest(body))) {
+  if (
+    !isPublicCheckoutRequest(body)
+    && !isResumePublicCheckoutRequest(body)
+  ) {
     throw createPublicBillingError(422, 'VALIDATION_ERROR', undefined, 'validation');
   }
 }
@@ -820,6 +876,49 @@ function isPublicCheckoutRequest(value: Record<string, unknown>): value is Check
   return normalized.length === value.accessQuantity
     && normalized.every((number) => /^\d{10,11}$/.test(number))
     && new Set(normalized).size === normalized.length;
+}
+
+function isResumeCheckoutRequest(value: CheckoutRequest): value is ResumeCheckoutRequest | ResumeCreditCardCheckoutRequest {
+  return 'resumeToken' in value;
+}
+
+function isResumePublicCheckoutRequest(value: Record<string, unknown>): value is ResumeCheckoutRequest | ResumeCreditCardCheckoutRequest {
+  const additionalAccessNumbers = value.additionalAccessNumbers;
+  const allowedKeys = value.paymentMethod === 'credit_card'
+    ? ['resumeToken', 'frequency', 'accessQuantity', 'paymentMethod', 'documentNumber', 'additionalAccessNumbers', 'creditCard', 'creditCardHolderInfo']
+    : ['resumeToken', 'frequency', 'accessQuantity', 'paymentMethod', 'documentNumber', 'additionalAccessNumbers'];
+  const validBase = Object.keys(value).every((key) => allowedKeys.includes(key))
+    && typeof value.resumeToken === 'string'
+    && /^rsm_[A-Za-z0-9_-]{16,512}$/.test(value.resumeToken)
+    && (value.frequency === 'monthly' || value.frequency === 'semiannual' || value.frequency === 'annual')
+    && Number.isSafeInteger(value.accessQuantity)
+    && (value.accessQuantity as number) >= 1
+    && (value.accessQuantity as number) <= 500
+    && ['pix', 'pix_automatic', 'boleto', 'credit_card'].includes(String(value.paymentMethod))
+    && typeof value.documentNumber === 'string'
+    && /^\d{11,18}$/.test(value.documentNumber.replace(/\D/g, ''))
+    && (additionalAccessNumbers === undefined || (
+      Array.isArray(additionalAccessNumbers)
+      && additionalAccessNumbers.length === (value.accessQuantity as number) - 1
+      && additionalAccessNumbers.every((number) => typeof number === 'string' && /^\d{10,11}$/.test(number.replace(/\D/g, '')))
+    ));
+  if (!validBase) return false;
+
+  if (value.paymentMethod !== 'credit_card') return true;
+  const creditCard = value.creditCard;
+  const holder = value.creditCardHolderInfo;
+  return isRecord(creditCard)
+    && isRecord(holder)
+    && hasExactKeys(creditCard, ['holderName', 'number', 'expiryMonth', 'expiryYear', 'ccv'])
+    && hasExactKeys(holder, ['cpfCnpj', 'postalCode', 'addressNumber'])
+    && typeof creditCard.holderName === 'string'
+    && typeof creditCard.number === 'string'
+    && typeof creditCard.expiryMonth === 'string'
+    && typeof creditCard.expiryYear === 'string'
+    && typeof creditCard.ccv === 'string'
+    && holder.cpfCnpj === value.documentNumber
+    && typeof holder.postalCode === 'string'
+    && typeof holder.addressNumber === 'string';
 }
 
 function isTransparentCardRequest(value: Record<string, unknown>): value is CreditCardCheckoutRequest {
