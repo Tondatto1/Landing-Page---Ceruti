@@ -61,7 +61,7 @@ export const LeadModal: React.FC<LeadModalProps> = ({ isOpen, onClose, defaultPl
     const leadDataToSave = {
       ...formData,
       couponCode,
-      origin: 'Obrigado Oferta PDC (35% OFF)',
+      origin: 'LP-IA - PGO | 35% DESCONTO',
       hasDiscount: true,
       discountPercentage: '35%'
     };
@@ -84,7 +84,7 @@ export const LeadModal: React.FC<LeadModalProps> = ({ isOpen, onClose, defaultPl
             empresa: formData.companyName,
             email: formData.email,
             whatsapp: formData.phone,
-            origem: 'Página de Obrigado (35% OFF)',
+            origem: 'LP-IA - PGO | 35% DESCONTO',
             codigoCupom: couponCode
           })
         }).catch(() => {});

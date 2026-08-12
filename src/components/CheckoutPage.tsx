@@ -15,7 +15,8 @@ import {
   CheckCircle2,
   Clock,
   MessageSquare,
-  ArrowRight
+  ArrowRight,
+  Flame,
 } from 'lucide-react';
 import { WhatsAppWidget } from './WhatsAppWidget';
 import { trackMetaEvent } from '../lib/metaPixel';
@@ -471,6 +472,10 @@ export function CheckoutPage() {
               >
                 Ceruti Campo
               </button>
+            </div>
+            <div className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-center text-[10px] font-bold uppercase tracking-wide text-amber-900 sm:text-xs">
+              <Flame className="h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
+              Oferta especial para os 100 próximos assinantes
             </div>
           </div>
 
