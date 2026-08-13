@@ -19,6 +19,8 @@ import {
   Flame,
 } from 'lucide-react';
 import { WhatsAppWidget } from './WhatsAppWidget';
+import { Aurora } from './Aurora';
+import { OglAurora } from './OglAurora';
 import { trackMetaEvent } from '../lib/metaPixel';
 import {
   BillingApiError,
@@ -382,9 +384,30 @@ export function CheckoutPage() {
 
   return (
     <>
-      <div className="checkout-page min-h-screen bg-gray-50 flex flex-col font-sans">
+      <div className="checkout-page relative isolate min-h-screen bg-gray-50 flex flex-col font-sans">
+      <div className="pointer-events-none absolute inset-0 z-0 opacity-30" aria-hidden="true">
+        <OglAurora
+          colorStops={['#d8f2df', '#9ed7ae', '#eef9f1']}
+          amplitude={0.72}
+          blend={0.42}
+          speed={0.35}
+        />
+      </div>
+      <Aurora
+        colorStart="#d4f0dc"
+        colorMiddle="#a6d5b3"
+        colorEnd="#f2fbf4"
+        speed={0.45}
+        amplitude={78}
+        layerCount={4}
+        opacity={0.22}
+        followMouse={false}
+        verticalAnchor={0.08}
+        className="opacity-70"
+      />
+      <div className="pointer-events-none absolute inset-0 z-[1] bg-white/35" aria-hidden="true" />
       {/* Top Header */}
-      <header className="w-full bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between shadow-sm sticky top-0 z-30">
+      <header className="relative z-30 w-full bg-white/95 border-b border-gray-200 px-4 py-4 flex items-center justify-between shadow-sm sticky top-0">
         <div className="flex items-center gap-4">
           <button 
             onClick={() => navigate('/')}
@@ -427,9 +450,10 @@ export function CheckoutPage() {
           </div>
 
           <div className="mb-6">
-            <div className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-center text-[10px] font-bold uppercase tracking-wide text-amber-900 sm:text-xs">
-              <Flame className="h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
-              Oferta especial para os 100 próximos assinantes
+            <div className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-amber-300 bg-[#588c6b] px-3 py-2 text-center text-[10px] font-extrabold uppercase tracking-wide text-white shadow-sm sm:text-xs">
+              <Flame className="h-4 w-4 shrink-0 text-amber-200" aria-hidden="true" />
+              Oferta especial para os 100 próximos assinantes!
+              <Flame className="h-4 w-4 shrink-0 text-amber-200" aria-hidden="true" />
             </div>
           </div>
 
@@ -1013,19 +1037,8 @@ export function CheckoutPage() {
                 className="checkout-submit-button"
                 aria-label={isSubmitting ? 'Processando assinatura' : 'Concluir assinatura'}
               >
-                <span className="checkout-submit-left" aria-hidden="true">
-                  <span className="checkout-submit-card">
-                    <span className="checkout-submit-card-line" />
-                    <span className="checkout-submit-card-dots" />
-                  </span>
-                  <span className="checkout-submit-receipt">
-                    <span className="checkout-submit-receipt-line" />
-                    <span className="checkout-submit-receipt-screen">$</span>
-                    <span className="checkout-submit-receipt-numbers" />
-                    <span className="checkout-submit-receipt-numbers checkout-submit-receipt-numbers--second" />
-                  </span>
-                </span>
-                <span className="checkout-submit-text">{isSubmitting ? 'Processando...' : 'Concluir assinatura'}</span>
+                <Lock className="w-6 h-6 text-current opacity-85" aria-hidden="true" />
+                <span>{isSubmitting ? 'Processando...' : 'Concluir assinatura'}</span>
               </button>
               
               <div className="relative mt-6 pb-2">
