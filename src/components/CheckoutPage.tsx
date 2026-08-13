@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft,
   CreditCard, 
@@ -41,11 +41,11 @@ import {
 
 export function CheckoutPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const resumeTokenRef = useRef<string | null>(getCapturedCheckoutResumeToken());
   const isResumeMode = resumeTokenRef.current !== null;
-  const initialAgent = (searchParams.get('agent') === 'campo') ? 'campo' : 'consultor';
-  const [selectedAgent, setSelectedAgent] = useState<'consultor' | 'campo'>(initialAgent);
+  // The upstream landing is now Campo-only. Keep this fixed so the visible
+  // offer and the Billing API payload cannot diverge.
+  const selectedAgent = 'campo' as const;
   const [frequency, setFrequency] = useState<'mensal' | 'semestral' | 'anual'>('mensal');
   const [usersCountStr, setUsersCountStr] = useState<string>('1');
   const usersCount = Math.max(1, parseInt(usersCountStr) || 1);
@@ -119,7 +119,6 @@ export function CheckoutPage() {
       .then((context) => {
         if (controller.signal.aborted) return;
         setResumeContext(context);
-        setSelectedAgent('campo');
         setName(context.customer.name);
         setEmail(context.customer.email);
         setPhone(context.customer.phone);
@@ -181,30 +180,12 @@ export function CheckoutPage() {
 
   // Pricing Logic
   const getUnitPrice = () => {
-    if (selectedAgent === 'consultor') {
-      if (usersCount <= 10) {
-        if (frequency === 'mensal') return 337.45;
-        if (frequency === 'semestral') return 297.75;
-        return 258.05; // anual
-      } else {
-        if (frequency === 'mensal') return 297.75;
-        if (frequency === 'semestral') return 258.05;
-        return 218.35; // anual
-      }
-    } else { // campo
-      if (usersCount <= 10) {
-        if (frequency === 'mensal') return 125.38;
-        if (frequency === 'semestral') return 110.63;
-        return 95.88; // anual
-      } else {
-        if (frequency === 'mensal') return 110.63;
-        if (frequency === 'semestral') return 95.88;
-        return 81.13; // anual
-      }
-    }
+    if (frequency === 'mensal') return 57;
+    if (frequency === 'semestral') return 47;
+    return 37;
   };
 
-  const basePrice = selectedAgent === 'consultor' ? 397 : 147.50;
+  const basePrice = 147.50;
 
   const unitPrice = getUnitPrice();
   const baseMonthlyTotal = unitPrice * usersCount;
@@ -440,39 +421,12 @@ export function CheckoutPage() {
               <ShieldCheck className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h3 className="font-black text-2xl text-[#0b1a30]">Ceruti</h3>
+              <h3 className="font-black text-2xl text-[#0b1a30]">Ceruti Campo</h3>
               <p className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Treinador de Vendas</p>
             </div>
           </div>
 
           <div className="mb-6">
-            <h4 className="font-bold text-neutral-900 mb-3">Escolha o Agente:</h4>
-            <div className="grid grid-cols-2 gap-2 p-1 bg-neutral-50 border border-neutral-200/50 rounded-2xl">
-              <button
-                type="button"
-                onClick={() => !isResumeMode && setSelectedAgent('consultor')}
-                disabled={isResumeMode}
-                className={`py-2 px-3 rounded-xl font-sans font-black text-xs sm:text-sm uppercase tracking-wider transition-all duration-300 ${
-                  selectedAgent === 'consultor'
-                    ? 'bg-gradient-to-r from-[#004d1a] to-[#00a83e] text-white shadow-md'
-                    : 'text-neutral-500 hover:text-neutral-900 bg-transparent'
-                }`}
-              >
-                Ceruti Consultor
-              </button>
-              <button
-                type="button"
-                onClick={() => !isResumeMode && setSelectedAgent('campo')}
-                disabled={isResumeMode}
-                className={`py-2 px-3 rounded-xl font-sans font-black text-xs sm:text-sm uppercase tracking-wider transition-all duration-300 ${
-                  selectedAgent === 'campo'
-                    ? 'bg-gradient-to-r from-[#004d1a] to-[#00a83e] text-white shadow-md'
-                    : 'text-neutral-500 hover:text-neutral-900 bg-transparent'
-                }`}
-              >
-                Ceruti Campo
-              </button>
-            </div>
             <div className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-center text-[10px] font-bold uppercase tracking-wide text-amber-900 sm:text-xs">
               <Flame className="h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
               Oferta especial para os 100 próximos assinantes
@@ -496,7 +450,7 @@ export function CheckoutPage() {
                 <div className={`text-[8px] sm:text-[10px] mt-0.5 uppercase tracking-wider font-extrabold ${
                   frequency === 'mensal' ? 'text-[#0070f3]/90' : 'text-emerald-600'
                 }`}>
-                  {usersCount <= 10 ? '15% OFF' : '25% OFF'}
+                  60% OFF
                 </div>
               </button>
               <button
@@ -513,7 +467,7 @@ export function CheckoutPage() {
                 <div className={`text-[8px] sm:text-[10px] mt-0.5 uppercase tracking-wider font-extrabold ${
                   frequency === 'semestral' ? 'text-[#0070f3]/90' : 'text-emerald-600'
                 }`}>
-                  {usersCount <= 10 ? '25% OFF' : '35% OFF'}
+                  67% OFF
                 </div>
               </button>
               <button
@@ -530,7 +484,7 @@ export function CheckoutPage() {
                 <div className={`text-[8px] sm:text-[10px] mt-0.5 uppercase tracking-wider font-extrabold ${
                   frequency === 'anual' ? 'text-[#0070f3]/90' : 'text-emerald-600'
                 }`}>
-                  {usersCount <= 10 ? '35% OFF' : '45% OFF'}
+                  74% OFF
                 </div>
               </button>
             </div>
