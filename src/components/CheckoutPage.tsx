@@ -11,7 +11,6 @@ import {
   Sparkles,
   Check,
   GraduationCap,
-  Database,
   CheckCircle2,
   Clock,
   MessageSquare,
@@ -30,7 +29,6 @@ export function CheckoutPage() {
   const usersCount = Math.max(1, parseInt(usersCountStr) || 1);
   const [paymentMethod, setPaymentMethod] = useState<'credit_card' | 'pix' | 'boleto'>('pix');
   const [includeOrderBump, setIncludeOrderBump] = useState<boolean>(false);
-  const [includeCrmBump, setIncludeCrmBump] = useState<boolean>(false);
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
 
   const [name, setName] = useState('');
@@ -54,24 +52,21 @@ export function CheckoutPage() {
 
   // Order Bump pricing calculations
   const bumpMonthlyPrice = 47;
-  const crmMonthlyPrice = 249;
   const contractMonths = frequency === 'mensal' ? 1 : (frequency === 'semestral' ? 6 : 12);
   const bumpTotalAmount = bumpMonthlyPrice * contractMonths;
-  const crmTotalAmount = crmMonthlyPrice * contractMonths;
 
   // Track InitiateCheckout when checkout parameters change or stabilize
   useEffect(() => {
     const timer = setTimeout(() => {
-      const bumpAdd = (includeOrderBump ? bumpTotalAmount : 0) + (includeCrmBump ? crmTotalAmount : 0);
+      const bumpAdd = includeOrderBump ? bumpTotalAmount : 0;
       const value = (getUnitPrice() * usersCount * contractMonths) + bumpAdd;
       const content_ids = [selectedAgent];
       if (includeOrderBump) content_ids.push('order_bump_treinamentos');
-      if (includeCrmBump) content_ids.push('order_bump_crm_agro');
 
       trackMetaEvent('InitiateCheckout', {
         value,
         currency: 'BRL',
-        content_name: `Assinatura Ceruti - ${selectedAgent}${includeOrderBump ? ' + Treinamentos' : ''}${includeCrmBump ? ' + CRM Agro' : ''}`,
+        content_name: `Assinatura Ceruti - ${selectedAgent}${includeOrderBump ? ' + Treinamentos' : ''}`,
         content_category: 'Treinador de Vendas',
         content_ids,
         content_type: 'product',
@@ -80,7 +75,7 @@ export function CheckoutPage() {
     }, 1000); // Debounce track to avoid spamming on user adjustments
 
     return () => clearTimeout(timer);
-  }, [selectedAgent, frequency, usersCount, includeOrderBump, includeCrmBump]);
+  }, [selectedAgent, frequency, usersCount, includeOrderBump]);
 
   useEffect(() => {
     setAccessNumbers(prev => {
@@ -105,13 +100,13 @@ export function CheckoutPage() {
 
   const unitPrice = getUnitPrice();
   const baseMonthlyTotal = unitPrice * usersCount;
-  const totalPricePerMonth = baseMonthlyTotal + (includeOrderBump ? bumpMonthlyPrice : 0) + (includeCrmBump ? crmMonthlyPrice : 0);
+  const totalPricePerMonth = baseMonthlyTotal + (includeOrderBump ? bumpMonthlyPrice : 0);
 
   const baseGrandTotal = frequency === 'mensal' 
     ? baseMonthlyTotal 
     : (frequency === 'semestral' ? baseMonthlyTotal * 6 : baseMonthlyTotal * 12);
 
-  const grandTotal = baseGrandTotal + (includeOrderBump ? bumpTotalAmount : 0) + (includeCrmBump ? crmTotalAmount : 0);
+  const grandTotal = baseGrandTotal + (includeOrderBump ? bumpTotalAmount : 0);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -169,9 +164,7 @@ export function CheckoutPage() {
       frequency,
       usersCount,
       includeOrderBump,
-      bumpTotalPrice: includeOrderBump ? bumpTotalAmount : 0,
-      includeCrmBump,
-      crmTotalPrice: includeCrmBump ? crmTotalAmount : 0
+      bumpTotalPrice: includeOrderBump ? bumpTotalAmount : 0
     };
     localStorage.setItem('ceruti_last_checkout', JSON.stringify(purchaseDetails));
 
@@ -358,18 +351,6 @@ export function CheckoutPage() {
               </div>
             )}
 
-            {includeCrmBump && (
-              <div className="flex justify-between items-center mb-2 pt-2 border-t border-dashed border-amber-300/80 text-xs sm:text-sm">
-                <span className="text-amber-900 font-extrabold flex items-center gap-1.5">
-                  <Database className="w-4 h-4 text-amber-600 shrink-0" />
-                  CRM Agro (+R$ 249/mês):
-                </span>
-                <span className="font-extrabold text-amber-900">
-                  +{formatCurrency(crmTotalAmount)}
-                </span>
-              </div>
-            )}
-
             <div className="flex flex-col items-center mt-6 pt-6 border-t border-neutral-200 gap-2 sm:gap-3 pb-2 text-center">
               <span className="font-black text-neutral-500 text-xs sm:text-sm uppercase tracking-widest">
                 Mensalidade
@@ -550,60 +531,6 @@ export function CheckoutPage() {
                       <GraduationCap className="w-4 h-4 text-amber-600 shrink-0" />
                       <span>
                         Acesso liberado por <strong>{contractMonths} {contractMonths === 1 ? 'mês' : 'meses'}</strong> (R$ {bumpTotalAmount},00 total acumulado)
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Order Bump - CRM Agro */}
-              <div 
-                onClick={() => setIncludeCrmBump(!includeCrmBump)}
-                className={`relative rounded-2xl p-4 sm:p-5 transition-all duration-300 cursor-pointer select-none border-2 ${
-                  includeCrmBump 
-                    ? 'bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-amber-500/15 border-amber-500 shadow-lg shadow-amber-500/15 ring-2 ring-amber-500/20' 
-                    : 'bg-gradient-to-br from-amber-50/50 via-orange-50/30 to-amber-100/40 border-dashed border-amber-400/90 hover:border-amber-500 hover:bg-amber-50/80'
-                }`}
-              >
-                {/* Top Header & Badges */}
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-900 font-black text-[10px] sm:text-[11px] uppercase tracking-wider px-2.5 py-0.5 rounded-full border border-amber-300/70">
-                      🔥 6 EM CADA 10 PROFISSIONAIS LEVAM
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-xs font-black text-amber-900 uppercase tracking-tight block">
-                      + R$ 249,00<span className="text-[10px] text-amber-700 font-bold">/mês</span>
-                    </span>
-                  </div>
-                </div>
-
-                {/* Checkbox & Details */}
-                <div className="flex items-start gap-3.5">
-                  <div className="pt-0.5 shrink-0">
-                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
-                      includeCrmBump 
-                        ? 'bg-amber-500 border-amber-600 text-white shadow-md shadow-amber-500/30' 
-                        : 'border-amber-400 bg-white hover:border-amber-500'
-                    }`}>
-                      {includeCrmBump && <Check className="w-4 h-4 stroke-[3]" />}
-                    </div>
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-black text-neutral-900 text-sm sm:text-base leading-snug mb-1">
-                      CRM Feito para Vendedores do Agro
-                    </h4>
-                    <p className="text-xs sm:text-sm text-neutral-600 font-medium leading-relaxed mb-3">
-                      Simples, objetivo e feito para profissionais do Agro.
-                    </p>
-
-                    {/* Dynamic Duration Badge */}
-                    <div className="inline-flex items-center gap-2 bg-white/90 border border-amber-300/80 rounded-xl px-3 py-1.5 text-xs text-amber-900 font-bold shadow-xs">
-                      <Database className="w-4 h-4 text-amber-600 shrink-0" />
-                      <span>
-                        Acesso liberado por <strong>{contractMonths} {contractMonths === 1 ? 'mês' : 'meses'}</strong> (R$ {crmTotalAmount},00 total acumulado)
                       </span>
                     </div>
                   </div>
