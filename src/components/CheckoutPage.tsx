@@ -173,6 +173,7 @@ export function CheckoutPage() {
 
   // Order Bump pricing calculations
   const includesTrainingPlatform = addons.includes('training_platform');
+  const trainingPlatformMonthlyPrice = isSmokeMode ? 1 : 47;
   const displayPricing = getCheckoutDisplayPricing({
     isSmokeMode,
     frequency,
@@ -293,6 +294,10 @@ export function CheckoutPage() {
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  };
+
+  const toggleTrainingPlatform = () => {
+    setAddons((current) => current.includes('training_platform') ? [] : ['training_platform']);
   };
 
   const paymentPendingMessage = paymentState === 'terminal'
@@ -978,10 +983,19 @@ export function CheckoutPage() {
             {/* Order Bump - Treinamentos */}
             {!isResumeMode && <div className="checkout-addons mt-4 pt-6 border-t border-neutral-200 space-y-4">
               <div
-                onClick={() => setAddons((current) => current.includes('training_platform') ? [] : ['training_platform'])}
+                role="button"
+                tabIndex={0}
+                aria-pressed={includesTrainingPlatform}
+                onClick={toggleTrainingPlatform}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    toggleTrainingPlatform();
+                  }
+                }}
                 className={`checkout-addon relative rounded-2xl p-4 sm:p-5 transition-all duration-300 cursor-pointer select-none border-2 ${
                   includesTrainingPlatform
-                    ? 'bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-amber-500/15 border-amber-500 shadow-lg shadow-amber-500/15 ring-2 ring-amber-500/20'
+                    ? 'bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-amber-500/15 border-solid border-amber-500'
                     : 'bg-gradient-to-br from-amber-50/50 via-orange-50/30 to-amber-100/40 border-dashed border-amber-400/90 hover:border-amber-500 hover:bg-amber-50/80'
                 }`}
               >
@@ -1027,7 +1041,7 @@ export function CheckoutPage() {
                     <div className="inline-flex items-center gap-2 bg-white/90 border border-amber-300/80 rounded-xl px-3 py-1.5 text-xs text-amber-900 font-bold shadow-xs">
                       <GraduationCap className="w-4 h-4 text-amber-600 shrink-0" />
                       <span>
-                        Acesso liberado por {displayPricing.contractMonths} {displayPricing.contractMonths === 1 ? 'mês' : 'meses'} ({formatCurrency(displayPricing.addonMonthlyPrice * displayPricing.contractMonths)} total acumulado)
+                        Acesso liberado por {displayPricing.contractMonths} {displayPricing.contractMonths === 1 ? 'mês' : 'meses'} ({formatCurrency(trainingPlatformMonthlyPrice * displayPricing.contractMonths)} total acumulado)
                       </span>
                     </div>
                   </div>
