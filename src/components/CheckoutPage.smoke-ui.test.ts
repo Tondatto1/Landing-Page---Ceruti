@@ -5,12 +5,12 @@ import { describe, expect, it } from 'vitest';
 describe('smoke payment UI', () => {
   const source = readFileSync(resolve(process.cwd(), 'src/components/CheckoutPage.tsx'), 'utf8').replace(/\r\n/g, '\n');
 
-  it('keeps PIX and card visible while hiding boleto in smoke mode', () => {
-    expect(source).toContain("isSmokeMode ? 'grid-cols-2' : 'grid-cols-3'");
+  it('keeps only PIX and card available in every checkout mode', () => {
+    expect(source).toContain('grid grid-cols-2 gap-3');
     expect(source).toContain("setPaymentMethod('pix_automatic')");
     expect(source).toContain("setPaymentMethod('credit_card')");
-    expect(source).toContain("!isSmokeMode && <button");
-    expect(source).toContain("setPaymentMethod('boleto')");
+    expect(source).not.toContain("setPaymentMethod('boleto')");
+    expect(source).not.toContain('>Boleto<');
   });
 
   it('routes smoke submission separately from normal checkout', () => {

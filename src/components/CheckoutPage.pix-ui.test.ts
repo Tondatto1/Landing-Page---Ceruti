@@ -59,7 +59,8 @@ describe('Pix payment modal', () => {
     expect(source).toContain('Encontramos um Pix anterior ainda válido e retomamos esta cobrança.');
     expect(source).toContain('beginOrderTracking({ orderId: pix.orderId, statusUrl: pix.statusUrl });');
     expect(source).toContain("if (responseRoute === 'transparent_card')");
-    expect(source).toContain("if (responseRoute === 'boleto')");
+    expect(source).toContain("Boleto indisponível no momento. Escolha Pix ou cartão.");
+    expect(source).not.toContain("setPaymentMethod('boleto')");
     expect(source.match(/postBillingCheckout\(checkoutAttemptRef\.current, requestBody\)/g)?.length).toBe(1);
   });
 

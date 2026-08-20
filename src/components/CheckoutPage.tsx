@@ -7,7 +7,6 @@ import {
   ShieldCheck,
   Users,
   QrCode,
-  FileText,
   Sparkles,
   Check,
   GraduationCap,
@@ -17,7 +16,6 @@ import {
   LoaderCircle,
   X,
   MessageSquare,
-  ArrowRight,
   Flame,
 } from 'lucide-react';
 import { WhatsAppWidget } from './WhatsAppWidget';
@@ -33,7 +31,6 @@ import {
   identifyBillingCheckoutResponse,
   parseHostedCardCheckout,
   parsePixAutomaticCheckout,
-  parseBoletoCheckout,
   parseSmokePixAutomaticCheckout,
   parseTransparentCardCheckout,
   postBillingCheckout,
@@ -77,7 +74,7 @@ export function CheckoutPage() {
   const [frequency, setFrequency] = useState<'mensal' | 'semestral' | 'anual'>('mensal');
   const [usersCountStr, setUsersCountStr] = useState<string>('1');
   const usersCount = Math.max(1, parseInt(usersCountStr) || 1);
-  const [paymentMethod, setPaymentMethod] = useState<'credit_card' | 'pix_automatic' | 'boleto'>('pix_automatic');
+  const [paymentMethod, setPaymentMethod] = useState<'credit_card' | 'pix_automatic'>('pix_automatic');
   const [addons, setAddons] = useState<BillingAddon[]>([]);
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
   const [checkoutError, setCheckoutError] = useState('');
@@ -86,7 +83,6 @@ export function CheckoutPage() {
   const [checkoutUiState, setCheckoutUiState] = useState<CheckoutUiState>('idle');
   const [checkoutResult, setCheckoutResult] = useState<
     | { kind: 'pix'; qrCodeSrc?: string; pixPayload: string; expiresAt?: number; amount: number }
-    | { kind: 'boleto'; bankSlipUrl?: string; processing: boolean }
     | { kind: 'card' }
     | null
   >(null);
@@ -229,8 +225,7 @@ export function CheckoutPage() {
     if (!isSmokeMode) return;
     setFrequency('mensal');
     setUsersCountStr('1');
-    if (paymentMethod === 'boleto') setPaymentMethod('pix_automatic');
-  }, [isSmokeMode, paymentMethod]);
+  }, [isSmokeMode]);
 
   useEffect(() => {
     const handleVisibilityChange = () => setIsDocumentHidden(document.visibilityState === 'hidden');
@@ -591,11 +586,7 @@ export function CheckoutPage() {
         return;
       }
       if (responseRoute === 'boleto') {
-        const boleto = parseBoletoCheckout(response.data);
-        if (!boleto) throw new BillingApiError('A resposta do boleto não pôde ser validada. Tente novamente.', { recoverable: false });
-        setCheckoutResult({ kind: 'boleto', processing: boleto.state === 'PROCESSING', ...(boleto.state === 'READY' ? { bankSlipUrl: boleto.bankSlipUrl } : {}) });
-        beginOrderTracking({ orderId: boleto.orderId, statusUrl: boleto.statusUrl });
-        return;
+        throw new BillingApiError('Boleto indisponível no momento. Escolha Pix ou cartão.', { recoverable: false });
       }
       if (responseRoute === 'transparent_card') {
         const transparent = parseTransparentCardCheckout(response.data, response.status);
@@ -1048,7 +1039,7 @@ export function CheckoutPage() {
             {/* Payment Method Selection */}
             <div className="checkout-payment-methods mt-4 pt-6 border-t border-neutral-200">
               <label className="block text-base font-bold text-neutral-900 mb-4">Forma de pagamento (Asaas)</label>
-              <div className={`grid ${isSmokeMode ? 'grid-cols-2' : 'grid-cols-3'} gap-3`}>
+              <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('pix_automatic')}
@@ -1075,19 +1066,6 @@ export function CheckoutPage() {
                   <CreditCard className="w-8 h-8" />
                   <span className="text-xs font-black uppercase tracking-wider text-center">Cartão</span>
                 </button>
-                {!isSmokeMode && <button
-                  type="button"
-                  onClick={() => setPaymentMethod('boleto')}
-                  aria-pressed={paymentMethod === 'boleto'}
-                  className={`flex flex-col items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all ${
-                    paymentMethod === 'boleto'
-                      ? 'border-[#0b1a30] bg-neutral-100 text-[#0b1a30] shadow-md shadow-[#0b1a30]/10'
-                      : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 hover:bg-gray-50'
-                  }`}
-                >
-                  <FileText className="w-8 h-8" />
-                  <span className="text-xs font-black uppercase tracking-wider text-center">Boleto</span>
-                </button>}
               </div>
 
               {/* Supported Card Flags */}
@@ -1264,14 +1242,12 @@ export function CheckoutPage() {
 
           {/* Title */}
           <h2 className="text-2xl sm:text-3xl font-black text-[#0b1a30] tracking-tight mb-2 uppercase">
-            {checkoutResult?.kind === 'pix' ? (paymentState === 'awaiting_completion' ? 'Pagamento recebido' : 'Pague com Pix') : checkoutResult?.kind === 'boleto' ? 'Pagamento por boleto' : checkoutResult?.kind === 'card' ? 'Confirmando pagamento' : 'Pagamento iniciado'}
+            {checkoutResult?.kind === 'pix' ? (paymentState === 'awaiting_completion' ? 'Pagamento recebido' : 'Pague com Pix') : checkoutResult?.kind === 'card' ? 'Confirmando pagamento' : 'Pagamento iniciado'}
           </h2>
           <p className="text-neutral-600 font-medium text-sm sm:text-base max-w-md mx-auto mb-6 leading-relaxed">
             {checkoutResult?.kind === 'pix'
               ? (paymentState === 'awaiting_completion' ? 'Estamos liberando seu acesso com segurança.' : 'Escaneie o QR Code ou copie o código abaixo.')
-              : checkoutResult?.kind === 'boleto'
-                ? (checkoutResult.processing ? 'Seu boleto está sendo preparado. Aguarde alguns instantes e tente novamente.' : 'Abra o boleto para concluir o pagamento.')
-                : 'O pagamento foi recebido. Estamos confirmando seu acesso...'}
+              : 'O pagamento foi recebido. Estamos confirmando seu acesso...'}
           </p>
           {checkoutNotice && <p className="mx-auto mb-5 max-w-md rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900" role="status">{checkoutNotice}</p>}
 
@@ -1333,17 +1309,7 @@ export function CheckoutPage() {
             </div>
           </div>}
 
-          {checkoutResult?.kind === 'boleto' && checkoutResult.bankSlipUrl ? (
-            <a
-              href={checkoutResult.bankSlipUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full py-4 px-6 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white font-extrabold text-sm sm:text-base uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-600/30 hover:scale-[1.01] active:scale-[0.99] transition-all duration-300 flex items-center justify-center gap-2 group"
-            >
-              <span>ABRIR BOLETO</span>
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </a>
-          ) : checkoutResult?.kind === 'pix' && trackedOrder ? null : (
+          {checkoutResult?.kind === 'pix' && trackedOrder ? null : (
             <button
               type="button"
               onClick={() => setShowSuccessModal(false)}
