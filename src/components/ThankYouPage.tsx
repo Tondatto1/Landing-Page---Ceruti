@@ -12,23 +12,56 @@ import {
 } from 'lucide-react';
 import { OglAurora } from './OglAurora';
 import { trackMetaEvent } from '../lib/metaPixel';
-import { resolveBillingCompletionWithRetries } from '../services/billingCompletion';
+import {
+  COMPLETION_API_URL,
+  CompletionApiError,
+  getBillingCompletion,
+  getCompletionTicketFromHash,
+  resolveBillingCompletionWithRetries,
+} from '../services/billingCompletion';
+
+function ticketDiagnostic(ticket: string) {
+  return { prefix: ticket.slice(0, 8), length: ticket.length };
+}
+
+function completionDiagnostic(event: string, details: Record<string, unknown> = {}) {
+  const runtimeMode = (import.meta as unknown as { env?: { MODE?: string } }).env?.MODE;
+  if (runtimeMode === 'test') return;
+  console.info('[ceruti:completion]', { event, ...details });
+}
 
 export function ThankYouPage() {
   const navigate = useNavigate();
   const [completionState, setCompletionState] = useState<'loading' | 'success' | 'pending' | 'error'>('loading');
+  // State survives React StrictMode's development effect replay. The ticket is
+  // still memory-only and is never copied to browser storage.
+  const [ticket] = useState(() => getCompletionTicketFromHash(window.location.hash));
 
   useEffect(() => {
     const controller = new AbortController();
-    const ticket = new URLSearchParams(window.location.hash.replace(/^#/, '')).get('ticket');
-    if (!ticket || !/^ct_[A-Za-z0-9_-]+$/.test(ticket)) {
+    let completionStep: 'exchange' | 'validation' = 'exchange';
+    completionDiagnostic('completion.success_page_loaded', { apiOrigin: COMPLETION_API_URL });
+    if (!ticket) {
       setCompletionState('error');
       return () => controller.abort();
     }
 
-    window.history.replaceState(window.history.state, document.title, window.location.pathname);
+    completionDiagnostic('completion.ticket_found', { ticket: ticketDiagnostic(ticket) });
+    window.history.replaceState(
+      window.history.state,
+      document.title,
+      window.location.pathname + window.location.search,
+    );
+    completionDiagnostic('completion.exchange_started', { ticket: ticketDiagnostic(ticket) });
     void resolveBillingCompletionWithRetries({ ticket, signal: controller.signal })
-      .then((completion) => {
+      .then(async () => {
+        if (controller.signal.aborted) return;
+        completionDiagnostic('completion.exchange_succeeded');
+        completionStep = 'validation';
+        completionDiagnostic('completion.validation_started');
+        const completion = await getBillingCompletion(controller.signal);
+        if (controller.signal.aborted) return;
+        completionDiagnostic('completion.validation_succeeded');
         if (controller.signal.aborted) return;
         trackMetaEvent('Purchase', {
           value: 0,
@@ -39,14 +72,23 @@ export function ThankYouPage() {
           num_items: completion.accessNumbers.length || 1,
         });
         setCompletionState('success');
+        completionDiagnostic('completion.upsell_redirect');
+        navigate('/obrigado', { replace: true });
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
+        const details = error instanceof CompletionApiError
+          ? { status: error.status, code: error.code, kind: error.kind }
+          : {};
+        completionDiagnostic(
+          completionStep === 'validation' ? 'completion.validation_failed' : 'completion.exchange_failed',
+          details,
+        );
         setCompletionState(error instanceof Error && /pendente/i.test(error.message) ? 'pending' : 'error');
       });
 
     return () => controller.abort();
-  }, []);
+  }, [navigate, ticket]);
 
   if (completionState !== 'success') {
     const message = completionState === 'loading'

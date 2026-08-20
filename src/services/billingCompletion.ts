@@ -50,6 +50,7 @@ export class CompletionApiError extends Error {
 }
 
 export const COMPLETION_API_URL = requireCerutiHttpsApiBase(BILLING_API_BASE_URL).toString().replace(/\/$/, '');
+const COMPLETION_TICKET_PATTERN = /^ct_[A-Za-z0-9_-]{43}$/;
 
 const INVALID_COMPLETION_STATUSES = new Set([400, 401, 403, 404, 410, 422]);
 
@@ -143,6 +144,11 @@ export function exchangeCompletionTicket(ticket: string, signal?: AbortSignal) {
     body: JSON.stringify({ ticket }),
     signal,
   });
+}
+
+export function getCompletionTicketFromHash(hash: string): string | null {
+  const ticket = new URLSearchParams(hash.replace(/^#/, '')).get('ticket');
+  return ticket && COMPLETION_TICKET_PATTERN.test(ticket) ? ticket : null;
 }
 
 export function getBillingCompletion(signal?: AbortSignal) {

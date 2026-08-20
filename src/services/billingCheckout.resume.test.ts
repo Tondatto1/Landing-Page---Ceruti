@@ -53,6 +53,8 @@ describe('resume checkout payload', () => {
       accessQuantity: 1,
       paymentMethod: 'pix_automatic',
       customer: { name: 'Ana Teste', email: 'ana@example.test', phone: '67999999999', documentNumber: '12345678901' },
+      accessNumbers: [],
+      addons: [],
     };
 
     const attempt = createCheckoutAttempt(null, normalBody, () => 'normal-attempt');

@@ -1,9 +1,12 @@
 import { BILLING_API_BASE_URL, requireCerutiHttpsApiBase } from './apiBaseUrl';
 
+/** Exact public Billing enum. The current UI offers pix_automatic, card and boleto. */
 export type BillingPaymentMethod = 'pix' | 'pix_automatic' | 'credit_card' | 'boleto';
 
+export type BillingAddon = 'training_platform';
+
 export type BillingCheckoutRequest = {
-  agentType: 'campo' | 'consultor';
+  agentType: 'campo';
   frequency: 'monthly' | 'semiannual' | 'annual';
   accessQuantity: number;
   paymentMethod: BillingPaymentMethod;
@@ -13,7 +16,10 @@ export type BillingCheckoutRequest = {
     phone: string;
     documentNumber: string;
   };
+  /** Omit for a single access; Billing then uses customer.phone. */
   accessNumbers?: string[];
+  /** The API owns the price for every selected add-on. */
+  addons?: BillingAddon[];
 };
 
 export type CreditCardCheckoutRequest = Omit<BillingCheckoutRequest, 'paymentMethod'> & {
@@ -61,6 +67,7 @@ export type SmokeCreditCardCheckoutRequest = {
   paymentMethod: 'CREDIT_CARD';
   customer: BillingCheckoutRequest['customer'];
   accessNumber: string;
+  addons?: BillingAddon[];
   creditCard: CreditCardCheckoutRequest['creditCard'];
   creditCardHolderInfo: {
     name: string;
@@ -79,23 +86,104 @@ export type SmokePixAutomaticCheckoutRequest = {
   paymentMethod: 'PIX_AUTOMATIC';
   customer: BillingCheckoutRequest['customer'];
   accessNumber: string;
+  addons?: BillingAddon[];
 };
 
 export type SmokeCheckoutRequest =
   | SmokeCreditCardCheckoutRequest
   | SmokePixAutomaticCheckoutRequest;
 
+type CheckoutCustomer = BillingCheckoutRequest['customer'];
+
+export type CheckoutCommercialInput = {
+  agentType: 'campo';
+  frequency: BillingCheckoutRequest['frequency'];
+  accessQuantity: number;
+  customer: CheckoutCustomer;
+  accessNumbers: readonly string[];
+  addons: readonly BillingAddon[];
+};
+
+/**
+ * Builds the commercial portion accepted by POST /billing/checkout.
+ * Empty optional collections are omitted, never serialized as [] or undefined.
+ */
+export function buildCheckoutPayload(input: CheckoutCommercialInput): Omit<BillingCheckoutRequest, 'paymentMethod'> {
+  return {
+    agentType: input.agentType,
+    frequency: input.frequency,
+    accessQuantity: input.accessQuantity,
+    customer: input.customer,
+    ...(input.accessNumbers.length ? { accessNumbers: [...input.accessNumbers] } : {}),
+    ...(input.addons.length ? { addons: [...input.addons] } : {}),
+  };
+}
+
+/** Smoke has a separate security/transport contract, but shares customer and add-on normalization. */
+export function buildSmokeCheckoutPayloadBase(input: Pick<CheckoutCommercialInput, 'agentType' | 'customer' | 'addons'> & { accessNumber: string }): {
+  agentType: 'campo';
+  customer: CheckoutCustomer;
+  accessNumber: string;
+  addons?: BillingAddon[];
+} {
+  return {
+    agentType: input.agentType,
+    customer: input.customer,
+    accessNumber: input.accessNumber,
+    ...(input.addons.length ? { addons: [...input.addons] } : {}),
+  };
+}
+
+export type BillingPix = {
+  qrCodeImage: string;
+  payload: string;
+  conciliationIdentifier?: string;
+  expirationDate?: string;
+};
+
+export type PixAutomaticCheckoutResponse = {
+  ok: true;
+  orderId: string;
+  status: string;
+  paymentMethod: 'PIX';
+  paymentFlow: 'PIX_AUTOMATIC';
+  pix?: BillingPix;
+};
+
 export type SmokePixAutomaticCheckout = {
   orderId: string;
   status: string;
-  statusUrl: string;
-  pix: {
-    qrCodeImage: string;
-    payload: string;
-    conciliationIdentifier?: string;
-    expirationDate?: string;
-  };
+  statusUrl?: string;
+  pix: BillingPix;
 };
+
+export function toPixCheckoutDisplay(pix: Partial<BillingPix> | null | undefined): {
+  qrCodeSrc: string | undefined;
+  pixPayload: string;
+  expiresAt: number | undefined;
+} {
+  return {
+    qrCodeSrc: typeof pix?.qrCodeImage === 'string' && pix.qrCodeImage
+      ? `data:image/png;base64,${pix.qrCodeImage}`
+      : undefined,
+    pixPayload: typeof pix?.payload === 'string' ? pix.payload : '',
+    expiresAt: parsePixExpirationDate(pix?.expirationDate),
+  };
+}
+
+/** Billing remains the source of truth for Pix validity. */
+export function parsePixExpirationDate(expirationDate: unknown): number | undefined {
+  if (typeof expirationDate !== 'string' || !expirationDate.trim()) return undefined;
+  const normalized = expirationDate.trim();
+  const localDateTime = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(normalized);
+  if (localDateTime) {
+    const [, year, month, day, hour, minute, second] = localDateTime;
+    const date = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second));
+    return Number.isNaN(date.getTime()) ? undefined : date.getTime();
+  }
+  const parsed = Date.parse(normalized);
+  return Number.isNaN(parsed) ? undefined : parsed;
+}
 
 export type CheckoutErrorDisposition =
   | 'definitive'
@@ -110,7 +198,8 @@ export type CheckoutErrorDisposition =
   | 'hold_unknown';
 
 export type TransparentCardCheckout = {
-  completionUrl: `/checkout/success#ticket=ct_${string}`;
+  orderId: string;
+  statusUrl: string;
   reused: boolean;
 };
 
@@ -152,6 +241,7 @@ export type BillingCheckoutExecutionDependencies = {
 
 export type BillingCheckoutDiagnosticEvent = {
   event:
+    | 'billing_checkout.payload_shape'
     | 'billing_checkout.request_started'
     | 'billing_checkout.transport_failed'
     | 'billing_checkout.response_received'
@@ -172,6 +262,19 @@ export type BillingCheckoutDiagnosticEvent = {
   disposition?: CheckoutErrorDisposition;
   code?: string;
   requestId?: string;
+  payloadShape?: {
+    topLevelKeys: string[];
+    agentType?: string;
+    frequency?: string;
+    paymentMethod?: string;
+    accessQuantity?: number;
+    customerKeys?: string[];
+    accessNumbersCount?: number;
+    addons?: string[];
+    hasCreditCard: boolean;
+    creditCardKeys?: string[];
+    creditCardHolderInfoKeys?: string[];
+  };
 };
 
 export type BillingCheckoutDiagnosticSink = (event: BillingCheckoutDiagnosticEvent) => void;
@@ -187,7 +290,9 @@ const CHECKOUT_ATTEMPT_STORAGE_PREFIX = 'ceruti.billing.checkout.';
 
 const defaultBillingCheckoutDiagnosticSink: BillingCheckoutDiagnosticSink = (event) => {
   const runtimeMode = (import.meta as unknown as { env?: { MODE?: string } }).env?.MODE;
-  if (typeof window === 'undefined' || runtimeMode === 'test') return;
+  // Shape diagnostics are intentionally development-only. They contain no
+  // values from customer, card, session, or idempotency data.
+  if (typeof window === 'undefined' || runtimeMode !== 'development') return;
   console.info('[ceruti:billing-checkout]', event);
 };
 
@@ -208,6 +313,29 @@ export type HostedCardCheckout = {
   checkoutUrl: string;
 };
 
+export type BillingCheckoutResponseRoute =
+  | 'pix'
+  | 'boleto'
+  | 'transparent_card'
+  | 'hosted_card';
+
+/**
+ * The submitted payment method is only the customer's intent. Billing's
+ * response method/flow identifies the payment attempt that actually exists.
+ */
+export function identifyBillingCheckoutResponse(value: unknown): BillingCheckoutResponseRoute | null {
+  if (!isRecord(value)) return null;
+  if (value.paymentMethod === 'PIX' && value.paymentFlow === 'PIX_AUTOMATIC') return 'pix';
+  if (value.paymentMethod === 'BOLETO' && value.paymentFlow === 'ASAAS_SUBSCRIPTION') return 'boleto';
+  if (value.paymentMethod === 'CREDIT_CARD' && value.paymentFlow === 'ASAAS_TRANSPARENT_SUBSCRIPTION') {
+    return 'transparent_card';
+  }
+  if (value.paymentMethod === 'CREDIT_CARD' && value.paymentFlow === 'ASAAS_HOSTED_CHECKOUT') {
+    return 'hosted_card';
+  }
+  return null;
+}
+
 export type BillingOrderStatus = {
   ok: true;
   orderId: string;
@@ -215,11 +343,23 @@ export type BillingOrderStatus = {
   paid: boolean;
   authorizationStatus?: string;
   canRedirect?: boolean;
+  redirectTo?: string;
   paymentFlow?: string;
   paymentMethod?: string;
 };
 
 export type CardFinancialState = 'awaiting_confirmation' | 'paid' | 'canceled' | 'expired' | 'failed';
+
+export type OrderPollingResult =
+  | { kind: 'confirmed'; redirectTo: string }
+  | { kind: 'terminal'; status: BillingOrderStatus }
+  | { kind: 'timeout' };
+
+/** @deprecated Use OrderPollingResult. */
+export type PixPaymentPollingResult = OrderPollingResult;
+
+export const PIX_STATUS_POLL_INTERVAL_MS = 4_000;
+export const PIX_STATUS_POLL_TIMEOUT_MS = 180_000;
 
 export class BillingApiError extends Error {
   readonly code?: string;
@@ -364,6 +504,7 @@ function createNonSensitiveFingerprint(body: CheckoutRequest): string {
     paymentMethod: body.paymentMethod,
     customer: body.customer,
     accessNumbers: body.accessNumbers ?? [],
+    addons: body.addons ?? [],
     // The card values participate only in the in-memory fingerprint, so a
     // changed card cannot reuse an attempt. Card attempts are never written
     // to sessionStorage (nor are any raw card values).
@@ -381,6 +522,25 @@ function createNonSensitiveFingerprint(body: CheckoutRequest): string {
 
 function isCreditCardCheckoutRequest(body: CheckoutRequest): body is CreditCardCheckoutRequest {
   return body.paymentMethod === 'credit_card' && 'creditCard' in body && 'customer' in body;
+}
+
+function checkoutPayloadShape(body: Record<string, unknown>): BillingCheckoutDiagnosticEvent['payloadShape'] {
+  const customer = isRecord(body.customer) ? body.customer : undefined;
+  const creditCard = isRecord(body.creditCard) ? body.creditCard : undefined;
+  const holder = isRecord(body.creditCardHolderInfo) ? body.creditCardHolderInfo : undefined;
+  return {
+    topLevelKeys: Object.keys(body).sort(),
+    ...(typeof body.agentType === 'string' ? { agentType: body.agentType } : {}),
+    ...(typeof body.frequency === 'string' ? { frequency: body.frequency } : {}),
+    ...(typeof body.paymentMethod === 'string' ? { paymentMethod: body.paymentMethod } : {}),
+    ...(typeof body.accessQuantity === 'number' ? { accessQuantity: body.accessQuantity } : {}),
+    ...(customer ? { customerKeys: Object.keys(customer).sort() } : {}),
+    ...(Array.isArray(body.accessNumbers) ? { accessNumbersCount: body.accessNumbers.length } : {}),
+    ...(Array.isArray(body.addons) ? { addons: body.addons.filter((value): value is string => typeof value === 'string') } : {}),
+    hasCreditCard: Boolean(creditCard),
+    ...(creditCard ? { creditCardKeys: Object.keys(creditCard).sort() } : {}),
+    ...(holder ? { creditCardHolderInfoKeys: Object.keys(holder).sort() } : {}),
+  };
 }
 
 function isResumeCreditCardCheckoutRequest(body: CheckoutRequest): body is ResumeCreditCardCheckoutRequest {
@@ -461,14 +621,15 @@ export function parseHostedCardCheckout(value: unknown): HostedCardCheckout | nu
   };
 }
 
-const completionPattern = /^\/checkout\/success#ticket=ct_[A-Za-z0-9_-]{43}$/;
+const completionRedirectPattern = /^\/checkout\/success#ticket=ct_[A-Za-z0-9_-]{43}$/;
 const transparentResponseKeys = new Set([
   'ok',
+  'orderId',
   'status',
+  'statusUrl',
   'reused',
   'paymentMethod',
   'paymentFlow',
-  'completionUrl',
   'creditCard',
 ]);
 const transparentCreditCardKeys = new Set(['status', 'hosted']);
@@ -491,14 +652,22 @@ export function parseTransparentCardCheckout(
     value.reused !== reused ||
     creditCard.status !== 'PROCESSING' ||
     creditCard.hosted !== false ||
-    typeof value.completionUrl !== 'string' ||
-    !completionPattern.test(value.completionUrl)
+    typeof value.orderId !== 'string' ||
+    !value.orderId ||
+    typeof value.statusUrl !== 'string'
   ) {
     return null;
   }
 
+  try {
+    resolveBillingStatusUrl(value.statusUrl, value.orderId);
+  } catch {
+    return null;
+  }
+
   return {
-    completionUrl: value.completionUrl as TransparentCardCheckout['completionUrl'],
+    orderId: value.orderId,
+    statusUrl: value.statusUrl,
     reused,
   };
 }
@@ -558,6 +727,8 @@ export async function postBillingCheckout(
       ...details,
     });
   };
+
+  reportDiagnostic('billing_checkout.payload_shape', { payloadShape: checkoutPayloadShape(body) });
 
   for (let requestIndex = 0; requestIndex <= CARD_AUTOMATIC_RETRY_DELAYS_MS.length; requestIndex += 1) {
     throwIfAborted(executionDependencies.signal);
@@ -692,7 +863,7 @@ export async function postBillingCheckout(
 export async function postBillingSmokeCheckout(
   attempt: CheckoutAttempt,
   body: SmokeCheckoutRequest,
-  smokeTicket: string,
+  smokeSession: string,
   fetcher: typeof fetch = fetch,
   signal?: AbortSignal,
   diagnosticSink: BillingCheckoutDiagnosticSink = defaultBillingCheckoutDiagnosticSink,
@@ -700,7 +871,7 @@ export async function postBillingSmokeCheckout(
   if (
     !/^smoke-[A-Za-z0-9._:-]{8,128}$/.test(attempt.key)
     || !isSmokeCheckoutRequest(body)
-    || !smokeTicket.trim()
+    || !/^[\x21-\x7E]{16,2048}$/.test(smokeSession)
   ) {
     throw createPublicBillingError(422, 'VALIDATION_ERROR', undefined, 'validation');
   }
@@ -724,6 +895,8 @@ export async function postBillingSmokeCheckout(
     ...details,
   });
 
+  reportDiagnostic('billing_checkout.payload_shape', { payloadShape: checkoutPayloadShape(body) });
+
   let response: Response;
   reportDiagnostic('billing_checkout.request_started', { requestNumber: 1 });
   try {
@@ -732,7 +905,7 @@ export async function postBillingSmokeCheckout(
       headers: {
         'Content-Type': 'application/json',
         'Idempotency-Key': attempt.key,
-        'x-smoke-ticket': smokeTicket,
+        'x-smoke-session': smokeSession,
       },
       body: JSON.stringify(body),
       signal,
@@ -775,7 +948,8 @@ function assertCheckoutRequest(body: CheckoutRequest, attempt: CheckoutAttempt):
   }
 
   if (
-    !isPublicCheckoutRequest(body)
+    !(isPublicCheckoutRequest(body)
+      && (body.paymentMethod !== 'credit_card' || isTransparentCardRequest(body)))
     && !isResumePublicCheckoutRequest(body)
   ) {
     throw createPublicBillingError(422, 'VALIDATION_ERROR', undefined, 'validation');
@@ -787,16 +961,21 @@ function isSmokeCheckoutRequest(value: unknown): value is SmokeCheckoutRequest {
   const customer = value.customer;
   const validBase = value.agentType === 'campo'
     && typeof value.accessNumber === 'string'
+    && (value.addons === undefined || (
+      Array.isArray(value.addons)
+      && value.addons.every((addon) => addon === 'training_platform')
+      && new Set(value.addons).size === value.addons.length
+    ))
     && isRecord(customer)
     && hasExactKeys(customer, ['name', 'email', 'phone', 'documentNumber']);
   if (!validBase) return false;
   if (value.paymentMethod === 'PIX_AUTOMATIC') {
-    return hasExactKeys(value, ['agentType', 'paymentMethod', 'customer', 'accessNumber']);
+    return Object.keys(value).every((key) => ['agentType', 'paymentMethod', 'customer', 'accessNumber', 'addons'].includes(key));
   }
   const creditCard = value.creditCard;
   const holder = value.creditCardHolderInfo;
   return value.paymentMethod === 'CREDIT_CARD'
-    && hasExactKeys(value, ['agentType', 'paymentMethod', 'customer', 'accessNumber', 'creditCard', 'creditCardHolderInfo'])
+    && Object.keys(value).every((key) => ['agentType', 'paymentMethod', 'customer', 'accessNumber', 'addons', 'creditCard', 'creditCardHolderInfo'].includes(key))
     && isRecord(creditCard)
     && hasExactKeys(creditCard, ['holderName', 'number', 'expiryMonth', 'expiryYear', 'ccv'])
     && isRecord(holder)
@@ -824,22 +1003,20 @@ export function parseSmokePixAutomaticCheckout(value: unknown): SmokePixAutomati
     typeof value.orderId !== 'string'
     || value.orderId.length === 0
     || typeof value.status !== 'string'
-    || typeof value.statusUrl !== 'string'
     || !isRecord(value.pix)
     || typeof value.pix.qrCodeImage !== 'string'
     || value.pix.qrCodeImage.length === 0
     || typeof value.pix.payload !== 'string'
     || value.pix.payload.length === 0
   ) return null;
-  try {
-    resolveBillingStatusUrl(value.statusUrl, value.orderId);
-  } catch {
-    return null;
+  if (value.statusUrl !== undefined) {
+    if (typeof value.statusUrl !== 'string') return null;
+    try { resolveBillingStatusUrl(value.statusUrl, value.orderId); } catch { return null; }
   }
   return {
     orderId: value.orderId,
     status: value.status,
-    statusUrl: value.statusUrl,
+    ...(typeof value.statusUrl === 'string' ? { statusUrl: value.statusUrl } : {}),
     pix: {
       qrCodeImage: value.pix.qrCodeImage,
       payload: value.pix.payload,
@@ -856,8 +1033,12 @@ export function parseSmokePixAutomaticCheckout(value: unknown): SmokePixAutomati
 function isPublicCheckoutRequest(value: Record<string, unknown>): value is CheckoutRequest {
   const customer = value.customer;
   const accessNumbers = value.accessNumbers;
+  const allowedKeys = value.paymentMethod === 'credit_card'
+    ? ['agentType', 'frequency', 'accessQuantity', 'paymentMethod', 'customer', 'accessNumbers', 'addons', 'creditCard', 'creditCardHolderInfo']
+    : ['agentType', 'frequency', 'accessQuantity', 'paymentMethod', 'customer', 'accessNumbers', 'addons'];
   if (!isRecord(customer) || !hasExactKeys(customer, ['name', 'email', 'phone', 'documentNumber'])) return false;
-  if (!['campo', 'consultor'].includes(String(value.agentType))
+  if (!Object.keys(value).every((key) => allowedKeys.includes(key))
+    || value.agentType !== 'campo'
     || !['monthly', 'semiannual', 'annual'].includes(String(value.frequency))
     || !['pix', 'pix_automatic', 'boleto', 'credit_card'].includes(String(value.paymentMethod))
     || !Number.isSafeInteger(value.accessQuantity)
@@ -869,6 +1050,8 @@ function isPublicCheckoutRequest(value: Record<string, unknown>): value is Check
     || typeof customer.documentNumber !== 'string' || !/^\d{11,18}$/.test(customer.documentNumber.replace(/\D/g, ''))
   ) return false;
 
+  const addons = value.addons;
+  if (addons !== undefined && (!Array.isArray(addons) || !addons.every((addon) => addon === 'training_platform') || new Set(addons).size !== addons.length)) return false;
   if (accessNumbers === undefined) return value.accessQuantity === 1;
   if (!Array.isArray(accessNumbers) || !accessNumbers.every((number) => typeof number === 'string')) return false;
   if (value.accessQuantity === 1) return accessNumbers.length <= 1;
@@ -877,6 +1060,9 @@ function isPublicCheckoutRequest(value: Record<string, unknown>): value is Check
     && normalized.every((number) => /^\d{10,11}$/.test(number))
     && new Set(normalized).size === normalized.length;
 }
+
+/** Pix normal and smoke share the same public checkout response shape. */
+export const parsePixAutomaticCheckout = parseSmokePixAutomaticCheckout;
 
 function isResumeCheckoutRequest(value: CheckoutRequest): value is ResumeCheckoutRequest | ResumeCreditCardCheckoutRequest {
   return 'resumeToken' in value;
@@ -934,16 +1120,17 @@ function isTransparentCardRequest(value: Record<string, unknown>): value is Cred
   }
 
   return (
-    hasExactKeys(value, [
+    Object.keys(value).every((key) => [
       'agentType',
       'frequency',
       'accessQuantity',
       'paymentMethod',
       'customer',
       'accessNumbers',
+      'addons',
       'creditCard',
       'creditCardHolderInfo',
-    ]) &&
+    ].includes(key)) &&
     hasExactKeys(customer, ['name', 'email', 'phone', 'documentNumber']) &&
     hasExactKeys(creditCard, [
       'holderName',
@@ -962,7 +1149,7 @@ function isTransparentCardRequest(value: Record<string, unknown>): value is Cred
       'phone',
       'mobilePhone',
     ].includes(key)) &&
-    (value.agentType === 'campo' || value.agentType === 'consultor') &&
+    value.agentType === 'campo' &&
     (
       value.frequency === 'monthly' ||
       value.frequency === 'semiannual' ||
@@ -971,8 +1158,12 @@ function isTransparentCardRequest(value: Record<string, unknown>): value is Cred
     typeof value.accessQuantity === 'number' &&
     Number.isSafeInteger(value.accessQuantity) &&
     value.accessQuantity > 0 &&
-    Array.isArray(value.accessNumbers) &&
-    value.accessNumbers.every((accessNumber) => typeof accessNumber === 'string') &&
+    (value.accessNumbers === undefined || (
+      Array.isArray(value.accessNumbers)
+      && value.accessNumbers.every((accessNumber) => typeof accessNumber === 'string')
+      && (value.accessQuantity === 1 || value.accessNumbers.length === value.accessQuantity)
+    )) &&
+    (value.addons === undefined || (Array.isArray(value.addons) && value.addons.every((addon) => addon === 'training_platform') && new Set(value.addons).size === value.addons.length)) &&
     value.paymentMethod === 'credit_card' &&
     typeof customer.name === 'string' &&
     typeof customer.email === 'string' &&
@@ -1050,6 +1241,7 @@ export async function getBillingOrderStatus(
   _legacyApiBaseUrl: string,
   order: Pick<HostedCardCheckout, 'orderId' | 'statusUrl'>,
   fetcher: typeof fetch = fetch,
+  signal?: AbortSignal,
 ): Promise<BillingOrderStatus> {
   const statusUrl = resolveBillingStatusUrl(order.statusUrl, order.orderId);
   let response: Response;
@@ -1058,6 +1250,7 @@ export async function getBillingOrderStatus(
     response = await fetcher(statusUrl.toString(), {
       method: 'GET',
       headers: { Accept: 'application/json' },
+      signal,
     });
   } catch {
     throw new BillingApiError('Não foi possível verificar o pagamento agora. Tente novamente.', {
@@ -1138,6 +1331,69 @@ export function classifyCardFinancialState(status: BillingOrderStatus): CardFina
   return 'awaiting_confirmation';
 }
 
+export function getConfirmedCompletionRedirect(status: BillingOrderStatus): string | null {
+  // `canRedirect` is Billing's fail-closed completion authority. `paid` is
+  // informative only: provisioning can lag payment, and the inverse must not
+  // make the landing page second-guess an explicit redirect authorization.
+  return status.canRedirect === true
+    && typeof status.redirectTo === 'string'
+    && completionRedirectPattern.test(status.redirectTo)
+    ? status.redirectTo
+    : null;
+}
+
+function isTerminalPixStatus(status: BillingOrderStatus): boolean {
+  return ['failed', 'failure', 'payment_failed', 'canceled', 'cancelled', 'expired', 'refunded', 'chargeback']
+    .includes(status.status.trim().toLowerCase());
+}
+
+export async function pollOrderUntilCompletion(
+  order: Pick<HostedCardCheckout, 'orderId' | 'statusUrl'>,
+  options: {
+    fetcher?: typeof fetch;
+    signal?: AbortSignal;
+    intervalMs?: number;
+    timeoutMs?: number;
+    now?: () => number;
+    wait?: (delayMs: number, signal?: AbortSignal) => Promise<void>;
+    onStatus?: (status: BillingOrderStatus) => void;
+    onTemporaryError?: () => void;
+  } = {},
+): Promise<OrderPollingResult> {
+  const now = options.now ?? Date.now;
+  const intervalMs = options.intervalMs ?? PIX_STATUS_POLL_INTERVAL_MS;
+  const timeoutMs = options.timeoutMs ?? PIX_STATUS_POLL_TIMEOUT_MS;
+  const waiter = options.wait ?? wait;
+  const deadline = now() + timeoutMs;
+
+  while (now() < deadline) {
+    throwIfAborted(options.signal);
+    try {
+      const status = await getBillingOrderStatus('', order, options.fetcher, options.signal);
+      options.onStatus?.(status);
+      const redirectTo = getConfirmedCompletionRedirect(status);
+      if (redirectTo) return { kind: 'confirmed', redirectTo };
+      if (isTerminalPixStatus(status)) return { kind: 'terminal', status };
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') throw error;
+      options.onTemporaryError?.();
+    }
+
+    const remaining = deadline - now();
+    if (remaining <= 0) break;
+    await waitWithAbort(waiter, Math.min(intervalMs, remaining), options.signal);
+  }
+
+  return { kind: 'timeout' };
+}
+
+/**
+ * Compatibility name for callers that previously displayed only Pix. The
+ * implementation is payment-method agnostic and must be shared by card,
+ * Pix, Pix Automatic and compatible boleto orders.
+ */
+export const pollPixPaymentStatus = pollOrderUntilCompletion;
+
 export function resolveBillingStatusUrl(statusUrl: string, orderId: string): URL {
   const base = requireCerutiHttpsApiBase(BILLING_API_BASE_URL);
   const expectedPath = `/billing/orders/${encodeURIComponent(orderId)}/status`;
@@ -1162,7 +1418,6 @@ export function parseBoletoCheckout(value: unknown): BoletoCheckout | null {
   ) {
     return null;
   }
-
   const boletoStatus = value.boleto.status;
   const checkoutStatus = value.checkoutStatus;
   const state = checkoutStatus ?? boletoStatus;

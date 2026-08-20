@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Header } from './Header';
 import { HeroSection } from './HeroSection';
 import { TargetSection } from './TargetSection';
@@ -9,10 +9,38 @@ import { PlanBuilderSection } from './PlanBuilderSection';
 import { FaqSection } from './FaqSection';
 import { Footer } from './Footer';
 import { LeadModal } from './LeadModal';
+import { getBillingCompletion } from '../services/billingCompletion';
 
 export function ObrigadoOfertaPdcPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPlanName, setSelectedPlanName] = useState<string | undefined>();
+  const [completionState, setCompletionState] = useState<'loading' | 'authorized' | 'invalid'>('loading');
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void getBillingCompletion(controller.signal)
+      .then(() => {
+        if (!controller.signal.aborted) setCompletionState('authorized');
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setCompletionState('invalid');
+      });
+    return () => controller.abort();
+  }, []);
+
+  if (completionState !== 'authorized') {
+    return (
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center px-4 font-sans">
+        <div className="max-w-md rounded-3xl border border-neutral-200 bg-white p-8 text-center shadow-xl">
+          <p className="text-base font-bold text-neutral-800">
+            {completionState === 'loading'
+              ? 'Confirmando seu acesso com segurança...'
+              : 'Este conteúdo requer uma confirmação de pagamento válida.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const handleOpenModal = (planName?: string) => {
     setSelectedPlanName(planName);

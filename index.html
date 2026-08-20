@@ -7,6 +7,40 @@
     <title>Ceruti | Treinador de Vendas de IA para o Agronegócio</title>
 
     <script>
+      // Smoke sessions are opaque, one-time in-memory bearer values. This must
+      // run before analytics, third-party scripts, and the React application.
+      (function () {
+        var query = new URLSearchParams(window.location.search);
+        if (query.get('smoke') !== '1') return;
+        // Do not use URLSearchParams for the bearer value: it converts `+`
+        // into a space, corrupting standard base64 signature segments.
+        var fragment = window.location.hash.replace(/^#/, '');
+        var match = fragment.match(/(?:^|&)smoke_session=([^&]*)/);
+        var smokeSession = match ? match[1] : '';
+        try { smokeSession = decodeURIComponent(smokeSession); } catch { return; }
+        if (!smokeSession) return;
+
+        window.__CERUTI_SMOKE_SESSION__ = smokeSession;
+        if (window.crypto && window.crypto.subtle && window.TextEncoder) {
+          window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(smokeSession)).then(function (digest) {
+            var fingerprint = Array.from(new Uint8Array(digest)).map(function (value) { return value.toString(16).padStart(2, '0'); }).join('');
+            console.info('[ceruti:smoke-session]', {
+              stage: 'hash-captured', length: smokeSession.length, prefix: smokeSession.slice(0, 8),
+              suffix: smokeSession.slice(-8), hasSignatureSeparator: smokeSession.indexOf('.') !== -1, sha256: fingerprint,
+            });
+          }).catch(function () {});
+        }
+        // The operational URL has no non-sensitive fragment. Preserve its
+        // pathname and query exactly, including ?agent=campo&smoke=1.
+        window.history.replaceState(
+          window.history.state,
+          document.title,
+          window.location.pathname + window.location.search,
+        );
+      }());
+
+    </script>
+    <script>
       // A resume token is a short-lived bearer secret. Capture and remove it
       // synchronously, before any third-party tracking script can read the URL.
       (function () {

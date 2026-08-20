@@ -25,7 +25,7 @@ import {
 } from '../lib/leads';
 import { trackMetaEvent } from '../lib/metaPixel';
 
-type TrialAgentType = 'campo' | 'consultor';
+type TrialAgentType = 'campo';
 
 const TRIALS_API_BASE_URL =
   (import.meta as unknown as { env?: Record<string, string | undefined> }).env
@@ -525,16 +525,9 @@ export const WhatsAppWidget = () => {
         ]
       };
       setMessages((prev) => [...prev, botMsg]);
-    } else if (action === 'agent_consultor' || action === 'agent_campo' || action === 'agent_both') {
-      const agentTypes: TrialAgentType[] =
-        action === 'agent_consultor'
-          ? ['consultor']
-          : action === 'agent_campo'
-            ? ['campo']
-            : ['campo', 'consultor'];
-      const selectedAgentName =
-        action === 'agent_consultor' ? 'Ceruti Consultor' :
-        action === 'agent_campo' ? 'Ceruti Campo' : 'Ambos';
+    } else if (action === 'agent_campo') {
+      const agentTypes: TrialAgentType[] = ['campo'];
+      const selectedAgentName = 'Ceruti Campo';
 
       setProspectData(prev => ({ ...prev, agentTypes }));
       trialIdempotencyKeyRef.current = crypto.randomUUID();
@@ -611,14 +604,7 @@ export const WhatsAppWidget = () => {
           phone: prospectData.phone,
         });
 
-        const selectedBothAgents = prospectData.agentTypes.length === 2;
-        const selectedAgentName =
-          prospectData.agentTypes[0] === 'campo'
-            ? 'Ceruti Campo'
-            : 'Ceruti Consultor';
-        const trialConfirmationText = selectedBothAgents
-          ? 'Seu WhatsApp foi liberado para usar o *Ceruti Campo* e o *Ceruti Consultor*. Os dois agentes enviarão mensagens para você diretamente pelo WhatsApp.'
-          : `Seu WhatsApp foi liberado para usar o *${selectedAgentName}*. O agente enviará mensagens para você diretamente pelo WhatsApp.`;
+        const trialConfirmationText = 'Seu WhatsApp foi liberado para usar o *Ceruti Campo*. O agente enviará mensagens para você diretamente pelo WhatsApp.';
         const botMsg: Message = {
           id: (Date.now() + 1).toString(),
           sender: 'bot',
