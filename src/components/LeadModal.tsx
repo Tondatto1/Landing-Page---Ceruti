@@ -70,7 +70,7 @@ export const LeadModal: React.FC<LeadModalProps> = ({ isOpen, onClose, defaultPl
     // Send data to Google Sheets Webhook
     const webhookUrl = 
       (import.meta as any).env?.VITE_GOOGLE_SHEETS_WEBHOOK_URL ||
-      'https://script.google.com/macros/s/AKfycbwL8IwOFCKNNMirg-JtFjz3x3lwAIvTqnBDynHfq9odVhKG6FYmPv__z3ey1zKsJjFSIA/exec';
+      'https://script.google.com/macros/s/AKfycbwM5DQYjIMAft7TGdzmr80Uo6yXqIGARWVXZBRCia9tW2gKcIs2uSjbrRa3HGYDaXtKgQ/exec';
 
     if (webhookUrl) {
       try {

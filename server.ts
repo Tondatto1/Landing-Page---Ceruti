@@ -30,6 +30,54 @@ function cleanPhone(value: string | undefined | null): string | null {
   return digits;
 }
 
+// Google Sheets Webhook / Apps Script URL
+const GOOGLE_SHEETS_WEBHOOK_URL =
+  process.env.GOOGLE_SHEET_WEBAPP_URL ||
+  process.env.VITE_GOOGLE_SHEETS_WEBHOOK_URL ||
+  "https://script.google.com/macros/s/AKfycbwM5DQYjIMAft7TGdzmr80Uo6yXqIGARWVXZBRCia9tW2gKcIs2uSjbrRa3HGYDaXtKgQ/exec";
+
+// Save Lead API Route (Sends to Google Sheets App Script)
+app.post("/api/save-lead", async (req, res) => {
+  try {
+    const { name, company, email, phone, agentSelected, origin } = req.body;
+
+    if (!name && !phone) {
+      return res.status(400).json({ error: "Missing required fields (name or phone)" });
+    }
+
+    const payload = {
+      dataHora: new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }),
+      nome: name || "",
+      empresa: company || "",
+      email: email || "",
+      whatsapp: phone || "",
+      agente: agentSelected || "Ceruti Campo",
+      origem: origin || "Trial 7 Dias - WhatsApp",
+      timestamp: new Date().toISOString()
+    };
+
+    if (GOOGLE_SHEETS_WEBHOOK_URL) {
+      try {
+        const sheetResponse = await fetch(GOOGLE_SHEETS_WEBHOOK_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+        console.log(`[Google Sheets] Lead sent to Sheet. Status: ${sheetResponse.status}`);
+      } catch (err: any) {
+        console.error("[Google Sheets App Script Sync error]", err?.message || err);
+      }
+    }
+
+    return res.status(200).json({ status: "ok", message: "Lead salvo com sucesso" });
+  } catch (error: any) {
+    console.error("[Save Lead ERROR]", error);
+    return res.status(500).json({ error: error.message || "Internal Server Error" });
+  }
+});
+
 // Meta Conversions API Route
 app.post("/api/meta-conversions", async (req, res) => {
   try {

@@ -1,14 +1,3 @@
-import { 
-  collection, 
-  doc, 
-  setDoc, 
-  getDocs, 
-  deleteDoc, 
-  query, 
-  orderBy 
-} from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from './firebase';
-
 export interface TrialLead {
   id: string;
   name: string;
@@ -21,6 +10,7 @@ export interface TrialLead {
 
 const STORAGE_KEY = 'agro_sales_trial_leads';
 const ENCRYPTION_KEY = 'agro_sales_secure_key_132_p@ss';
+export const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1mekI4F0gUVoWxsPkGasck14KmW-SKnRE0iLibr4DeCU/edit?gid=0#gid=0';
 
 /**
  * Encrypts clear text into an obfuscated XOR base64 format to hide lead data from inspection
@@ -43,7 +33,6 @@ export function decryptData(cipherText: string): string {
   try {
     if (!cipherText) return '';
     const trimmed = cipherText.trim();
-    // Supporting raw plaintext JSON for legacy/backwards compatibility
     if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
       return cipherText;
     }
@@ -63,17 +52,23 @@ export function decryptData(cipherText: string): string {
 }
 
 /**
- * Saves a trial lead to both local storage (for high availability/resilience)
- * and to Firestore (as the centralized cloud database).
+ * Saves a trial lead to local storage (for offline access/export)
+ * and dispatches it to the Google Sheets webhook via /api/save-lead.
  */
-export async function saveLead(name: string, company: string, email: string, phone: string, agentSelected: string): Promise<TrialLead> {
+export async function saveLead(
+  name: string,
+  company: string,
+  email: string,
+  phone: string,
+  agentSelected: string = 'Ceruti Campo'
+): Promise<TrialLead> {
   const newLead: TrialLead = {
     id: 'lead_' + Math.random().toString(36).substr(2, 9),
     name: name.trim(),
-    company: company.trim(),
-    email: email.trim().toLowerCase(),
+    company: (company || '').trim(),
+    email: (email || '').trim().toLowerCase(),
     phone: phone.trim(),
-    agentSelected: agentSelected.trim(),
+    agentSelected: (agentSelected || 'Ceruti Campo').trim(),
     createdAt: new Date().toISOString()
   };
 
@@ -86,19 +81,49 @@ export async function saveLead(name: string, company: string, email: string, pho
     console.error('Error saving lead locally:', error);
   }
 
-  // 2. Write to Firestore centralized collection
-  const path = 'trial_signups';
+  // 2. Dispatch to Server Route (/api/save-lead) to forward to Google Sheets App Script
   try {
-    await setDoc(doc(db, path, newLead.id), {
-      name: newLead.name,
-      company: newLead.company,
-      email: newLead.email,
-      phone: newLead.phone,
-      agentSelected: newLead.agentSelected,
-      createdAt: newLead.createdAt
+    fetch('/api/save-lead', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: newLead.name,
+        company: newLead.company,
+        email: newLead.email,
+        phone: newLead.phone,
+        agentSelected: newLead.agentSelected,
+        origin: 'Trial 7 Dias - WhatsApp LP'
+      }),
+    }).catch(err => {
+      console.warn('[Leads] Background server sync error:', err);
     });
-  } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, `${path}/${newLead.id}`);
+  } catch (err) {
+    console.warn('[Leads] Fetch dispatch error:', err);
+  }
+
+  // 3. Optional Direct Client Webhook fallback if env exists
+  const directWebhook = (import.meta as any).env?.VITE_GOOGLE_SHEETS_WEBHOOK_URL;
+  if (directWebhook) {
+    try {
+      fetch(directWebhook, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dataHora: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
+          nome: newLead.name,
+          empresa: newLead.company,
+          email: newLead.email,
+          whatsapp: newLead.phone,
+          agente: newLead.agentSelected,
+          origem: 'Trial 7 Dias - WhatsApp LP'
+        })
+      }).catch(() => {});
+    } catch {
+      // ignore
+    }
   }
 
   return newLead;
@@ -127,39 +152,23 @@ export function getLeads(): TrialLead[] {
 }
 
 /**
- * Fetches all leads from the cloud Firestore database.
- * This runs securely client-side once authenticated as the bootstrapped admin.
+ * Backwards compatible alias for fetching leads.
  */
 export async function fetchFirestoreLeads(): Promise<TrialLead[]> {
-  const path = 'trial_signups';
-  try {
-    const q = query(collection(db, path), orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
-    const leads: TrialLead[] = [];
-    snapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-      leads.push({
-        id: docSnap.id,
-        name: data.name || '',
-        company: data.company || '',
-        email: data.email || '',
-        phone: data.phone || '',
-        agentSelected: data.agentSelected || '',
-        createdAt: data.createdAt || ''
-      });
-    });
-    return leads;
-  } catch (error) {
-    handleFirestoreError(error, OperationType.LIST, path);
-    return [];
-  }
+  return getLocalLeads();
 }
 
 /**
- * Deletes a lead records both locally and on the Firestore server.
+ * Deletes a lead record locally.
  */
 export async function deleteLeadWithFirestore(id: string): Promise<void> {
-  // Local deletion
+  deleteLead(id);
+}
+
+/**
+ * Deletes a lead from local storage.
+ */
+export function deleteLead(id: string): void {
   try {
     const leads = getLocalLeads();
     const updated = leads.filter(l => l.id !== id);
@@ -167,23 +176,6 @@ export async function deleteLeadWithFirestore(id: string): Promise<void> {
   } catch (err) {
     console.error('Error deleting lead locally:', err);
   }
-
-  // Firestore deletion
-  const path = `trial_signups/${id}`;
-  try {
-    await deleteDoc(doc(db, 'trial_signups', id));
-  } catch (error) {
-    handleFirestoreError(error, OperationType.DELETE, path);
-  }
-}
-
-/**
- * Backwards compatibility alias for deletion.
- */
-export function deleteLead(id: string): void {
-  deleteLeadWithFirestore(id).catch(err => {
-    console.error("Failed to delete lead from Firestore:", err);
-  });
 }
 
 /**
@@ -218,9 +210,10 @@ export function downloadLeadsCSV(leads: TrialLead[]): void {
   
   const link = document.createElement('a');
   link.setAttribute('href', url);
-  link.setAttribute('download', `leads_teste_3_dias_${new Date().toISOString().slice(0, 10)}.csv`);
+  link.setAttribute('download', `leads_teste_7_dias_${new Date().toISOString().slice(0, 10)}.csv`);
   link.style.visibility = 'hidden';
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
 }
+

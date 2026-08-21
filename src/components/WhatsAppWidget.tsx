@@ -18,9 +18,11 @@ import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, User 
 import { HanaAvatar } from './HanaAvatar';
 import {
   getLeads,
+  saveLead,
   deleteLeadWithFirestore,
   downloadLeadsCSV,
   fetchFirestoreLeads,
+  GOOGLE_SHEET_URL,
   TrialLead
 } from '../lib/leads';
 import { trackMetaEvent } from '../lib/metaPixel';
@@ -553,6 +555,17 @@ export const WhatsAppWidget = () => {
       const idempotencyKey =
         trialIdempotencyKeyRef.current ?? crypto.randomUUID();
       trialIdempotencyKeyRef.current = idempotencyKey;
+
+      // 1. Save lead to Google Sheets & local cache
+      saveLead(
+        prospectData.name,
+        prospectData.company,
+        prospectData.email,
+        prospectData.phone,
+        'Ceruti Campo'
+      ).catch((err) => {
+        console.warn('[Trial] Background lead save:', err);
+      });
 
       try {
         const response = await fetch(`${TRIALS_API_BASE_URL}/trials`, {
@@ -1324,13 +1337,24 @@ export const WhatsAppWidget = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-end gap-3 font-sans">
+                    <div className="flex flex-wrap items-center justify-end gap-2 font-sans">
+                      <a
+                        href={GOOGLE_SHEET_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-3 rounded-xl font-bold text-xs tracking-wider uppercase transition-all shadow-sm cursor-pointer w-full sm:w-auto text-center"
+                      >
+                        <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z" />
+                        </svg>
+                        Abrir Google Planilha
+                      </a>
                       <button
                         onClick={() => downloadLeadsCSV(leadList)}
-                        className="inline-flex items-center justify-center gap-2 bg-[#008069] hover:bg-[#006e57] text-white px-5 py-3 rounded-xl font-bold text-xs tracking-wider uppercase transition-all shadow-md shadow-emerald-950/10 cursor-pointer w-full sm:w-auto text-center"
+                        className="inline-flex items-center justify-center gap-2 bg-[#008069] hover:bg-[#006e57] text-white px-4 py-3 rounded-xl font-bold text-xs tracking-wider uppercase transition-all shadow-md shadow-emerald-950/10 cursor-pointer w-full sm:w-auto text-center"
                       >
                         <Download className="w-4 h-4" />
-                        Baixar Planilha (Excel/CSV)
+                        Exportar CSV
                       </button>
                     </div>
                   </div>
