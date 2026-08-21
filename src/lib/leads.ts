@@ -11,6 +11,9 @@ export interface TrialLead {
 const STORAGE_KEY = 'agro_sales_trial_leads';
 const ENCRYPTION_KEY = 'agro_sales_secure_key_132_p@ss';
 export const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1mekI4F0gUVoWxsPkGasck14KmW-SKnRE0iLibr4DeCU/edit?gid=0#gid=0';
+export const GOOGLE_APPS_SCRIPT_WEBHOOK = 
+  (import.meta as any).env?.VITE_GOOGLE_SHEETS_WEBHOOK_URL ||
+  'https://script.google.com/macros/s/AKfycbwM5DQYjIMAft7TGdzmr80Uo6yXqIGARWVXZBRCia9tW2gKcIs2uSjbrRa3HGYDaXtKgQ/exec';
 
 /**
  * Encrypts clear text into an obfuscated XOR base64 format to hide lead data from inspection
@@ -75,13 +78,46 @@ export async function saveLead(
   // 1. Write to localStorage immediately with secure encryption
   try {
     const existing = getLocalLeads();
-    existing.unshift(newLead);
-    localStorage.setItem(STORAGE_KEY, encryptData(JSON.stringify(existing)));
+    // Avoid duplicate insertions if called multiple times rapidly
+    const isDuplicate = existing.some(
+      l => l.phone === newLead.phone && (Date.now() - new Date(l.createdAt).getTime()) < 60000
+    );
+    if (!isDuplicate) {
+      existing.unshift(newLead);
+      localStorage.setItem(STORAGE_KEY, encryptData(JSON.stringify(existing)));
+    }
   } catch (error) {
     console.error('Error saving lead locally:', error);
   }
 
-  // 2. Dispatch to Server Route (/api/save-lead) to forward to Google Sheets App Script
+  const payload = {
+    dataHora: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
+    nome: newLead.name,
+    empresa: newLead.company,
+    email: newLead.email,
+    whatsapp: newLead.phone,
+    agente: newLead.agentSelected,
+    origem: 'Trial 7 Dias - WhatsApp LP',
+    timestamp: newLead.createdAt
+  };
+
+  // 2. Direct client-side POST to Google Apps Script Web App (Works 100% on GitHub Pages, Vercel, Netlify)
+  try {
+    fetch(GOOGLE_APPS_SCRIPT_WEBHOOK, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
+      body: JSON.stringify(payload)
+    }).catch(err => {
+      console.warn('[Leads] Client direct webhook sync warning:', err);
+    });
+  } catch (err) {
+    console.warn('[Leads] Direct fetch error:', err);
+  }
+
+  // 3. Fallback / Parallel sync via Node.js server route (if running in full-stack dev/Cloud Run)
   try {
     fetch('/api/save-lead', {
       method: 'POST',
@@ -96,34 +132,11 @@ export async function saveLead(
         agentSelected: newLead.agentSelected,
         origin: 'Trial 7 Dias - WhatsApp LP'
       }),
-    }).catch(err => {
-      console.warn('[Leads] Background server sync error:', err);
+    }).catch(() => {
+      // Expected to fail silently on static GitHub Pages hosting
     });
-  } catch (err) {
-    console.warn('[Leads] Fetch dispatch error:', err);
-  }
-
-  // 3. Optional Direct Client Webhook fallback if env exists
-  const directWebhook = (import.meta as any).env?.VITE_GOOGLE_SHEETS_WEBHOOK_URL;
-  if (directWebhook) {
-    try {
-      fetch(directWebhook, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          dataHora: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
-          nome: newLead.name,
-          empresa: newLead.company,
-          email: newLead.email,
-          whatsapp: newLead.phone,
-          agente: newLead.agentSelected,
-          origem: 'Trial 7 Dias - WhatsApp LP'
-        })
-      }).catch(() => {});
-    } catch {
-      // ignore
-    }
+  } catch {
+    // ignore
   }
 
   return newLead;

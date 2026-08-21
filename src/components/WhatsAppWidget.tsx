@@ -753,8 +753,18 @@ export const WhatsAppWidget = () => {
     }
     else if (signupStep === 'phone') {
       trialIdempotencyKeyRef.current = crypto.randomUUID();
+      const currentName = prospectData.name;
+      const currentCompany = prospectData.company;
+      const currentEmail = prospectData.email;
+      const currentPhone = userText;
+
       setProspectData(prev => ({ ...prev, phone: userText, agentTypes: ['campo'] }));
       setSignupStep('idle');
+
+      // Instantly record lead in Google Sheets
+      saveLead(currentName, currentCompany, currentEmail, currentPhone, 'Ceruti Campo').catch(err => {
+        console.warn('[Trial] Phone step lead save warning:', err);
+      });
 
       const botMsg: Message = {
         id: (Date.now() + 1).toString(),
