@@ -57,7 +57,6 @@ export default function App() {
   const navigate = useNavigate();
   // Mobile menu toggle
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [selectedAgent, setSelectedAgent] = useState<'consultor' | 'campo'>('campo');
 
   return (
     <div className="bg-agro-deep text-gray-100 min-h-screen font-sans selection:bg-agro-green selection:text-agro-deep theme-natural-tones w-full overflow-x-clip relative" id="top_container">

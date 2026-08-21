@@ -1,35 +1,102 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { 
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
   ArrowLeft,
-  CreditCard, 
-  Lock, 
-  ShieldCheck, 
+  CreditCard,
+  Lock,
+  ShieldCheck,
   Users,
   QrCode,
-  FileText,
   Sparkles,
   Check,
   GraduationCap,
   CheckCircle2,
   Clock,
+  Copy,
+  LoaderCircle,
+  X,
   MessageSquare,
-  ArrowRight,
-  Flame
+  Flame,
 } from 'lucide-react';
 import { WhatsAppWidget } from './WhatsAppWidget';
+import { Aurora } from './Aurora';
+import { OglAurora } from './OglAurora';
 import { trackMetaEvent } from '../lib/metaPixel';
+import {
+  BillingApiError,
+  buildCheckoutPayload,
+  buildSmokeCheckoutPayloadBase,
+  createCheckoutAttempt,
+  createSmokeCheckoutAttempt,
+  identifyBillingCheckoutResponse,
+  parseHostedCardCheckout,
+  parsePixAutomaticCheckout,
+  parseSmokePixAutomaticCheckout,
+  parseTransparentCardCheckout,
+  postBillingCheckout,
+  postBillingSmokeCheckout,
+  pollOrderUntilCompletion,
+  toPixCheckoutDisplay,
+  type BillingCheckoutRequest,
+  type BillingAddon,
+  type CheckoutAttempt,
+  type CreditCardCheckoutRequest,
+  type ResumeCheckoutRequest,
+  type ResumeCreditCardCheckoutRequest,
+  type SmokeCheckoutRequest,
+} from '../services/billingCheckout';
+import { consumeCapturedSmokeSession, reportSmokeSessionDiagnostic } from '../services/smokeSession';
+import { getCheckoutDisplayPricing } from '../services/checkoutDisplayPricing';
+import { formatCpfCnpjInput, formatCepInput, normalizeCardAddressNumber } from '../services/checkoutInputFormatting';
+import { formatPixRemainingTime } from '../services/pixTime';
+import {
+  CheckoutResumeApiError,
+  getCapturedCheckoutResumeToken,
+  getCheckoutResumeContext,
+  type CheckoutResumeContext,
+} from '../services/checkoutResume';
+
+type CheckoutUiState = 'idle' | 'submitting' | 'awaiting_payment' | 'provisioning' | 'completed' | 'error';
+
+function CheckoutSpinner() {
+  return <span className="checkout-spinner" aria-hidden="true" />;
+}
 
 export function CheckoutPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const selectedAgent = 'campo';
+  const isSmokeMode = new URLSearchParams(window.location.search).get('smoke') === '1';
+  const smokeSessionRef = useRef<string | null>(isSmokeMode ? consumeCapturedSmokeSession() : null);
+  const resumeTokenRef = useRef<string | null>(getCapturedCheckoutResumeToken());
+  const isResumeMode = resumeTokenRef.current !== null;
+  // The upstream landing is now Campo-only. Keep this fixed so the visible
+  // offer and the Billing API payload cannot diverge.
+  const selectedAgent = 'campo' as const;
   const [frequency, setFrequency] = useState<'mensal' | 'semestral' | 'anual'>('mensal');
   const [usersCountStr, setUsersCountStr] = useState<string>('1');
   const usersCount = Math.max(1, parseInt(usersCountStr) || 1);
-  const [paymentMethod, setPaymentMethod] = useState<'credit_card' | 'pix' | 'boleto'>('pix');
-  const [includeOrderBump, setIncludeOrderBump] = useState<boolean>(false);
+  const [paymentMethod, setPaymentMethod] = useState<'credit_card' | 'pix_automatic'>('pix_automatic');
+  const [addons, setAddons] = useState<BillingAddon[]>([]);
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
+  const [checkoutError, setCheckoutError] = useState('');
+  const [checkoutNotice, setCheckoutNotice] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [checkoutUiState, setCheckoutUiState] = useState<CheckoutUiState>('idle');
+  const [checkoutResult, setCheckoutResult] = useState<
+    | { kind: 'pix'; qrCodeSrc?: string; pixPayload: string; expiresAt?: number; amount: number }
+    | { kind: 'card' }
+    | null
+  >(null);
+  const [trackedOrder, setTrackedOrder] = useState<{ orderId: string; statusUrl: string } | null>(null);
+  const [paymentState, setPaymentState] = useState<'awaiting' | 'checking' | 'temporary_error' | 'awaiting_completion' | 'timeout' | 'terminal'>('awaiting');
+  const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState(false);
+  const [pixNow, setPixNow] = useState(() => Date.now());
+  const [isDocumentHidden, setIsDocumentHidden] = useState(
+    () => typeof document !== 'undefined' && document.visibilityState === 'hidden',
+  );
+  const pollingOrderRef = useRef<string | null>(null);
+  const terminalOrderRef = useRef<string | null>(null);
+  const checkoutSequenceRef = useRef(0);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -41,6 +108,12 @@ export function CheckoutPage() {
   const [cardExpiry, setCardExpiry] = useState('');
   const [cardCvv, setCardCvv] = useState('');
   const [cardName, setCardName] = useState('');
+  const [cardPostalCode, setCardPostalCode] = useState('');
+  const [cardAddressNumber, setCardAddressNumber] = useState('');
+  const checkoutAttemptRef = useRef<CheckoutAttempt | null>(null);
+  const [resumeState, setResumeState] = useState<'loading' | 'ready' | 'error'>(isResumeMode ? 'loading' : 'ready');
+  const [resumeErrorCode, setResumeErrorCode] = useState('');
+  const [resumeContext, setResumeContext] = useState<CheckoutResumeContext | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -50,23 +123,76 @@ export function CheckoutPage() {
     return () => clearTimeout(scrollTimer);
   }, []);
 
+  useEffect(() => {
+    try {
+      if (isResumeMode) return;
+      const saved = localStorage.getItem('ceruti_checkout_contact');
+      if (!saved) return;
+      const contact = JSON.parse(saved) as { name?: unknown; email?: unknown };
+      if (typeof contact.name === 'string') setName(contact.name);
+      if (typeof contact.email === 'string') setEmail(contact.email);
+    } catch {
+      // Browser autocomplete continues to work even if local storage is unavailable.
+    }
+  }, [isResumeMode]);
+
+  useEffect(() => {
+    if (isResumeMode || (!name.trim() && !email.trim())) return;
+    try {
+      localStorage.setItem('ceruti_checkout_contact', JSON.stringify({
+        name: name.trim(),
+        email: email.trim(),
+      }));
+    } catch {
+      // Saving a convenience preference must never interrupt checkout.
+    }
+  }, [email, isResumeMode, name]);
+
+  useEffect(() => {
+    const token = resumeTokenRef.current;
+    if (!token) return;
+    const controller = new AbortController();
+    void getCheckoutResumeContext(token, controller.signal)
+      .then((context) => {
+        if (controller.signal.aborted) return;
+        setResumeContext(context);
+        setName(context.customer.name);
+        setEmail(context.customer.email);
+        setPhone(context.customer.phone);
+        setFrequency(context.defaultFrequency === 'monthly' ? 'mensal' : context.defaultFrequency === 'semiannual' ? 'semestral' : 'anual');
+        setUsersCountStr(String(context.defaultAccessQuantity));
+        setResumeState('ready');
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        setResumeErrorCode(error instanceof CheckoutResumeApiError ? error.code : 'RESUME_UNAVAILABLE');
+        setResumeState('error');
+      });
+    return () => controller.abort();
+  }, []);
+
   // Order Bump pricing calculations
-  const bumpMonthlyPrice = 47;
-  const contractMonths = frequency === 'mensal' ? 1 : (frequency === 'semestral' ? 6 : 12);
-  const bumpTotalAmount = bumpMonthlyPrice * contractMonths;
+  const includesTrainingPlatform = addons.includes('training_platform');
+  const trainingPlatformMonthlyPrice = isSmokeMode ? 1 : 47;
+  const displayPricing = getCheckoutDisplayPricing({
+    isSmokeMode,
+    frequency,
+    accessQuantity: usersCount,
+    addons,
+  });
 
   // Track InitiateCheckout when checkout parameters change or stabilize
   useEffect(() => {
+    if (isSmokeMode || (isResumeMode && resumeState !== 'ready')) return;
     const timer = setTimeout(() => {
-      const bumpAdd = includeOrderBump ? bumpTotalAmount : 0;
-      const value = (getUnitPrice() * usersCount * contractMonths) + bumpAdd;
-      const content_ids = [selectedAgent];
-      if (includeOrderBump) content_ids.push('order_bump_treinamentos');
+      const value = displayPricing.grandTotal;
+      const content_ids: string[] = [selectedAgent];
+      if (includesTrainingPlatform) content_ids.push('training_platform');
 
       trackMetaEvent('InitiateCheckout', {
         value,
         currency: 'BRL',
-        content_name: `Assinatura Ceruti - ${selectedAgent}${includeOrderBump ? ' + Treinamentos' : ''}`,
+        content_name: `Assinatura Ceruti - ${selectedAgent}${includesTrainingPlatform ? ' + Treinamentos' : ''}`,
         content_category: 'Treinador de Vendas',
         content_ids,
         content_type: 'product',
@@ -75,47 +201,185 @@ export function CheckoutPage() {
     }, 1000); // Debounce track to avoid spamming on user adjustments
 
     return () => clearTimeout(timer);
-  }, [selectedAgent, frequency, usersCount, includeOrderBump]);
+  }, [selectedAgent, frequency, usersCount, includesTrainingPlatform, displayPricing.grandTotal, isResumeMode, isSmokeMode, resumeState]);
 
   useEffect(() => {
     setAccessNumbers(prev => {
+      const targetLength = isResumeMode ? Math.max(0, usersCount - 1) : usersCount;
       const newArr = [...prev];
-      if (newArr.length < usersCount) {
-        while(newArr.length < usersCount) newArr.push('');
-      } else if (newArr.length > usersCount) {
-        newArr.length = usersCount;
+      if (newArr.length < targetLength) {
+        while(newArr.length < targetLength) newArr.push('');
+      } else if (newArr.length > targetLength) {
+        newArr.length = targetLength;
       }
       return newArr;
     });
-  }, [usersCount]);
+  }, [isResumeMode, usersCount]);
 
-  // Pricing Logic
-  const getUnitPrice = () => {
-    if (frequency === 'mensal') return 57.00;
-    if (frequency === 'semestral') return 47.00;
-    return 37.00; // anual
-  };
+  useEffect(() => {
+    // Resume authorization is server-defined and does not currently expose
+    // add-on capability. Do not silently drop a resumed selection.
+    if (isResumeMode) setAddons([]);
+  }, [isResumeMode]);
 
-  const basePrice = 147.50;
+  useEffect(() => {
+    if (!isSmokeMode) return;
+    setFrequency('mensal');
+    setUsersCountStr('1');
+  }, [isSmokeMode]);
 
-  const unitPrice = getUnitPrice();
-  const baseMonthlyTotal = unitPrice * usersCount;
-  const totalPricePerMonth = baseMonthlyTotal + (includeOrderBump ? bumpMonthlyPrice : 0);
+  useEffect(() => {
+    const handleVisibilityChange = () => setIsDocumentHidden(document.visibilityState === 'hidden');
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
 
-  const baseGrandTotal = frequency === 'mensal' 
-    ? baseMonthlyTotal 
-    : (frequency === 'semestral' ? baseMonthlyTotal * 6 : baseMonthlyTotal * 12);
+  useEffect(() => {
+    if (!trackedOrder) return;
 
-  const grandTotal = baseGrandTotal + (includeOrderBump ? bumpTotalAmount : 0);
+    const controller = new AbortController();
+    const activeOrderId = trackedOrder.orderId;
+    if (terminalOrderRef.current === activeOrderId) return;
+    const pollIntervalMs = isDocumentHidden ? 30_000 : showSuccessModal ? 4_000 : 12_000;
+    pollingOrderRef.current = activeOrderId;
+    setPaymentState((current) => current === 'awaiting_completion' ? current : 'checking');
+    void pollOrderUntilCompletion(trackedOrder, {
+      signal: controller.signal,
+      intervalMs: pollIntervalMs,
+      onStatus: (status) => {
+        if (controller.signal.aborted) return;
+        if (status.paid) {
+          setPaymentState('awaiting_completion');
+          setCheckoutUiState('provisioning');
+        } else {
+          setPaymentState('awaiting');
+          setCheckoutUiState('awaiting_payment');
+        }
+      },
+      onTemporaryError: () => {
+        if (!controller.signal.aborted) setPaymentState('temporary_error');
+      },
+    }).then((result) => {
+      if (controller.signal.aborted) return;
+      if (result.kind === 'confirmed') {
+        // Billing supplied this relative application URL. Do not derive a
+        // completion URL locally or resolve it against file://.
+        setCheckoutUiState('completed');
+        window.location.assign(result.redirectTo);
+      } else if (result.kind === 'terminal') {
+        pollingOrderRef.current = null;
+        terminalOrderRef.current = activeOrderId;
+        setPaymentState('terminal');
+        setCheckoutUiState('error');
+      } else {
+        if (pollingOrderRef.current !== activeOrderId) return;
+        setPaymentState('timeout');
+        setCheckoutUiState('error');
+        // Keep the same order under observation after a polling window ends.
+        // This schedules one replacement cycle; it does not create a checkout.
+        setTrackedOrder((current) => current?.orderId === activeOrderId ? { ...current } : current);
+      }
+    }).catch((error: unknown) => {
+      if (controller.signal.aborted || (error instanceof DOMException && error.name === 'AbortError')) return;
+      pollingOrderRef.current = null;
+      setPaymentState('temporary_error');
+      setCheckoutUiState('error');
+    });
+
+    return () => {
+      controller.abort();
+      if (pollingOrderRef.current === activeOrderId) pollingOrderRef.current = null;
+    };
+  }, [trackedOrder, showSuccessModal, isDocumentHidden]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
   };
 
+  const toggleTrainingPlatform = () => {
+    setAddons((current) => current.includes('training_platform') ? [] : ['training_platform']);
+  };
+
+  const paymentPendingMessage = paymentState === 'terminal'
+    ? 'Este pagamento não pôde ser concluído. Inicie uma nova tentativa para continuar.'
+    : paymentState === 'timeout'
+      ? 'Ainda não recebemos a confirmação. Consulte novamente em alguns instantes.'
+      : paymentState === 'temporary_error'
+        ? 'Não foi possível consultar o pagamento agora. Tentaremos novamente.'
+        : paymentState === 'awaiting_completion'
+          ? 'Pagamento recebido. Estamos preparando sua confirmação segura...'
+          : 'Aguardando confirmação do pagamento...';
+
+  const pixExpiresAt = checkoutResult?.kind === 'pix' ? checkoutResult.expiresAt : undefined;
+  const pixRemainingMs = pixExpiresAt === undefined ? undefined : pixExpiresAt - pixNow;
+  const pixExpired = pixRemainingMs !== undefined && pixRemainingMs <= 0;
+  const pixCountdown = pixRemainingMs === undefined ? undefined : formatPixRemainingTime(pixRemainingMs);
+
+  useEffect(() => {
+    if (!showSuccessModal || pixExpiresAt === undefined) return;
+    setPixNow(Date.now());
+    const interval = window.setInterval(() => setPixNow(Date.now()), 1_000);
+    return () => window.clearInterval(interval);
+  }, [pixExpiresAt, showSuccessModal]);
+
+  const copyPixPayload = async (payload: string) => {
+    if (!payload) return;
+    setCopyError(false);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(payload);
+      } else {
+        const fallback = document.createElement('textarea');
+        fallback.value = payload;
+        fallback.setAttribute('readonly', '');
+        fallback.style.position = 'fixed';
+        fallback.style.opacity = '0';
+        document.body.appendChild(fallback);
+        fallback.select();
+        const copiedWithFallback = document.execCommand('copy');
+        document.body.removeChild(fallback);
+        if (!copiedWithFallback) throw new Error('Clipboard fallback failed');
+      }
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2_000);
+    } catch {
+      // Clipboard feedback must never alter order tracking or payment polling.
+      setCopyError(true);
+    }
+  };
+
+  const ctaLabel = checkoutUiState === 'submitting'
+    ? 'PROCESSANDO PAGAMENTO...'
+    : checkoutUiState === 'awaiting_payment'
+      ? 'CONFIRMANDO PAGAMENTO...'
+      : checkoutUiState === 'provisioning'
+        ? 'LIBERANDO SEU ACESSO...'
+        : checkoutUiState === 'completed'
+          ? 'ACESSO LIBERADO'
+          : 'CONCLUIR ASSINATURA';
+  const ctaBusy = checkoutUiState === 'submitting'
+    || checkoutUiState === 'awaiting_payment'
+    || checkoutUiState === 'provisioning';
+
+  const beginOrderTracking = (order: { orderId: string; statusUrl: string }) => {
+    // Set the imperative guard before React schedules the render. This makes a
+    // double click or a delayed previous checkout response unable to create a
+    // second checkout while this order is being reconciled.
+    pollingOrderRef.current = order.orderId;
+    terminalOrderRef.current = null;
+    setTrackedOrder(order);
+    setCheckoutUiState('awaiting_payment');
+    setShowSuccessModal(true);
+  };
+
+  // Closing only pauses observation; it never discards the existing Billing order.
+  const closePixModal = () => setShowSuccessModal(false);
+  const reopenPixModal = () => setShowSuccessModal(true);
+
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, '');
     if (value.length > 11) value = value.slice(0, 11);
-    
+
     let formatted = value;
     if (value.length > 2) {
       formatted = `(${value.slice(0, 2)})`;
@@ -150,34 +414,259 @@ export function CheckoutPage() {
     }
   };
 
-  const handleCheckout = (e: React.FormEvent) => {
+  const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting || pollingOrderRef.current) return;
+    const checkoutSequence = ++checkoutSequenceRef.current;
+    if (isResumeMode && (!resumeTokenRef.current || !resumeContext || resumeState !== 'ready')) {
+      setCheckoutError('Não foi possível validar este link de assinatura. Solicite um novo link.');
+      return;
+    }
+    setCheckoutError('');
+    setCheckoutNotice('');
+    setCheckoutResult(null);
+    setTrackedOrder(null);
+    setPaymentState('awaiting');
+    setCheckoutUiState('submitting');
 
-    // Save purchase details to localStorage for the Thank You / Upsell page tracking
-    const purchaseDetails = {
-      name,
-      email,
-      phone,
-      value: grandTotal,
-      currency: 'BRL',
-      agent: selectedAgent,
-      frequency,
-      usersCount,
-      includeOrderBump,
-      bumpTotalPrice: includeOrderBump ? bumpTotalAmount : 0
-    };
-    localStorage.setItem('ceruti_last_checkout', JSON.stringify(purchaseDetails));
+    const cleanedPhone = phone.replace(/\D/g, '');
+    const cleanedDocument = documentNumber.replace(/\D/g, '');
+    const cleanedAccessNumbers = accessNumbers.map((value) => value.replace(/\D/g, '')).filter(Boolean);
+    const expectedAdditionalAccessNumbers = isResumeMode ? Math.max(0, usersCount - 1) : usersCount;
+    if (
+      cleanedDocument.length < 11
+      || (!isResumeMode && cleanedPhone.length < 10)
+      || (usersCount > 1 && cleanedAccessNumbers.length !== expectedAdditionalAccessNumbers)
+    ) {
+      setCheckoutError('Confira os dados de contato e os números de acesso antes de continuar.');
+      return;
+    }
 
-    setShowSuccessModal(true);
+    const frequencyByLabel = { mensal: 'monthly', semestral: 'semiannual', anual: 'annual' } as const;
+    const baseRequest = buildCheckoutPayload({
+      agentType: selectedAgent,
+      frequency: frequencyByLabel[frequency],
+      accessQuantity: usersCount,
+      customer: { name: name.trim(), email: email.trim(), phone: cleanedPhone, documentNumber: cleanedDocument },
+      accessNumbers: cleanedAccessNumbers,
+      addons,
+    });
+
+    if (isSmokeMode) {
+      if (!smokeSessionRef.current) {
+        setCheckoutError('A sessão de smoke não está disponível. Reabra o link operacional de teste.');
+        return;
+      }
+      let smokeRequest: SmokeCheckoutRequest;
+      if (paymentMethod === 'credit_card') {
+        const cardDigits = cardNumber.replace(/\D/g, '');
+        const expiryDigits = cardExpiry.replace(/\D/g, '');
+        const postalCode = cardPostalCode.replace(/\D/g, '');
+        const expiryMonth = expiryDigits.slice(0, 2);
+        const expiryYear = expiryDigits.length === 4 ? `20${expiryDigits.slice(2)}` : '';
+        if (!cardName.trim() || cardDigits.length < 13 || !/^(0[1-9]|1[0-2])$/.test(expiryMonth) || !expiryYear || cardCvv.length < 3 || postalCode.length !== 8 || !cardAddressNumber.trim()) {
+          setCheckoutError('Confira todos os dados do cartão, incluindo CEP e número do endereço.');
+          return;
+        }
+        smokeRequest = {
+          ...buildSmokeCheckoutPayloadBase({
+            agentType: selectedAgent,
+            customer: baseRequest.customer,
+            accessNumber: cleanedPhone,
+            addons,
+          }),
+          paymentMethod: 'CREDIT_CARD',
+          creditCard: { holderName: cardName.trim(), number: cardDigits, expiryMonth, expiryYear, ccv: cardCvv },
+          creditCardHolderInfo: {
+            name: name.trim(), email: email.trim(), cpfCnpj: cleanedDocument, postalCode,
+            addressNumber: cardAddressNumber.trim(), phone: cleanedPhone, mobilePhone: cleanedPhone,
+          },
+        };
+      } else {
+        smokeRequest = {
+          ...buildSmokeCheckoutPayloadBase({
+            agentType: selectedAgent,
+            customer: baseRequest.customer,
+            accessNumber: cleanedPhone,
+            addons,
+          }),
+          paymentMethod: 'PIX_AUTOMATIC',
+        };
+      }
+      checkoutAttemptRef.current = createSmokeCheckoutAttempt('campo', () => crypto.randomUUID());
+      setIsSubmitting(true);
+      try {
+        await reportSmokeSessionDiagnostic('before-fetch', smokeSessionRef.current, {
+          name: baseRequest.customer.name,
+          email: baseRequest.customer.email,
+          phone: baseRequest.customer.phone,
+          documentNumber: baseRequest.customer.documentNumber,
+        });
+        const response = await postBillingSmokeCheckout(checkoutAttemptRef.current, smokeRequest, smokeSessionRef.current);
+        if (checkoutSequence !== checkoutSequenceRef.current) return;
+        if (smokeRequest.paymentMethod === 'PIX_AUTOMATIC') {
+          const pix = parseSmokePixAutomaticCheckout(response.data);
+          if (!pix) throw new BillingApiError('A resposta do smoke não pôde ser validada.', { recoverable: false });
+          if (!pix.statusUrl) throw new BillingApiError('A resposta do smoke não informou o status do Pix.', { recoverable: false });
+          setCheckoutResult({ kind: 'pix', ...toPixCheckoutDisplay(pix.pix), amount: displayPricing.grandTotal });
+          beginOrderTracking({ orderId: pix.orderId, statusUrl: pix.statusUrl });
+        } else {
+          const card = parseTransparentCardCheckout(response.data, response.status);
+          if (!card) throw new BillingApiError('A resposta do smoke de cartão não pôde ser validada.', { recoverable: false });
+          setCheckoutResult({ kind: 'card' });
+          beginOrderTracking(card);
+        }
+      } catch (error) {
+        setCheckoutUiState('idle');
+        setCheckoutError(error instanceof BillingApiError ? error.message : 'Não foi possível iniciar o smoke agora.');
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
+    let requestBody:
+      | BillingCheckoutRequest
+      | CreditCardCheckoutRequest
+      | ResumeCheckoutRequest
+      | ResumeCreditCardCheckoutRequest;
+    if (paymentMethod === 'credit_card') {
+      const cardDigits = cardNumber.replace(/\D/g, '');
+      const expiryDigits = cardExpiry.replace(/\D/g, '');
+      const postalCode = cardPostalCode.replace(/\D/g, '');
+      const expiryMonth = expiryDigits.slice(0, 2);
+      const expiryYear = expiryDigits.length === 4 ? `20${expiryDigits.slice(2)}` : '';
+      if (!cardName.trim() || cardDigits.length < 13 || !/^(0[1-9]|1[0-2])$/.test(expiryMonth) || !expiryYear || cardCvv.length < 3 || postalCode.length !== 8 || !cardAddressNumber.trim()) {
+        setCheckoutError('Confira todos os dados do cartão, incluindo CEP e número do endereço.');
+        return;
+      }
+      requestBody = isResumeMode
+        ? {
+          resumeToken: resumeTokenRef.current!,
+          frequency: frequencyByLabel[frequency],
+          accessQuantity: usersCount,
+          paymentMethod: 'credit_card',
+          documentNumber: cleanedDocument,
+          ...(cleanedAccessNumbers.length ? { additionalAccessNumbers: cleanedAccessNumbers } : {}),
+          creditCard: { holderName: cardName.trim(), number: cardDigits, expiryMonth, expiryYear, ccv: cardCvv },
+          creditCardHolderInfo: { cpfCnpj: cleanedDocument, postalCode, addressNumber: cardAddressNumber.trim() },
+        }
+        : {
+          ...baseRequest,
+          paymentMethod: 'credit_card',
+          creditCard: { holderName: cardName.trim(), number: cardDigits, expiryMonth, expiryYear, ccv: cardCvv },
+          creditCardHolderInfo: {
+            name: name.trim(), email: email.trim(), cpfCnpj: cleanedDocument, postalCode,
+            addressNumber: cardAddressNumber.trim(), phone: cleanedPhone, mobilePhone: cleanedPhone,
+          },
+        };
+    } else {
+      requestBody = isResumeMode
+        ? {
+          resumeToken: resumeTokenRef.current!,
+          frequency: frequencyByLabel[frequency],
+          accessQuantity: usersCount,
+          paymentMethod,
+          documentNumber: cleanedDocument,
+          ...(cleanedAccessNumbers.length ? { additionalAccessNumbers: cleanedAccessNumbers } : {}),
+        }
+        : { ...baseRequest, paymentMethod };
+    }
+
+    checkoutAttemptRef.current = createCheckoutAttempt(checkoutAttemptRef.current, requestBody, () => crypto.randomUUID());
+    setIsSubmitting(true);
+    try {
+      const response = await postBillingCheckout(checkoutAttemptRef.current, requestBody);
+      if (checkoutSequence !== checkoutSequenceRef.current) return;
+      const responseRoute = identifyBillingCheckoutResponse(response.data);
+      if (responseRoute === 'pix') {
+        const pix = parsePixAutomaticCheckout(response.data);
+        if (!pix?.statusUrl) throw new BillingApiError('A resposta do Pix não informou o status da cobrança. Tente novamente.', { recoverable: false });
+        if (paymentMethod === 'credit_card') {
+          setPaymentMethod('pix_automatic');
+          setCheckoutNotice('Encontramos um Pix anterior ainda válido e retomamos esta cobrança.');
+        }
+        setCheckoutResult({ kind: 'pix', ...toPixCheckoutDisplay(pix.pix), amount: displayPricing.grandTotal });
+        beginOrderTracking({ orderId: pix.orderId, statusUrl: pix.statusUrl });
+        return;
+      }
+      if (responseRoute === 'boleto') {
+        throw new BillingApiError('Boleto indisponível no momento. Escolha Pix ou cartão.', { recoverable: false });
+      }
+      if (responseRoute === 'transparent_card') {
+        const transparent = parseTransparentCardCheckout(response.data, response.status);
+        if (!transparent) throw new BillingApiError('A resposta do pagamento não pôde ser validada. Tente novamente.', { recoverable: false });
+        setCheckoutResult({ kind: 'card' });
+        beginOrderTracking(transparent);
+        return;
+      }
+      if (responseRoute === 'hosted_card') {
+        const hosted = parseHostedCardCheckout(response.data);
+        if (!hosted) throw new BillingApiError('A resposta do pagamento não pôde ser validada. Tente novamente.', { recoverable: false });
+        setCheckoutResult({ kind: 'card' });
+        beginOrderTracking(hosted);
+        return;
+      }
+      throw new BillingApiError('A resposta do pagamento não pôde ser validada. Tente novamente.', { recoverable: false });
+    } catch (error) {
+      if (!pollingOrderRef.current) setCheckoutUiState('idle');
+      setCheckoutError(error instanceof BillingApiError ? error.message : 'Não foi possível iniciar o pagamento agora. Tente novamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const resumeErrorMessage: Record<string, string> = {
+    RESUME_NOT_FOUND: 'Este link de assinatura não é válido. Solicite um novo link.',
+    RESUME_EXPIRED: 'Este link de assinatura expirou. Solicite um novo link.',
+    RESUME_TRIAL_STILL_ACTIVE: 'Seu período de teste ainda está ativo. Volte ao WhatsApp se precisar de ajuda.',
+    RESUME_ALREADY_CONVERTED: 'Esta assinatura já foi concluída. Consulte seu acesso ou fale com o suporte.',
+    RESUME_ALREADY_USED: 'Já existe uma assinatura em andamento para este link. Aguarde ou fale com o suporte.',
+    RESUME_UNAVAILABLE: 'Não foi possível abrir este checkout agora. Tente novamente em alguns instantes.',
+  };
+
+  if (isResumeMode && resumeState !== 'ready') {
+    return (
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center px-4 font-sans">
+        <div className="max-w-md rounded-3xl border border-neutral-200 bg-white p-8 text-center shadow-xl">
+          <ShieldCheck className="mx-auto mb-4 h-10 w-10 text-[#00a83e]" />
+          <p className="text-base font-bold text-neutral-800">
+            {resumeState === 'loading' ? 'Preparando seu checkout seguro...' : (resumeErrorMessage[resumeErrorCode] ?? resumeErrorMessage.RESUME_UNAVAILABLE)}
+          </p>
+          {resumeState === 'error' && <button type="button" onClick={() => navigate('/')} className="mt-6 font-bold text-[#00a83e]">Voltar ao início</button>}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
-      <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+      <div className="checkout-page relative isolate min-h-screen bg-gray-50 flex flex-col font-sans">
+      <div className="pointer-events-none absolute inset-0 z-0 opacity-30" aria-hidden="true">
+        <OglAurora
+          colorStops={['#d8f2df', '#9ed7ae', '#eef9f1']}
+          amplitude={0.72}
+          blend={0.42}
+          speed={0.35}
+        />
+      </div>
+      <Aurora
+        colorStart="#d4f0dc"
+        colorMiddle="#a6d5b3"
+        colorEnd="#f2fbf4"
+        speed={0.45}
+        amplitude={78}
+        layerCount={4}
+        opacity={0.22}
+        followMouse={false}
+        verticalAnchor={0.08}
+        className="opacity-70"
+      />
+      <div className="pointer-events-none absolute inset-0 z-[1] bg-white/35" aria-hidden="true" />
       {/* Top Header */}
-      <header className="w-full bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between shadow-sm sticky top-0 z-30">
+      <header className="checkout-header relative z-30 w-full bg-white/95 border-b border-gray-200 px-4 py-4 flex items-center justify-between shadow-sm sticky top-0">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => navigate('/')}
             className="flex items-center gap-2 text-neutral-500 hover:text-neutral-800 transition-colors"
           >
@@ -185,26 +674,21 @@ export function CheckoutPage() {
             <span className="font-semibold text-sm hidden sm:inline">Voltar</span>
           </button>
           <div className="h-6 w-px bg-gray-300 hidden sm:block"></div>
-          <img 
+          <img
             id="checkout_header_logo"
-            src="/LETRA ESCURA - FUNDO TRANS - HOR.png" 
-            alt="Ceruti" 
-            className="h-8 sm:h-9 w-auto object-contain" 
+            src="/LETRA ESCURA - FUNDO TRANS - HOR.png"
+            alt="Ceruti"
+            className="h-8 sm:h-9 w-auto object-contain"
             referrerPolicy="no-referrer"
           />
-        </div>
-        <div className="flex items-center gap-2 text-neutral-500">
-          <Lock className="w-4 h-4" />
-          <span className="text-xs font-bold tracking-wider">CHECKOUT SEGURO</span>
         </div>
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 w-full max-w-6xl mx-auto flex flex-col lg:flex-row items-stretch overflow-hidden px-4 py-8 sm:px-6 gap-6 sm:gap-8">
-        
+      <div className="checkout-layout flex-1 w-full max-w-6xl mx-auto flex flex-col lg:flex-row items-stretch overflow-hidden px-4 py-8 sm:px-6 gap-6 sm:gap-8">
+
         {/* Left Side: Product Summary */}
-        <div className="w-full lg:w-5/12 relative z-10 flex flex-col h-fit rounded-[24px] overflow-hidden shadow-sm border border-neutral-100/50">
-          <div className="absolute top-1/2 left-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0%,rgba(0,168,62,0.8)_25%,transparent_50%,rgba(0,112,243,0.8)_75%,transparent_100%)] opacity-70 blur-xl animate-[spin_20s_linear_infinite] -z-20 -translate-x-1/2 -translate-y-1/2"></div>
+        <div className="checkout-summary w-full lg:w-5/12 relative z-10 flex flex-col h-fit rounded-[24px] overflow-hidden shadow-sm border border-neutral-100/50">
           <div className="absolute inset-[1px] bg-[#fafcff] rounded-[23px] -z-10"></div>
           <div className="w-full h-full bg-transparent p-6 sm:p-10 flex flex-col relative z-0">
 
@@ -218,12 +702,11 @@ export function CheckoutPage() {
             </div>
           </div>
 
-          {/* BANNER EM DESTAQUE - DESCONTO EXCLUSIVO 100 ASSINANTES */}
           <div className="mb-6">
-            <div className="flex items-center justify-center gap-2 p-3 bg-gradient-to-r from-[#003e15] via-[#006e2e] to-[#003e15] rounded-xl shadow-md border-2 border-amber-400 animate-pulse text-[11px] sm:text-xs font-black tracking-wide uppercase text-center">
-              <Flame className="w-4 h-4 text-amber-300 shrink-0 drop-shadow" />
-              <span className="force-white !text-white font-black drop-shadow-sm" style={{ color: '#ffffff' }}>OFERTA ESPECIAL PARA OS 100 PRÓXIMOS ASSINANTES!</span>
-              <Flame className="w-4 h-4 text-amber-300 shrink-0 drop-shadow" />
+            <div className="checkout-special-offer mt-3 flex items-center justify-center gap-2 rounded-xl border border-amber-300 bg-[#588c6b] px-3 py-2 text-center text-[10px] font-extrabold uppercase tracking-wide text-white shadow-sm sm:text-xs">
+              <Flame className="h-4 w-4 shrink-0 text-amber-200" aria-hidden="true" />
+              Oferta especial para os 100 próximos assinantes!
+              <Flame className="h-4 w-4 shrink-0 text-amber-200" aria-hidden="true" />
             </div>
           </div>
 
@@ -232,59 +715,49 @@ export function CheckoutPage() {
             <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5">
               <button
                 type="button"
-                onClick={() => setFrequency('mensal')}
+                onClick={() => !isSmokeMode && (!isResumeMode || resumeContext?.allowedFrequencies.includes('monthly')) && setFrequency('mensal')}
+                disabled={isSmokeMode || (isResumeMode && !resumeContext?.allowedFrequencies.includes('monthly'))}
                 className={`px-1 py-2 sm:px-3 sm:p-4 rounded-xl border-2 text-xs sm:text-sm font-black text-center transition-all ${
-                  frequency === 'mensal' 
-                    ? 'border-[#0070f3] bg-[#f0f7ff] text-[#0070f3] shadow-inner' 
+                  frequency === 'mensal'
+                    ? 'border-[#0070f3] bg-[#f0f7ff] text-[#0070f3] shadow-inner'
                     : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 hover:bg-gray-50'
                 }`}
               >
-                Mensal
-                <div className={`text-[8px] sm:text-[10px] mt-0.5 uppercase tracking-wider font-extrabold ${
-                  frequency === 'mensal' ? 'text-[#0070f3]/90' : 'text-emerald-600'
-                }`}>
-                  60% OFF
-                </div>
+                <span className="block">Mensal</span>
+                <span className="block text-[10px] sm:text-xs leading-tight opacity-85">60% OFF</span>
               </button>
               <button
                 type="button"
-                onClick={() => setFrequency('semestral')}
+                onClick={() => !isSmokeMode && (!isResumeMode || resumeContext?.allowedFrequencies.includes('semiannual')) && setFrequency('semestral')}
+                disabled={isSmokeMode || (isResumeMode && !resumeContext?.allowedFrequencies.includes('semiannual'))}
                 className={`px-1 py-2 sm:px-3 sm:p-4 rounded-xl border-2 text-xs sm:text-sm font-black text-center transition-all ${
-                  frequency === 'semestral' 
-                    ? 'border-[#0070f3] bg-[#f0f7ff] text-[#0070f3] shadow-inner' 
+                  frequency === 'semestral'
+                    ? 'border-[#0070f3] bg-[#f0f7ff] text-[#0070f3] shadow-inner'
                     : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 hover:bg-gray-50'
                 }`}
               >
-                Semestral
-                <div className={`text-[8px] sm:text-[10px] mt-0.5 uppercase tracking-wider font-extrabold ${
-                  frequency === 'semestral' ? 'text-[#0070f3]/90' : 'text-emerald-600'
-                }`}>
-                  67% OFF
-                </div>
+                <span className="block">Semestral</span>
+                <span className="block text-[10px] sm:text-xs leading-tight opacity-85">67% OFF</span>
               </button>
               <button
                 type="button"
-                onClick={() => setFrequency('anual')}
+                onClick={() => !isSmokeMode && (!isResumeMode || resumeContext?.allowedFrequencies.includes('annual')) && setFrequency('anual')}
+                disabled={isSmokeMode || (isResumeMode && !resumeContext?.allowedFrequencies.includes('annual'))}
                 className={`px-1 py-2 sm:px-3 sm:p-4 rounded-xl border-2 text-xs sm:text-sm font-black text-center transition-all ${
-                  frequency === 'anual' 
-                    ? 'border-[#0070f3] bg-[#f0f7ff] text-[#0070f3] shadow-inner' 
+                  frequency === 'anual'
+                    ? 'border-[#0070f3] bg-[#f0f7ff] text-[#0070f3] shadow-inner'
                     : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 hover:bg-gray-50'
                 }`}
               >
-                Anual
-                <div className={`text-[8px] sm:text-[10px] mt-0.5 uppercase tracking-wider font-extrabold ${
-                  frequency === 'anual' ? 'text-[#0070f3]/90' : 'text-emerald-600'
-                }`}>
-                  74% OFF
-                </div>
+                <span className="block">Anual</span>
+                <span className="block text-[10px] sm:text-xs leading-tight opacity-85">74% OFF</span>
               </button>
             </div>
           </div>
 
-          <div className="mb-6 relative z-10 p-5 sm:p-6 rounded-[24px] overflow-hidden shadow-[0_4px_20px_rgba(0,112,243,0.05)] border border-neutral-100/50">
-            <div className="absolute top-1/2 left-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0%,rgba(0,168,62,0.8)_25%,transparent_50%,rgba(0,112,243,0.8)_75%,transparent_100%)] opacity-70 blur-xl animate-[spin_20s_linear_infinite] -z-20 -translate-x-1/2 -translate-y-1/2"></div>
+          <div className="checkout-access-count mb-6 relative z-10 p-5 sm:p-6 rounded-[24px] overflow-hidden shadow-[0_4px_20px_rgba(0,112,243,0.05)] border-2 border-[#0070f3]/30">
             <div className="absolute inset-[1px] bg-[#fafcff] rounded-[23px] -z-10"></div>
-            
+
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 relative z-0">
               <h4 className="font-bold text-[#0b1a30] text-sm sm:text-base">
                 Quantidade de acessos:
@@ -293,38 +766,38 @@ export function CheckoutPage() {
             <div className="flex items-center relative z-0">
               <div className="relative flex-1">
                 <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#0070f3]" />
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   min="1"
+                  max={isSmokeMode ? 1 : (isResumeMode ? resumeContext?.maxAccessQuantity : undefined)}
+                  disabled={isSmokeMode}
                   value={usersCountStr}
-                  onChange={(e) => setUsersCountStr(e.target.value)}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    const limit = resumeContext?.maxAccessQuantity;
+                    if (isResumeMode && limit && Number(next) > limit) {
+                      setUsersCountStr(String(limit));
+                      return;
+                    }
+                    setUsersCountStr(next);
+                  }}
                   className="w-full pl-12 pr-4 py-3 sm:py-4 bg-white border-2 border-[#0070f3]/20 rounded-xl focus:outline-none focus:border-[#0070f3] focus:ring-4 ring-[#0070f3]/10 font-black text-xl text-neutral-900 transition-all cursor-text text-center sm:text-left shadow-inner"
                 />
               </div>
             </div>
           </div>
 
+          <div className="mb-6 rounded-2xl border border-neutral-100 bg-neutral-50/70 px-5 py-4">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-black text-[#0b1a30]">Ceruti Campo</span>
+              <span className="text-xs font-bold uppercase tracking-wide text-neutral-500">Resumo</span>
+            </div>
+            <p className="mt-2 text-xs font-semibold leading-5 text-neutral-600">
+              {usersCount} {usersCount === 1 ? 'acesso' : 'acessos'} · {includesTrainingPlatform ? 'Treinamentos incluído' : 'Treinamento não incluso'} · Cobrança {frequency === 'mensal' ? 'mensal' : frequency === 'semestral' ? 'semestral' : 'anual'}
+            </p>
+          </div>
+
           <div className="mt-4 pt-6 border-t border-neutral-200">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-neutral-500 font-medium text-sm">
-                Mensalidade (Preço original):
-              </span>
-              <span className="font-bold text-red-400/80 decoration-red-400 decoration-2 line-through text-sm">
-                {formatCurrency(basePrice * usersCount)}/mês
-              </span>
-            </div>
-
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-neutral-500 font-medium text-sm">
-                Total (Preço original):
-              </span>
-              <span className="font-bold text-red-400/80 decoration-red-400 decoration-2 line-through text-sm">
-                {formatCurrency(basePrice * usersCount * (frequency === 'mensal' ? 1 : (frequency === 'semestral' ? 6 : 12)))}
-              </span>
-            </div>
-            
-
-
             {frequency === 'semestral' && (
               <div className="flex justify-between items-center mb-4 pt-4 border-t border-neutral-100">
                 <span className="text-neutral-500 font-medium text-sm">Tempo de contrato:</span>
@@ -339,14 +812,27 @@ export function CheckoutPage() {
               </div>
             )}
 
-            {includeOrderBump && (
+            {!isSmokeMode && (
+              <div className="mb-4 space-y-2 border-y border-neutral-200 py-4 text-xs sm:text-sm">
+                <div className="flex items-center justify-between gap-4 text-neutral-500">
+                  <span>Mensalidade (Preço original):</span>
+                  <span className="font-bold text-red-400 line-through">{formatCurrency(displayPricing.originalMonthlyTotal)}/mês</span>
+                </div>
+                <div className="flex items-center justify-between gap-4 text-neutral-500">
+                  <span>Total (Preço original):</span>
+                  <span className="font-bold text-red-400 line-through">{formatCurrency(displayPricing.originalGrandTotal)}</span>
+                </div>
+              </div>
+            )}
+
+            {includesTrainingPlatform && (
               <div className="flex justify-between items-center mb-2 pt-2 border-t border-dashed border-amber-300/80 text-xs sm:text-sm">
                 <span className="text-amber-900 font-extrabold flex items-center gap-1.5">
                   <GraduationCap className="w-4 h-4 text-amber-600 shrink-0" />
-                  Treinamentos (+R$ 47/mês):
+                  Treinamentos (+R$ {isSmokeMode ? '1' : '47'}/mês):
                 </span>
                 <span className="font-extrabold text-amber-900">
-                  +{formatCurrency(bumpTotalAmount)}
+                  +{formatCurrency(displayPricing.addonMonthlyPrice)}
                 </span>
               </div>
             )}
@@ -358,13 +844,13 @@ export function CheckoutPage() {
               <div className="flex items-baseline gap-1 sm:gap-1.5 justify-center">
                 <span className="font-bold text-lg sm:text-xl text-[#0b1a30]">R$</span>
                 <span className="font-black text-[32px] sm:text-[40px] text-[#0b1a30] leading-none tracking-tight truncate">
-                  {formatCurrency(totalPricePerMonth).replace('R$', '').trim()}
+                  {formatCurrency(displayPricing.totalPricePerMonth).replace('R$', '').trim()}
                 </span>
                 <span className="font-bold text-neutral-500 text-sm ml-1">/mês</span>
               </div>
-              
+
               <div className="text-xs sm:text-sm font-semibold text-neutral-500 mt-1">
-                Total do plano somente <span className="font-black text-[#0b1a30]">{formatCurrency(grandTotal)}</span> para os {usersCount} {usersCount === 1 ? 'acesso' : 'acessos'}
+                Total do plano somente <span className="font-black text-[#0b1a30]">{formatCurrency(displayPricing.grandTotal)}</span> para os {usersCount} {usersCount === 1 ? 'acesso' : 'acessos'}
               </div>
             </div>
           </div>
@@ -372,8 +858,7 @@ export function CheckoutPage() {
         </div>
 
         {/* Right Side: Payment Form */}
-        <div className="w-full lg:w-7/12 relative z-10 flex flex-col h-fit rounded-[24px] overflow-hidden shadow-sm border border-neutral-100/50 bg-white">
-          <div className="absolute top-1/2 left-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0%,rgba(0,112,243,0.8)_25%,transparent_50%,rgba(0,168,62,0.8)_75%,transparent_100%)] opacity-70 blur-xl animate-[spin_20s_linear_infinite_reverse] -z-20 -translate-x-1/2 -translate-y-1/2 transform"></div>
+        <div className="checkout-form-card w-full lg:w-7/12 relative z-10 flex flex-col h-fit rounded-[24px] overflow-hidden shadow-sm border border-neutral-100/50 bg-white">
           <div className="absolute inset-[1px] bg-white rounded-[23px] -z-10"></div>
           <div className="w-full h-full bg-transparent p-6 sm:p-10 flex flex-col relative z-0">
             <div className="mb-8">
@@ -381,15 +866,22 @@ export function CheckoutPage() {
             <p className="text-neutral-500 font-medium">Preencha seus dados para liberar seu acesso instantaneamente.</p>
           </div>
 
-          <form onSubmit={handleCheckout} className="flex flex-col gap-6 flex-1">
+          <form onSubmit={handleCheckout} className="checkout-form flex flex-col gap-6 flex-1">
             {/* Personal Data */}
             <div className="space-y-4">
+              <div className="checkout-section-heading" aria-hidden="true">
+                <span className="checkout-section-kicker">DADOS DE ACESSO</span>
+                <span className="checkout-section-rule" />
+              </div>
               <div>
                 <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1">Nome completo</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  name="name"
+                  autoComplete="name"
+                  readOnly={isResumeMode}
                   required
                   placeholder="Seu nome ou nome da empresa"
                   className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
@@ -398,10 +890,13 @@ export function CheckoutPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1">E-mail de acesso</label>
-                  <input 
-                    type="email" 
+                  <input
+                    type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                  name="email"
+                  autoComplete="email"
+                  readOnly={isResumeMode}
                     required
                     placeholder="email@empresa.com.br"
                     className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
@@ -409,10 +904,13 @@ export function CheckoutPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1">WhatsApp / Telefone</label>
-                  <input 
-                    type="tel" 
+                  <input
+                    type="tel"
                     value={phone}
                     onChange={handlePhoneChange}
+                  name="tel"
+                  autoComplete="tel"
+                  readOnly={isResumeMode}
                     required
                     placeholder="(00) 00000-0000"
                     className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
@@ -421,10 +919,14 @@ export function CheckoutPage() {
               </div>
               <div>
                 <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1">CPF ou CNPJ</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={documentNumber}
-                  onChange={(e) => setDocumentNumber(e.target.value)}
+                  onChange={(e) => setDocumentNumber(formatCpfCnpjInput(e.target.value))}
+                  name="document"
+                  autoComplete="off"
+                  inputMode="numeric"
+                  maxLength={18}
                   required
                   placeholder="000.000.000-00 ou 00.000.000/0000-00"
                   className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
@@ -443,7 +945,7 @@ export function CheckoutPage() {
                   {accessNumbers.map((num, idx) => (
                     <div key={idx}>
                       <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1">{idx + 1}º Acesso</label>
-                      <input 
+                      <input
                         type="tel"
                         value={num}
                         onChange={(e) => {
@@ -479,12 +981,21 @@ export function CheckoutPage() {
             )}
 
             {/* Order Bump - Treinamentos */}
-            <div className="mt-4 pt-6 border-t border-neutral-200 space-y-4">
-              <div 
-                onClick={() => setIncludeOrderBump(!includeOrderBump)}
-                className={`relative rounded-2xl p-4 sm:p-5 transition-all duration-300 cursor-pointer select-none border-2 ${
-                  includeOrderBump 
-                    ? 'bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-amber-500/15 border-amber-500 shadow-lg shadow-amber-500/15 ring-2 ring-amber-500/20' 
+            {!isResumeMode && <div className="checkout-addons mt-4 pt-6 border-t border-neutral-200 space-y-4">
+              <div
+                role="button"
+                tabIndex={0}
+                aria-pressed={includesTrainingPlatform}
+                onClick={toggleTrainingPlatform}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    toggleTrainingPlatform();
+                  }
+                }}
+                className={`checkout-addon relative rounded-2xl p-4 sm:p-5 transition-all duration-300 cursor-pointer select-none border-2 ${
+                  includesTrainingPlatform
+                    ? 'bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-amber-500/15 border-solid border-amber-500'
                     : 'bg-gradient-to-br from-amber-50/50 via-orange-50/30 to-amber-100/40 border-dashed border-amber-400/90 hover:border-amber-500 hover:bg-amber-50/80'
                 }`}
               >
@@ -501,7 +1012,7 @@ export function CheckoutPage() {
                   </div>
                   <div className="text-right">
                     <span className="text-xs font-black text-amber-900 uppercase tracking-tight block">
-                      + R$ 47,00<span className="text-[10px] text-amber-700 font-bold">/mês</span>
+                      + R$ {isSmokeMode ? '1,00' : '47,00'}<span className="text-[10px] text-amber-700 font-bold">/mês</span>
                     </span>
                   </div>
                 </div>
@@ -510,11 +1021,11 @@ export function CheckoutPage() {
                 <div className="flex items-start gap-3.5">
                   <div className="pt-0.5 shrink-0">
                     <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
-                      includeOrderBump 
-                        ? 'bg-amber-500 border-amber-600 text-white shadow-md shadow-amber-500/30' 
+                      includesTrainingPlatform
+                        ? 'bg-amber-500 border-amber-600 text-white shadow-md shadow-amber-500/30'
                         : 'border-amber-400 bg-white hover:border-amber-500'
                     }`}>
-                      {includeOrderBump && <Check className="w-4 h-4 stroke-[3]" />}
+                      {includesTrainingPlatform && <Check className="w-4 h-4 stroke-[3]" />}
                     </div>
                   </div>
 
@@ -530,24 +1041,26 @@ export function CheckoutPage() {
                     <div className="inline-flex items-center gap-2 bg-white/90 border border-amber-300/80 rounded-xl px-3 py-1.5 text-xs text-amber-900 font-bold shadow-xs">
                       <GraduationCap className="w-4 h-4 text-amber-600 shrink-0" />
                       <span>
-                        Acesso liberado por <strong>{contractMonths} {contractMonths === 1 ? 'mês' : 'meses'}</strong> (R$ {bumpTotalAmount},00 total acumulado)
+                        Acesso liberado por {displayPricing.contractMonths} {displayPricing.contractMonths === 1 ? 'mês' : 'meses'} ({formatCurrency(trainingPlatformMonthlyPrice * displayPricing.contractMonths)} total acumulado)
                       </span>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
+
+            </div>}
 
             {/* Payment Method Selection */}
-            <div className="mt-4 pt-6 border-t border-neutral-200">
+            <div className="checkout-payment-methods mt-4 pt-6 border-t border-neutral-200">
               <label className="block text-base font-bold text-neutral-900 mb-4">Forma de pagamento (Asaas)</label>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => setPaymentMethod('pix')}
+                  onClick={() => setPaymentMethod('pix_automatic')}
+                  aria-pressed={paymentMethod === 'pix_automatic'}
                   className={`flex flex-col items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all ${
-                    paymentMethod === 'pix' 
-                      ? 'border-[#00a83e] bg-[#eafdf0] text-[#00a83e] shadow-md shadow-[#00a83e]/10' 
+                    paymentMethod === 'pix_automatic'
+                      ? 'border-[#00a83e] bg-[#eafdf0] text-[#00a83e] shadow-md shadow-[#00a83e]/10'
                       : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 hover:bg-gray-50'
                   }`}
                 >
@@ -557,26 +1070,15 @@ export function CheckoutPage() {
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('credit_card')}
+                  aria-pressed={paymentMethod === 'credit_card'}
                   className={`flex flex-col items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all ${
-                    paymentMethod === 'credit_card' 
-                      ? 'border-[#0070f3] bg-[#f0f7ff] text-[#0070f3] shadow-md shadow-[#0070f3]/10' 
+                    paymentMethod === 'credit_card'
+                      ? 'border-[#0070f3] bg-[#f0f7ff] text-[#0070f3] shadow-md shadow-[#0070f3]/10'
                       : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 hover:bg-gray-50'
                   }`}
                 >
                   <CreditCard className="w-8 h-8" />
                   <span className="text-xs font-black uppercase tracking-wider text-center">Cartão</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('boleto')}
-                  className={`flex flex-col items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all ${
-                    paymentMethod === 'boleto' 
-                      ? 'border-[#0b1a30] bg-neutral-100 text-[#0b1a30] shadow-md shadow-[#0b1a30]/10' 
-                      : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 hover:bg-gray-50'
-                  }`}
-                >
-                  <FileText className="w-8 h-8" />
-                  <span className="text-xs font-black uppercase tracking-wider text-center">Boleto</span>
                 </button>
               </div>
 
@@ -606,39 +1108,45 @@ export function CheckoutPage() {
                 <div className="mt-6 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                   <div>
                     <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1">Número do Cartão</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={cardNumber}
                       onChange={handleCardNumberChange}
+                      name="cc-number"
+                      autoComplete="cc-number"
                       required={paymentMethod === 'credit_card'}
-                      placeholder="0000 0000 0000 0000" 
+                      placeholder="0000 0000 0000 0000"
                       className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1">Validade</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={cardExpiry}
                         onChange={handleCardExpiryChange}
+                        name="cc-exp"
+                        autoComplete="cc-exp"
                         required={paymentMethod === 'credit_card'}
-                        placeholder="MM/AA" 
+                        placeholder="MM/AA"
                         maxLength={5}
                         className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1">CVV</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={cardCvv}
                         onChange={(e) => {
                           const val = e.target.value.replace(/\D/g, '');
                           if (val.length <= 4) setCardCvv(val);
                         }}
+                        name="cc-csc"
+                        autoComplete="cc-csc"
                         required={paymentMethod === 'credit_card'}
-                        placeholder="123" 
+                        placeholder="123"
                         maxLength={4}
                         className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
                       />
@@ -646,78 +1154,99 @@ export function CheckoutPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1">Nome no Cartão</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={cardName}
                       onChange={(e) => setCardName(e.target.value)}
+                      maxLength={70}
+                      name="cc-name"
+                      autoComplete="cc-name"
                       required={paymentMethod === 'credit_card'}
-                      placeholder="Como impresso no cartão" 
+                      placeholder="Como impresso no cartão"
                       className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
                     />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1">CEP</label>
+                      <input
+                        type="text"
+                        value={cardPostalCode}
+                        onChange={(e) => setCardPostalCode(formatCepInput(e.target.value))}
+                        name="postal-code"
+                        autoComplete="postal-code"
+                        inputMode="numeric"
+                        maxLength={9}
+                        required={paymentMethod === 'credit_card'}
+                        placeholder="00000-000"
+                        className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-neutral-700 mb-1.5 ml-1">Número</label>
+                      <input
+                        type="text"
+                        value={cardAddressNumber}
+                        onChange={(e) => setCardAddressNumber(normalizeCardAddressNumber(e.target.value))}
+                        name="address-number"
+                        autoComplete="address-line2"
+                        inputMode="numeric"
+                        maxLength={6}
+                        required={paymentMethod === 'credit_card'}
+                        placeholder="123"
+                        className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#0070f3]/15 focus:border-[#0070f3] focus:bg-white transition-all text-base font-medium placeholder-gray-400"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
             </div>
 
+            {checkoutError && (
+              <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+                {checkoutError}
+              </div>
+            )}
+
             {/* Submit Button */}
             <div className="mt-8">
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6">
-                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-full border border-emerald-200/60 shadow-sm">
-                   <ShieldCheck className="w-5 h-5 text-[#00a83e]" />
-                   <span className="text-xs sm:text-sm font-black text-emerald-800 uppercase tracking-wider">Garantia incondicional de 7 dias</span>
-                 </div>
-                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50/80 rounded-full border border-blue-200/60 shadow-sm">
-                   <Lock className="w-4.5 h-4.5 text-blue-600" />
-                   <span className="text-xs sm:text-sm font-black text-blue-800 uppercase tracking-wider">Certificação de Segurança SSL</span>
-                 </div>
-              </div>
+              <button
+                type="submit"
+                disabled={isSubmitting || ctaBusy || Boolean(trackedOrder) || (isResumeMode && resumeState !== 'ready')}
+                className="checkout-submit-button"
+                aria-label={ctaLabel}
+              >
+                {ctaBusy ? <CheckoutSpinner /> : checkoutUiState === 'completed' ? <Check className="w-6 h-6" aria-hidden="true" /> : <Lock className="w-6 h-6 text-current opacity-85" aria-hidden="true" />}
+                <span>{ctaLabel}</span>
+              </button>
 
-              <div className="relative group">
-                {/* Perpetual Glow Effect */}
-                <div className="absolute -inset-1 bg-gradient-to-r from-[#00a83e] via-[#00cf4d] to-[#00a83e] rounded-[16px] blur opacity-75 animate-pulse"></div>
-                
-                <button 
-                  type="submit"
-                  className="relative w-full flex items-center justify-center gap-3 bg-[#00a83e] hover:bg-[#009035] text-white px-8 py-5 rounded-xl font-black text-lg tracking-widest uppercase transition-all shadow-[0_10px_25px_rgba(0,168,62,0.3)] hover:-translate-y-1 active:translate-y-0"
-                >
-                  <Lock className="w-6 h-6 text-current opacity-80" />
-                  CONCLUIR ASSINATURA
+              <div className="mt-4 flex items-center justify-center gap-2 text-xs font-bold text-neutral-600">
+                <Lock className="h-4 w-4 text-neutral-500" aria-hidden="true" />
+                <span>Pagamento seguro e processado pelo Asaas</span>
+              </div>
+              {checkoutResult?.kind === 'pix' && trackedOrder && !showSuccessModal && (
+                <button type="button" onClick={reopenPixModal} className="mt-4 w-full rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-extrabold text-[#007a2d] hover:bg-emerald-100">
+                  VER PAGAMENTO PIX
                 </button>
-              </div>
-              
-              <div className="relative mt-6 pb-2">
-                <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 opacity-60">
-                  <div className="flex items-center gap-1.5">
-                    <Lock className="w-4 h-4 text-neutral-600" />
-                    <span className="text-xs font-bold text-neutral-600 uppercase tracking-wide">Pagamento Seguro</span>
-                  </div>
-                  <div className="w-1.5 h-1.5 bg-neutral-300 rounded-full hidden sm:block"></div>
-                  <div className="flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-neutral-600" />
-                    <span className="text-xs font-bold text-neutral-600 uppercase tracking-wide">Site Criptografado</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-center mt-6">
-                  <div className="bg-[#f0f3f6] px-5 py-2.5 rounded-full border border-[#dce3ec] shadow-sm">
-                     <span className="font-black text-xs text-[#061c3a] tracking-widest flex items-center gap-2">
-                        <Lock className="w-3.5 h-3.5" /> PROCESSADO POR ASAAS
-                     </span>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           </form>
           </div>
         </div>
       </div>
     </div>
-      
+
     {/* Success Confirmation Modal */}
     {showSuccessModal && (
       <div className="fixed inset-0 bg-neutral-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-        <div className="max-w-lg w-full bg-white rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden text-center border border-emerald-100">
+        <div className={`max-h-[calc(100vh-2rem)] w-full overflow-y-auto rounded-3xl border border-emerald-100 bg-white p-6 text-center shadow-2xl relative sm:p-8 ${checkoutResult?.kind === 'pix' && paymentState !== 'awaiting_completion' ? 'max-w-3xl' : 'max-w-lg'}`}>
           {/* Top Green Accent Bar */}
           <div className="absolute top-0 left-0 right-0 h-2.5 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853]" />
+          {checkoutResult?.kind === 'pix' && trackedOrder && (
+            <button type="button" onClick={closePixModal} className="absolute right-4 top-5 rounded-lg p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800" aria-label="Fechar acompanhamento Pix">
+              <X className="h-5 w-5" aria-hidden="true" />
+            </button>
+          )}
 
           {/* Icon */}
           <div className="inline-flex items-center justify-center w-20 h-20 bg-emerald-50 rounded-full border border-emerald-100 mb-5 relative">
@@ -727,20 +1256,60 @@ export function CheckoutPage() {
 
           {/* Title */}
           <h2 className="text-2xl sm:text-3xl font-black text-[#0b1a30] tracking-tight mb-2 uppercase">
-            Obrigado pela Compra!
+            {checkoutResult?.kind === 'pix' ? (paymentState === 'awaiting_completion' ? 'Pagamento recebido' : 'Pague com Pix') : checkoutResult?.kind === 'card' ? 'Confirmando pagamento' : 'Pagamento iniciado'}
           </h2>
           <p className="text-neutral-600 font-medium text-sm sm:text-base max-w-md mx-auto mb-6 leading-relaxed">
-            Sua assinatura foi recebida com sucesso e o seu acesso já está sendo processado.
+            {checkoutResult?.kind === 'pix'
+              ? (paymentState === 'awaiting_completion' ? 'Estamos liberando seu acesso com segurança.' : 'Escaneie o QR Code ou copie o código abaixo.')
+              : 'O pagamento foi recebido. Estamos confirmando seu acesso...'}
           </p>
+          {checkoutNotice && <p className="mx-auto mb-5 max-w-md rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900" role="status">{checkoutNotice}</p>}
 
-          {/* Steps / Info Grid */}
-          <div className="flex flex-col gap-3 text-left mb-8 max-w-md mx-auto">
+          {checkoutResult?.kind === 'pix' && (
+            <div className="mb-6 rounded-2xl border border-neutral-200 bg-neutral-50 p-4 sm:p-5">
+              {paymentState === 'awaiting_completion' ? (
+                <div className="py-10">
+                  <CheckCircle2 className="mx-auto h-14 w-14 text-[#00a83e]" aria-hidden="true" />
+                  <p className="mt-4 text-lg font-extrabold text-[#0b1a30]">Pagamento recebido</p>
+                  <div className="mt-3 flex items-center justify-center gap-2 text-sm font-semibold text-neutral-600" role="status"><LoaderCircle className="h-4 w-4 animate-spin text-[#00a83e]" aria-hidden="true" />Estamos liberando seu acesso...</div>
+                </div>
+              ) : <div className="grid grid-cols-1 items-center gap-5 text-left md:grid-cols-[auto_minmax(0,1fr)] md:gap-7">
+                {checkoutResult.qrCodeSrc && <div className="mx-auto w-fit rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm sm:p-4 md:mx-0"><img src={checkoutResult.qrCodeSrc} alt="QR Code Pix" className="h-52 w-52 rounded-lg sm:h-56 sm:w-56" /></div>}
+                <div className="min-w-0">
+                  <p className="text-xs font-bold uppercase tracking-wide text-neutral-500">Valor do pagamento</p>
+                  <p className="mt-1 text-2xl font-black tracking-tight text-[#0b1a30]">{formatCurrency(checkoutResult.amount)}</p>
+                  {pixExpiresAt !== undefined && <div className="mt-3 flex items-center gap-2 text-sm font-bold text-neutral-700" role="status"><Clock className="h-4 w-4 text-[#00a83e]" aria-hidden="true" />{pixExpired ? 'Pix expirado' : `Expira em ${pixCountdown}`}</div>}
+                  {checkoutResult.pixPayload && <div className="mt-5"><label htmlFor="pix-copy-paste" className="mb-1.5 block text-xs font-bold text-neutral-700">Código Pix copia e cola</label><div className="flex min-w-0 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2"><input id="pix-copy-paste" readOnly spellCheck={false} value={checkoutResult.pixPayload} className="min-w-0 flex-1 truncate bg-transparent text-xs text-neutral-700 outline-none" aria-label="Código Pix copia e cola completo" onFocus={(event) => event.currentTarget.select()} /><button type="button" onClick={() => void copyPixPayload(checkoutResult.pixPayload)} className="shrink-0 rounded-lg p-1.5 text-[#007a2d] hover:bg-emerald-50" aria-label="Copiar código Pix"><Copy className="h-4 w-4" aria-hidden="true" /></button></div></div>}
+                  <button type="button" onClick={() => void copyPixPayload(checkoutResult.pixPayload)} disabled={!checkoutResult.pixPayload} className="mt-4 w-full rounded-xl bg-[#007a2d] px-4 py-3 text-sm font-extrabold text-white transition-colors hover:bg-[#006622] disabled:cursor-not-allowed disabled:opacity-50">{copied ? '✓ CÓDIGO COPIADO' : 'COPIAR CÓDIGO PIX'}</button>
+                  {copyError && <p className="mt-2 text-xs font-medium text-neutral-600" role="status">Não foi possível copiar automaticamente. Selecione o código para copiar.</p>}
+                </div>
+              </div>}
+              <div className="mt-4 rounded-xl border border-neutral-200 bg-white px-3 py-3 text-left" role="status">
+                {paymentState === 'checking' ? <p className="flex items-center gap-2 text-sm font-bold text-neutral-800"><LoaderCircle className="h-4 w-4 animate-spin text-[#00a83e]" aria-hidden="true" />Verificando pagamento...</p>
+                  : paymentState === 'awaiting_completion' ? <><p className="flex items-center gap-2 text-sm font-bold text-[#007a2d]"><Check className="h-4 w-4" aria-hidden="true" />Pagamento recebido</p><p className="mt-1 text-xs text-neutral-600">Estamos liberando seu acesso.</p></>
+                    : paymentState === 'temporary_error' ? <><p className="text-sm font-bold text-neutral-800">Não conseguimos consultar agora.</p><p className="mt-1 text-xs text-neutral-600">Vamos tentar novamente automaticamente.</p></>
+                      : paymentState === 'timeout' ? <><p className="text-sm font-bold text-neutral-800">Ainda aguardamos a confirmação.</p><p className="mt-1 text-xs text-neutral-600">Consulte o pagamento novamente quando quiser.</p></>
+                        : paymentState === 'terminal' ? <p className="text-sm font-bold text-neutral-800">{paymentPendingMessage}</p>
+                          : <><p className="flex items-center gap-2 text-sm font-bold text-neutral-800"><span className="h-2 w-2 rounded-full bg-[#00a83e] animate-pulse" aria-hidden="true" />Aguardando pagamento</p><p className="mt-1 text-xs text-neutral-600">Estamos verificando automaticamente.</p></>}
+              </div>
+               {paymentState === 'timeout' && trackedOrder && <button type="button" onClick={() => setTrackedOrder({ ...trackedOrder })} className="mt-3 w-full text-xs font-bold text-[#007a2d] underline">CONSULTAR PAGAMENTO NOVAMENTE</button>}
+             </div>
+          )}
+
+          {checkoutResult?.kind !== 'pix' && (
+            <p className="mb-6 text-xs font-semibold text-emerald-900" role="status">
+              {paymentPendingMessage}
+            </p>
+          )}
+
+          {/* This information is intentionally secondary until payment confirmation. */}
+          {(checkoutResult?.kind !== 'pix' || paymentState === 'awaiting_completion') && <div className="flex flex-col gap-3 text-left mb-8 max-w-md mx-auto">
             <div className="p-4 bg-blue-50/60 border border-blue-100/70 rounded-2xl flex gap-3.5 items-center">
               <div className="p-2.5 bg-blue-100/70 text-blue-600 rounded-xl shrink-0">
                 <MessageSquare className="w-5 h-5" />
               </div>
               <h3 className="font-bold text-neutral-800 text-xs sm:text-sm leading-snug">
-                O agente enviará uma mensagem de saudação no seu WhatsApp.
+                Após a confirmação, enviaremos a mensagem de acesso pelo WhatsApp.
               </h3>
             </div>
 
@@ -749,19 +1318,20 @@ export function CheckoutPage() {
                 <Clock className="w-5 h-5" />
               </div>
               <h3 className="font-bold text-neutral-800 text-xs sm:text-sm leading-snug">
-                Seu acesso estará ativo e liberado em até 10 minutos.
+                Seu acesso será liberado automaticamente após a confirmação.
               </h3>
             </div>
-          </div>
+          </div>}
 
-          {/* Redirection Button */}
-          <button
-            onClick={() => navigate('/obrigado')}
-            className="w-full py-4 px-6 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white font-extrabold text-sm sm:text-base uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-600/30 hover:scale-[1.01] active:scale-[0.99] transition-all duration-300 flex items-center justify-center gap-2 group"
-          >
-            <span>VOCÊ RECEBEU UM PRESENTE 🎉</span>
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </button>
+          {checkoutResult?.kind === 'pix' && trackedOrder ? null : (
+            <button
+              type="button"
+              onClick={() => setShowSuccessModal(false)}
+              className="w-full py-4 px-6 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white font-extrabold text-sm sm:text-base uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-600/30 hover:scale-[1.01] active:scale-[0.99] transition-all duration-300 flex items-center justify-center gap-2 group"
+            >
+              <span>VOLTAR AO CHECKOUT</span>
+            </button>
+          )}
         </div>
       </div>
     )}

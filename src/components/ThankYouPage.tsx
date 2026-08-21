@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ArrowRight, 
@@ -12,45 +12,100 @@ import {
 } from 'lucide-react';
 import { OglAurora } from './OglAurora';
 import { trackMetaEvent } from '../lib/metaPixel';
+import {
+  COMPLETION_API_URL,
+  CompletionApiError,
+  getBillingCompletion,
+  getCompletionTicketFromHash,
+  resolveBillingCompletionWithRetries,
+} from '../services/billingCompletion';
+
+function ticketDiagnostic(ticket: string) {
+  return { prefix: ticket.slice(0, 8), length: ticket.length };
+}
+
+function completionDiagnostic(event: string, details: Record<string, unknown> = {}) {
+  const runtimeMode = (import.meta as unknown as { env?: { MODE?: string } }).env?.MODE;
+  if (runtimeMode === 'test') return;
+  console.info('[ceruti:completion]', { event, ...details });
+}
 
 export function ThankYouPage() {
   const navigate = useNavigate();
+  const [completionState, setCompletionState] = useState<'loading' | 'success' | 'pending' | 'error'>('loading');
+  // State survives React StrictMode's development effect replay. The ticket is
+  // still memory-only and is never copied to browser storage.
+  const [ticket] = useState(() => getCompletionTicketFromHash(window.location.hash));
 
   useEffect(() => {
-    // Retrieve checkout data from localStorage
-    const rawData = localStorage.getItem('ceruti_last_checkout');
-    if (rawData) {
-      try {
-        const details = JSON.parse(rawData);
-        
-        // Track the Purchase event with Meta Pixel & Conversions API
-        trackMetaEvent('Purchase', {
-          value: details.value || 0,
-          currency: details.currency || 'BRL',
-          content_name: `Assinatura Ceruti - ${details.agent || 'Geral'}`,
-          content_ids: [details.agent || 'geral'],
-          content_type: 'product',
-          num_items: details.usersCount || 1,
-        }, {
-          name: details.name,
-          email: details.email,
-          phone: details.phone,
-        });
-
-        // Clear data so it doesn't trigger again on reload
-        localStorage.removeItem('ceruti_last_checkout');
-      } catch (err) {
-        console.error('[ThankYouPage Purchase Track Error]', err);
-      }
-    } else {
-      // Fallback tracking if they navigated directly or refreshed
-      trackMetaEvent('Purchase', {
-        value: 0,
-        currency: 'BRL',
-        content_name: 'Assinatura Ceruti - Direto',
-      });
+    const controller = new AbortController();
+    let completionStep: 'exchange' | 'validation' = 'exchange';
+    completionDiagnostic('completion.success_page_loaded', { apiOrigin: COMPLETION_API_URL });
+    if (!ticket) {
+      setCompletionState('error');
+      return () => controller.abort();
     }
-  }, []);
+
+    completionDiagnostic('completion.ticket_found', { ticket: ticketDiagnostic(ticket) });
+    window.history.replaceState(
+      window.history.state,
+      document.title,
+      window.location.pathname + window.location.search,
+    );
+    completionDiagnostic('completion.exchange_started', { ticket: ticketDiagnostic(ticket) });
+    void resolveBillingCompletionWithRetries({ ticket, signal: controller.signal })
+      .then(async () => {
+        if (controller.signal.aborted) return;
+        completionDiagnostic('completion.exchange_succeeded');
+        completionStep = 'validation';
+        completionDiagnostic('completion.validation_started');
+        const completion = await getBillingCompletion(controller.signal);
+        if (controller.signal.aborted) return;
+        completionDiagnostic('completion.validation_succeeded');
+        if (controller.signal.aborted) return;
+        trackMetaEvent('Purchase', {
+          value: 0,
+          currency: 'BRL',
+          content_name: `Assinatura Ceruti - ${completion.agentLabel}`,
+          content_ids: [completion.agentType],
+          content_type: 'product',
+          num_items: completion.accessNumbers.length || 1,
+        });
+        setCompletionState('success');
+        completionDiagnostic('completion.upsell_redirect');
+        navigate('/obrigado', { replace: true });
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        const details = error instanceof CompletionApiError
+          ? { status: error.status, code: error.code, kind: error.kind }
+          : {};
+        completionDiagnostic(
+          completionStep === 'validation' ? 'completion.validation_failed' : 'completion.exchange_failed',
+          details,
+        );
+        setCompletionState(error instanceof Error && /pendente/i.test(error.message) ? 'pending' : 'error');
+      });
+
+    return () => controller.abort();
+  }, [navigate, ticket]);
+
+  if (completionState !== 'success') {
+    const message = completionState === 'loading'
+      ? 'Confirmando seu pagamento com segurança...'
+      : completionState === 'pending'
+        ? 'Seu pagamento ainda está em confirmação. Atualize esta página em alguns instantes.'
+        : 'Não foi possível confirmar esta compra. Volte ao início ou fale com o suporte.';
+    return (
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center px-4 font-sans">
+        <div className="max-w-md rounded-3xl border border-neutral-200 bg-white p-8 text-center shadow-xl">
+          <ShieldCheck className="mx-auto mb-4 h-10 w-10 text-[#00a83e]" />
+          <p className="text-base font-bold text-neutral-800">{message}</p>
+          {completionState !== 'loading' && <button type="button" onClick={() => navigate('/')} className="mt-6 font-bold text-[#00a83e]">Voltar ao início</button>}
+        </div>
+      </div>
+    );
+  }
 
   const whatsappMessage = encodeURIComponent(
     'Olá, eu adquiri o Agente IA e quero saber mais sobre a oferta especial do programa de capacitação?'
