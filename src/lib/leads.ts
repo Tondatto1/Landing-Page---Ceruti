@@ -54,9 +54,50 @@ export function decryptData(cipherText: string): string {
   }
 }
 
+// In-memory set to prevent duplicate lead dispatches within the same session
+const recentlyDispatchedLeads = new Set<string>();
+
+/**
+ * Checks whether this lead was already dispatched recently to prevent duplicate rows in Google Sheets
+ */
+function wasRecentlyDispatched(phone: string, email: string): boolean {
+  const cleanPhone = phone.replace(/\D/g, '');
+  const cleanEmail = email.trim().toLowerCase();
+  const keyPhone = `lead_sent_phone_${cleanPhone}`;
+  const keyEmail = `lead_sent_email_${cleanEmail}`;
+
+  if (cleanPhone && recentlyDispatchedLeads.has(keyPhone)) return true;
+  if (cleanEmail && recentlyDispatchedLeads.has(keyEmail)) return true;
+
+  try {
+    if (cleanPhone && sessionStorage.getItem(keyPhone)) return true;
+    if (cleanEmail && sessionStorage.getItem(keyEmail)) return true;
+  } catch {
+    // Ignore storage issues
+  }
+
+  return false;
+}
+
+function markAsDispatched(phone: string, email: string) {
+  const cleanPhone = phone.replace(/\D/g, '');
+  const cleanEmail = email.trim().toLowerCase();
+  const keyPhone = `lead_sent_phone_${cleanPhone}`;
+  const keyEmail = `lead_sent_email_${cleanEmail}`;
+
+  if (cleanPhone) {
+    recentlyDispatchedLeads.add(keyPhone);
+    try { sessionStorage.setItem(keyPhone, Date.now().toString()); } catch {}
+  }
+  if (cleanEmail) {
+    recentlyDispatchedLeads.add(keyEmail);
+    try { sessionStorage.setItem(keyEmail, Date.now().toString()); } catch {}
+  }
+}
+
 /**
  * Saves a trial lead to local storage (for offline access/export)
- * and dispatches it to the Google Sheets webhook via /api/save-lead.
+ * and dispatches it once to the Google Sheets webhook.
  */
 export async function saveLead(
   name: string,
@@ -78,9 +119,9 @@ export async function saveLead(
   // 1. Write to localStorage immediately with secure encryption
   try {
     const existing = getLocalLeads();
-    // Avoid duplicate insertions if called multiple times rapidly
     const isDuplicate = existing.some(
-      l => l.phone === newLead.phone && (Date.now() - new Date(l.createdAt).getTime()) < 60000
+      l => l.phone.replace(/\D/g, '') === newLead.phone.replace(/\D/g, '') &&
+      (Date.now() - new Date(l.createdAt).getTime()) < 300000
     );
     if (!isDuplicate) {
       existing.unshift(newLead);
@@ -89,6 +130,15 @@ export async function saveLead(
   } catch (error) {
     console.error('Error saving lead locally:', error);
   }
+
+  // Check if lead was already sent to Google Sheets to prevent duplicate rows
+  if (wasRecentlyDispatched(newLead.phone, newLead.email)) {
+    console.log('[Leads] Skipping duplicate dispatch for:', newLead.phone);
+    return newLead;
+  }
+
+  // Mark as dispatched immediately
+  markAsDispatched(newLead.phone, newLead.email);
 
   const payload = {
     dataHora: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
@@ -115,28 +165,6 @@ export async function saveLead(
     });
   } catch (err) {
     console.warn('[Leads] Direct fetch error:', err);
-  }
-
-  // 3. Fallback / Parallel sync via Node.js server route (if running in full-stack dev/Cloud Run)
-  try {
-    fetch('/api/save-lead', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        name: newLead.name,
-        company: newLead.company,
-        email: newLead.email,
-        phone: newLead.phone,
-        agentSelected: newLead.agentSelected,
-        origin: 'Trial 7 Dias - WhatsApp LP'
-      }),
-    }).catch(() => {
-      // Expected to fail silently on static GitHub Pages hosting
-    });
-  } catch {
-    // ignore
   }
 
   return newLead;
