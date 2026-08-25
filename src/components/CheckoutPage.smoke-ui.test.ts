@@ -5,19 +5,19 @@ import { describe, expect, it } from 'vitest';
 describe('smoke payment UI', () => {
   const source = readFileSync(resolve(process.cwd(), 'src/components/CheckoutPage.tsx'), 'utf8').replace(/\r\n/g, '\n');
 
-  it('keeps only PIX and card available in every checkout mode', () => {
+  it('keeps boleto isolated to the explicit resume branch', () => {
     expect(source).toContain('grid grid-cols-2 gap-3');
-    expect(source).toContain("setPaymentMethod('pix_automatic')");
+    expect(source).toContain("setPaymentMethod('pix')");
     expect(source).toContain("setPaymentMethod('credit_card')");
-    expect(source).not.toContain("setPaymentMethod('boleto')");
-    expect(source).not.toContain('>Boleto<');
+    expect(source).toContain('{isResumeMode && <button');
+    expect(source).toContain("setPaymentMethod('boleto')");
   });
 
   it('routes smoke submission separately from normal checkout', () => {
     expect(source).toContain('postBillingSmokeCheckout');
     expect(source).toContain("paymentMethod: 'CREDIT_CARD'");
     expect(source).toContain("paymentMethod: 'PIX_AUTOMATIC'");
-    expect(source).toContain('postBillingCheckout(checkoutAttemptRef.current, requestBody)');
+    expect(source).toContain('postBillingCheckout(checkoutAttemptRef.current, requestBody, fetch');
   });
 
   it('uses the same order polling and API redirect for normal and smoke orders', () => {

@@ -13,6 +13,32 @@ describe('resume URL bootstrap', () => {
     expect(html).toContain('window.history.replaceState');
   });
 
+  it('blocks a supplied malformed resume value instead of falling back to normal checkout', () => {
+    const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
+    const script = html.match(/<script>\s*\/\/ A resume token[\s\S]*?<\/script>/)?.[0]
+      .replace(/^<script>\s*|<\/script>$/g, '');
+    expect(script).toBeTruthy();
+
+    const url = new URL('https://lp.example.test/checkout?resume=not-a-valid-token');
+    const browser = {
+      location: { pathname: url.pathname, search: url.search, hash: url.hash },
+      history: {
+        state: null,
+        replaceState: (_state: unknown, _title: string, next: string) => {
+          const replaced = new URL(next, url.origin);
+          browser.location.pathname = replaced.pathname;
+          browser.location.search = replaced.search;
+          browser.location.hash = replaced.hash;
+        },
+      },
+    } as { location: { pathname: string; search: string; hash: string }; history: { state: null; replaceState: (_state: unknown, _title: string, next: string) => void }; __CERUTI_CHECKOUT_RESUME_REQUESTED__?: boolean; __CERUTI_CHECKOUT_RESUME_TOKEN__?: string };
+    new Function('window', 'document', 'URLSearchParams', script!)(browser, { title: 'Checkout' }, URLSearchParams);
+
+    expect(browser.location).toEqual({ pathname: '/checkout', search: '', hash: '' });
+    expect(browser.__CERUTI_CHECKOUT_RESUME_REQUESTED__).toBe(true);
+    expect(browser.__CERUTI_CHECKOUT_RESUME_TOKEN__).toBe('not-a-valid-token');
+  });
+
   it('captures smoke_session and removes the entire sensitive hash before the Meta Pixel loads', () => {
     const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
     const capture = html.indexOf('__CERUTI_SMOKE_SESSION__');

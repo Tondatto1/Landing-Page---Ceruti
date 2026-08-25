@@ -24,22 +24,32 @@ import { OglAurora } from './OglAurora';
 import { trackMetaEvent } from '../lib/metaPixel';
 import {
   BillingApiError,
+  capPixExpirationAt24Hours,
   buildCheckoutPayload,
   buildSmokeCheckoutPayloadBase,
+  createCheckoutContractFingerprint,
   createCheckoutAttempt,
   createSmokeCheckoutAttempt,
+  createCheckoutAbandonmentIdempotencyKey,
+  discardCheckoutAttempt,
   identifyBillingCheckoutResponse,
   parseHostedCardCheckout,
-  parsePixAutomaticCheckout,
+  parseBoletoCheckout,
+  parsePixUpfrontCheckout,
   parseSmokePixAutomaticCheckout,
   parseTransparentCardCheckout,
+  postBillingAbandonPayment,
   postBillingCheckout,
   postBillingSmokeCheckout,
   pollOrderUntilCompletion,
+  clearPersistedTrackedPixUpfrontCheckout,
+  persistTrackedPixUpfrontCheckout,
+  readPersistedTrackedPixUpfrontCheckout,
   toPixCheckoutDisplay,
   type BillingCheckoutRequest,
   type BillingAddon,
   type CheckoutAttempt,
+  type PersistedPixUpfrontCheckout,
   type CreditCardCheckoutRequest,
   type ResumeCheckoutRequest,
   type ResumeCreditCardCheckoutRequest,
@@ -51,12 +61,14 @@ import { formatCpfCnpjInput, formatCepInput, normalizeCardAddressNumber } from '
 import { formatPixRemainingTime } from '../services/pixTime';
 import {
   CheckoutResumeApiError,
+  consumeCapturedCheckoutResumeRequest,
   getCapturedCheckoutResumeToken,
   getCheckoutResumeContext,
   type CheckoutResumeContext,
 } from '../services/checkoutResume';
 
 type CheckoutUiState = 'idle' | 'submitting' | 'awaiting_payment' | 'provisioning' | 'completed' | 'error';
+type CheckoutTransitionState = 'idle' | 'abandoning' | 'reconciliation_required' | 'payment_confirmed';
 
 function CheckoutSpinner() {
   return <span className="checkout-spinner" aria-hidden="true" />;
@@ -67,27 +79,48 @@ export function CheckoutPage() {
   const isSmokeMode = new URLSearchParams(window.location.search).get('smoke') === '1';
   const smokeSessionRef = useRef<string | null>(isSmokeMode ? consumeCapturedSmokeSession() : null);
   const resumeTokenRef = useRef<string | null>(getCapturedCheckoutResumeToken());
-  const isResumeMode = resumeTokenRef.current !== null;
+  const resumeRequestedRef = useRef(consumeCapturedCheckoutResumeRequest());
+  const isResumeMode = resumeRequestedRef.current;
+  const restoredPixCheckoutRef = useRef<PersistedPixUpfrontCheckout | null>(
+    !isSmokeMode && !isResumeMode ? readPersistedTrackedPixUpfrontCheckout() : null,
+  );
+  const restoredPixCheckout = restoredPixCheckoutRef.current;
+  const restoredShowsPayment = restoredPixCheckout?.state === 'pending' || restoredPixCheckout?.state === 'payment_confirmed';
   // The upstream landing is now Campo-only. Keep this fixed so the visible
   // offer and the Billing API payload cannot diverge.
   const selectedAgent = 'campo' as const;
   const [frequency, setFrequency] = useState<'mensal' | 'semestral' | 'anual'>('mensal');
   const [usersCountStr, setUsersCountStr] = useState<string>('1');
   const usersCount = Math.max(1, parseInt(usersCountStr) || 1);
-  const [paymentMethod, setPaymentMethod] = useState<'credit_card' | 'pix_automatic'>('pix_automatic');
+  const [paymentMethod, setPaymentMethod] = useState<'credit_card' | 'pix' | 'boleto'>('pix');
   const [addons, setAddons] = useState<BillingAddon[]>([]);
-  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
+  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(Boolean(restoredShowsPayment));
   const [checkoutError, setCheckoutError] = useState('');
-  const [checkoutNotice, setCheckoutNotice] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [checkoutUiState, setCheckoutUiState] = useState<CheckoutUiState>('idle');
+  const [checkoutUiState, setCheckoutUiState] = useState<CheckoutUiState>(
+    restoredPixCheckout?.state === 'payment_confirmed' ? 'provisioning' : restoredPixCheckout ? 'awaiting_payment' : 'idle',
+  );
+  const [checkoutTransitionState, setCheckoutTransitionState] = useState<CheckoutTransitionState>(
+    restoredPixCheckout?.state === 'abandoning' ? 'abandoning' : restoredPixCheckout?.state === 'reconciliation_required' ? 'reconciliation_required' : restoredPixCheckout?.state === 'payment_confirmed' ? 'payment_confirmed' : 'idle',
+  );
   const [checkoutResult, setCheckoutResult] = useState<
     | { kind: 'pix'; qrCodeSrc?: string; pixPayload: string; expiresAt?: number; amount: number }
     | { kind: 'card' }
+    | { kind: 'boleto'; bankSlipUrl?: string }
     | null
-  >(null);
-  const [trackedOrder, setTrackedOrder] = useState<{ orderId: string; statusUrl: string } | null>(null);
-  const [paymentState, setPaymentState] = useState<'awaiting' | 'checking' | 'temporary_error' | 'awaiting_completion' | 'timeout' | 'terminal'>('awaiting');
+  >(restoredPixCheckout ? {
+    kind: 'pix',
+    ...(restoredPixCheckout.qrCodeSrc ? { qrCodeSrc: restoredPixCheckout.qrCodeSrc } : {}),
+    pixPayload: restoredPixCheckout.pixPayload ?? '',
+    ...(restoredPixCheckout.expiresAt !== undefined ? { expiresAt: restoredPixCheckout.expiresAt } : {}),
+    amount: restoredPixCheckout.amount ?? 0,
+  } : null);
+  const [trackedOrder, setTrackedOrder] = useState<{ orderId: string; statusUrl: string } | null>(
+    restoredPixCheckout ? { orderId: restoredPixCheckout.orderId, statusUrl: restoredPixCheckout.statusUrl } : null,
+  );
+  const [paymentState, setPaymentState] = useState<'awaiting' | 'checking' | 'temporary_error' | 'awaiting_completion' | 'timeout' | 'terminal'>(
+    restoredPixCheckout?.state === 'payment_confirmed' ? 'awaiting_completion' : restoredPixCheckout ? 'checking' : 'awaiting',
+  );
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
   const [pixNow, setPixNow] = useState(() => Date.now());
@@ -111,8 +144,18 @@ export function CheckoutPage() {
   const [cardPostalCode, setCardPostalCode] = useState('');
   const [cardAddressNumber, setCardAddressNumber] = useState('');
   const checkoutAttemptRef = useRef<CheckoutAttempt | null>(null);
-  const [resumeState, setResumeState] = useState<'loading' | 'ready' | 'error'>(isResumeMode ? 'loading' : 'ready');
-  const [resumeErrorCode, setResumeErrorCode] = useState('');
+  const checkoutRequestAbortRef = useRef<AbortController | null>(null);
+  const pollingAbortRef = useRef<AbortController | null>(null);
+  const activeCheckoutFingerprintRef = useRef<string | null>(restoredPixCheckout?.fingerprint ?? null);
+  const activePixCheckoutRef = useRef<PersistedPixUpfrontCheckout | null>(restoredPixCheckout);
+  const abandonmentRequestRef = useRef<AbortController | null>(null);
+  const abandonmentOperationRef = useRef<string | null>(null);
+  const abandonmentPromiseRef = useRef<Promise<void> | null>(null);
+  const forceNewAttemptRef = useRef(false);
+  const [resumeState, setResumeState] = useState<'loading' | 'ready' | 'error'>(
+    isResumeMode ? (resumeTokenRef.current ? 'loading' : 'error') : 'ready',
+  );
+  const [resumeErrorCode, setResumeErrorCode] = useState(isResumeMode && !resumeTokenRef.current ? 'RESUME_TOKEN_INVALID' : '');
   const [resumeContext, setResumeContext] = useState<CheckoutResumeContext | null>(null);
 
   useEffect(() => {
@@ -156,11 +199,13 @@ export function CheckoutPage() {
       .then((context) => {
         if (controller.signal.aborted) return;
         setResumeContext(context);
-        setName(context.customer.name);
-        setEmail(context.customer.email);
-        setPhone(context.customer.phone);
-        setFrequency(context.defaultFrequency === 'monthly' ? 'mensal' : context.defaultFrequency === 'semiannual' ? 'semestral' : 'anual');
-        setUsersCountStr(String(context.defaultAccessQuantity));
+        setName(context.prefill.name);
+        setEmail(context.prefill.email);
+        setPhone(context.prefill.phone);
+        // Resume starts from the safe server-authorized baseline; the user
+        // may choose only another explicitly allowed cadence.
+        setFrequency('mensal');
+        setUsersCountStr('1');
         setResumeState('ready');
       })
       .catch((error: unknown) => {
@@ -180,6 +225,105 @@ export function CheckoutPage() {
     accessQuantity: usersCount,
     addons,
   });
+  const frequencyByLabel = { mensal: 'monthly', semestral: 'semiannual', anual: 'annual' } as const;
+  const checkoutFingerprint = createCheckoutContractFingerprint({
+    agentType: selectedAgent,
+    frequency: frequencyByLabel[frequency],
+    accessQuantity: usersCount,
+    trainingPlatform: includesTrainingPlatform,
+    paymentMethod,
+  });
+  const currentCheckoutFingerprintRef = useRef(checkoutFingerprint);
+  currentCheckoutFingerprintRef.current = checkoutFingerprint;
+
+  const updateTrackedPixCheckout = (state: PersistedPixUpfrontCheckout['state']) => {
+    const current = activePixCheckoutRef.current;
+    if (!current) return null;
+    const updated = { ...current, state };
+    activePixCheckoutRef.current = updated;
+    persistTrackedPixUpfrontCheckout(updated);
+    return updated;
+  };
+
+  const clearTrackedPixCheckout = () => {
+    const tracked = activePixCheckoutRef.current;
+    if (tracked) discardCheckoutAttempt({ fingerprint: tracked.fingerprint, key: '' });
+    discardCheckoutAttempt(checkoutAttemptRef.current);
+    checkoutSequenceRef.current += 1;
+    activePixCheckoutRef.current = null;
+    clearPersistedTrackedPixUpfrontCheckout();
+    activeCheckoutFingerprintRef.current = null;
+    checkoutAttemptRef.current = null;
+    forceNewAttemptRef.current = true;
+    setCheckoutResult(null);
+    setTrackedOrder(null);
+    setShowSuccessModal(false);
+    setPaymentState('awaiting');
+    setCheckoutUiState('idle');
+  };
+
+  const abandonTrackedPixCheckout = () => {
+    const tracked = activePixCheckoutRef.current;
+    if (
+      !tracked
+      || tracked.paymentMethod !== 'pix'
+      || tracked.paymentFlow !== 'PIX_UPFRONT'
+      || tracked.state === 'payment_confirmed'
+    ) return;
+    const operationKey = `${tracked.orderId}:${tracked.abandonmentIdempotencyKey}`;
+    if (abandonmentOperationRef.current === operationKey && abandonmentPromiseRef.current) return;
+    const controller = new AbortController();
+    abandonmentRequestRef.current = controller;
+    abandonmentOperationRef.current = operationKey;
+    updateTrackedPixCheckout('abandoning');
+    setCheckoutTransitionState('abandoning');
+    setShowSuccessModal(false);
+    setCheckoutError('');
+    setCheckoutUiState('idle');
+    const promise = postBillingAbandonPayment(
+      tracked.orderId,
+      tracked.checkoutControlToken,
+      tracked.abandonmentIdempotencyKey,
+      fetch,
+      controller.signal,
+    ).then((result) => {
+      if (activePixCheckoutRef.current?.orderId !== tracked.orderId) return;
+      if (result.state === 'PAYMENT_CONFIRMED') {
+        updateTrackedPixCheckout('payment_confirmed');
+        setCheckoutTransitionState('payment_confirmed');
+        setCheckoutError('O pagamento anterior foi confirmado. Estamos liberando seu acesso.');
+        setTrackedOrder({ orderId: result.orderId, statusUrl: result.statusUrl });
+        setCheckoutUiState('provisioning');
+        setPaymentState('awaiting_completion');
+        setShowSuccessModal(true);
+        return;
+      }
+      if (result.canStartNewCheckout) {
+        clearTrackedPixCheckout();
+        setCheckoutTransitionState('idle');
+        setCheckoutError('');
+        return;
+      }
+      updateTrackedPixCheckout('reconciliation_required');
+      setCheckoutTransitionState('reconciliation_required');
+      setCheckoutError('Estamos confirmando o cancelamento do pagamento anterior. Tente novamente em instantes.');
+      setCheckoutUiState('error');
+    }).catch((error: unknown) => {
+      if (controller.signal.aborted || (error instanceof DOMException && error.name === 'AbortError')) return;
+      if (activePixCheckoutRef.current?.orderId !== tracked.orderId) return;
+      updateTrackedPixCheckout('reconciliation_required');
+      setCheckoutTransitionState('reconciliation_required');
+      setCheckoutError(error instanceof BillingApiError ? error.message : 'Estamos confirmando o cancelamento do pagamento anterior. Tente novamente em instantes.');
+      setCheckoutUiState('error');
+    }).finally(() => {
+      if (abandonmentRequestRef.current === controller) abandonmentRequestRef.current = null;
+      if (abandonmentOperationRef.current === operationKey) {
+        abandonmentOperationRef.current = null;
+        abandonmentPromiseRef.current = null;
+      }
+    });
+    abandonmentPromiseRef.current = promise;
+  };
 
   // Track InitiateCheckout when checkout parameters change or stabilize
   useEffect(() => {
@@ -217,6 +361,64 @@ export function CheckoutPage() {
   }, [isResumeMode, usersCount]);
 
   useEffect(() => {
+    const activeFingerprint = activeCheckoutFingerprintRef.current;
+    if (!activeFingerprint || activeFingerprint === checkoutFingerprint) return;
+
+    checkoutSequenceRef.current += 1;
+    checkoutRequestAbortRef.current?.abort();
+    checkoutRequestAbortRef.current = null;
+    pollingAbortRef.current?.abort();
+    pollingAbortRef.current = null;
+    pollingOrderRef.current = null;
+    terminalOrderRef.current = null;
+    setIsSubmitting(false);
+    setShowSuccessModal(false);
+    setPaymentState('awaiting');
+    const trackedPix = activePixCheckoutRef.current;
+    if (trackedPix?.state === 'reconciliation_required') {
+      setCheckoutResult(null);
+      setCheckoutTransitionState('reconciliation_required');
+      setCheckoutError('Estamos confirmando o cancelamento do pagamento anterior. Tente novamente em instantes.');
+      setCheckoutUiState('error');
+      return;
+    }
+    if (trackedPix && trackedPix.state !== 'payment_confirmed') {
+      // Keep orderId/control capability until Billing proves that this exact
+      // PIX_UPFRONT order is terminal. A changed fingerprint never authorizes
+      // a blind second checkout.
+      setCheckoutTransitionState('abandoning');
+      setCheckoutError('Atualizando sua forma de pagamento...');
+      setCheckoutUiState('idle');
+      abandonTrackedPixCheckout();
+      return;
+    }
+    if (trackedPix?.state === 'payment_confirmed') {
+      setCheckoutTransitionState('payment_confirmed');
+      setCheckoutError('O pagamento anterior foi confirmado. Estamos liberando seu acesso.');
+      setCheckoutUiState('provisioning');
+      setPaymentState('awaiting_completion');
+      return;
+    }
+    activeCheckoutFingerprintRef.current = null;
+    checkoutAttemptRef.current = null;
+    forceNewAttemptRef.current = true;
+    setCheckoutResult(null);
+    setTrackedOrder(null);
+    setCheckoutError('');
+    setCheckoutTransitionState('idle');
+    setCheckoutUiState('idle');
+  }, [checkoutFingerprint]);
+
+  useEffect(() => {
+    // A reload during an in-flight abandonment must resume that exact
+    // idempotent operation, never create a competing checkout.
+    if (restoredPixCheckout?.state !== 'abandoning') return;
+    setCheckoutTransitionState('abandoning');
+    setCheckoutError('Atualizando sua forma de pagamento...');
+    abandonTrackedPixCheckout();
+  }, []);
+
+  useEffect(() => {
     // Resume authorization is server-defined and does not currently expose
     // add-on capability. Do not silently drop a resumed selection.
     if (isResumeMode) setAddons([]);
@@ -234,11 +436,19 @@ export function CheckoutPage() {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
+  useEffect(() => () => {
+    checkoutRequestAbortRef.current?.abort();
+    pollingAbortRef.current?.abort();
+    abandonmentRequestRef.current?.abort();
+  }, []);
+
   useEffect(() => {
     if (!trackedOrder) return;
 
     const controller = new AbortController();
+    pollingAbortRef.current = controller;
     const activeOrderId = trackedOrder.orderId;
+    const activeFingerprint = activeCheckoutFingerprintRef.current;
     if (terminalOrderRef.current === activeOrderId) return;
     const pollIntervalMs = isDocumentHidden ? 30_000 : showSuccessModal ? 4_000 : 12_000;
     pollingOrderRef.current = activeOrderId;
@@ -247,7 +457,7 @@ export function CheckoutPage() {
       signal: controller.signal,
       intervalMs: pollIntervalMs,
       onStatus: (status) => {
-        if (controller.signal.aborted) return;
+        if (controller.signal.aborted || activeCheckoutFingerprintRef.current !== activeFingerprint) return;
         if (status.paid) {
           setPaymentState('awaiting_completion');
           setCheckoutUiState('provisioning');
@@ -257,10 +467,10 @@ export function CheckoutPage() {
         }
       },
       onTemporaryError: () => {
-        if (!controller.signal.aborted) setPaymentState('temporary_error');
+        if (!controller.signal.aborted && activeCheckoutFingerprintRef.current === activeFingerprint) setPaymentState('temporary_error');
       },
     }).then((result) => {
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted || activeCheckoutFingerprintRef.current !== activeFingerprint) return;
       if (result.kind === 'confirmed') {
         // Billing supplied this relative application URL. Do not derive a
         // completion URL locally or resolve it against file://.
@@ -280,7 +490,7 @@ export function CheckoutPage() {
         setTrackedOrder((current) => current?.orderId === activeOrderId ? { ...current } : current);
       }
     }).catch((error: unknown) => {
-      if (controller.signal.aborted || (error instanceof DOMException && error.name === 'AbortError')) return;
+      if (controller.signal.aborted || activeCheckoutFingerprintRef.current !== activeFingerprint || (error instanceof DOMException && error.name === 'AbortError')) return;
       pollingOrderRef.current = null;
       setPaymentState('temporary_error');
       setCheckoutUiState('error');
@@ -288,6 +498,7 @@ export function CheckoutPage() {
 
     return () => {
       controller.abort();
+      if (pollingAbortRef.current === controller) pollingAbortRef.current = null;
       if (pollingOrderRef.current === activeOrderId) pollingOrderRef.current = null;
     };
   }, [trackedOrder, showSuccessModal, isDocumentHidden]);
@@ -348,18 +559,25 @@ export function CheckoutPage() {
     }
   };
 
-  const ctaLabel = checkoutUiState === 'submitting'
-    ? 'PROCESSANDO PAGAMENTO...'
-    : checkoutUiState === 'awaiting_payment'
-      ? 'CONFIRMANDO PAGAMENTO...'
-      : checkoutUiState === 'provisioning'
-        ? 'LIBERANDO SEU ACESSO...'
-        : checkoutUiState === 'completed'
-          ? 'ACESSO LIBERADO'
-          : 'CONCLUIR ASSINATURA';
+  const ctaLabel = checkoutTransitionState === 'abandoning'
+    ? 'ATUALIZANDO PAGAMENTO...'
+    : checkoutTransitionState === 'reconciliation_required'
+      ? 'AGUARDANDO CONFIRMAÇÃO...'
+      : checkoutTransitionState === 'payment_confirmed'
+        ? 'PAGAMENTO CONFIRMADO'
+        : checkoutUiState === 'submitting'
+          ? 'PROCESSANDO PAGAMENTO...'
+          : checkoutUiState === 'awaiting_payment'
+            ? 'CONFIRMANDO PAGAMENTO...'
+            : checkoutUiState === 'provisioning'
+              ? 'LIBERANDO SEU ACESSO...'
+              : checkoutUiState === 'completed'
+                ? 'ACESSO LIBERADO'
+                : 'CONCLUIR ASSINATURA';
   const ctaBusy = checkoutUiState === 'submitting'
     || checkoutUiState === 'awaiting_payment'
-    || checkoutUiState === 'provisioning';
+    || checkoutUiState === 'provisioning'
+    || checkoutTransitionState !== 'idle';
 
   const beginOrderTracking = (order: { orderId: string; statusUrl: string }) => {
     // Set the imperative guard before React schedules the render. This makes a
@@ -417,13 +635,13 @@ export function CheckoutPage() {
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting || pollingOrderRef.current) return;
+    if (checkoutTransitionState !== 'idle' || activePixCheckoutRef.current) return;
     const checkoutSequence = ++checkoutSequenceRef.current;
     if (isResumeMode && (!resumeTokenRef.current || !resumeContext || resumeState !== 'ready')) {
       setCheckoutError('Não foi possível validar este link de assinatura. Solicite um novo link.');
       return;
     }
     setCheckoutError('');
-    setCheckoutNotice('');
     setCheckoutResult(null);
     setTrackedOrder(null);
     setPaymentState('awaiting');
@@ -440,6 +658,13 @@ export function CheckoutPage() {
     ) {
       setCheckoutError('Confira os dados de contato e os números de acesso antes de continuar.');
       return;
+    }
+    if (isResumeMode) {
+      const duplicateAdditional = new Set(cleanedAccessNumbers).size !== cleanedAccessNumbers.length;
+      if (cleanedAccessNumbers.includes(cleanedPhone) || duplicateAdditional) {
+        setCheckoutError('Os números adicionais devem ser únicos e diferentes do telefone principal.');
+        return;
+      }
     }
 
     const frequencyByLabel = { mensal: 'monthly', semestral: 'semiannual', anual: 'annual' } as const;
@@ -493,6 +718,10 @@ export function CheckoutPage() {
           paymentMethod: 'PIX_AUTOMATIC',
         };
       }
+      activeCheckoutFingerprintRef.current = checkoutFingerprint;
+      const smokeRequestFingerprint = checkoutFingerprint;
+      const smokeRequestController = new AbortController();
+      checkoutRequestAbortRef.current = smokeRequestController;
       checkoutAttemptRef.current = createSmokeCheckoutAttempt('campo', () => crypto.randomUUID());
       setIsSubmitting(true);
       try {
@@ -502,13 +731,14 @@ export function CheckoutPage() {
           phone: baseRequest.customer.phone,
           documentNumber: baseRequest.customer.documentNumber,
         });
-        const response = await postBillingSmokeCheckout(checkoutAttemptRef.current, smokeRequest, smokeSessionRef.current);
-        if (checkoutSequence !== checkoutSequenceRef.current) return;
+        const response = await postBillingSmokeCheckout(checkoutAttemptRef.current, smokeRequest, smokeSessionRef.current, fetch, smokeRequestController.signal);
+        if (checkoutSequence !== checkoutSequenceRef.current || currentCheckoutFingerprintRef.current !== smokeRequestFingerprint) return;
         if (smokeRequest.paymentMethod === 'PIX_AUTOMATIC') {
           const pix = parseSmokePixAutomaticCheckout(response.data);
           if (!pix) throw new BillingApiError('A resposta do smoke não pôde ser validada.', { recoverable: false });
           if (!pix.statusUrl) throw new BillingApiError('A resposta do smoke não informou o status do Pix.', { recoverable: false });
-          setCheckoutResult({ kind: 'pix', ...toPixCheckoutDisplay(pix.pix), amount: displayPricing.grandTotal });
+          const pixDisplay = toPixCheckoutDisplay(pix.pix);
+          setCheckoutResult({ kind: 'pix', ...pixDisplay, expiresAt: capPixExpirationAt24Hours(pixDisplay.expiresAt), amount: displayPricing.grandTotal });
           beginOrderTracking({ orderId: pix.orderId, statusUrl: pix.statusUrl });
         } else {
           const card = parseTransparentCardCheckout(response.data, response.status);
@@ -517,10 +747,14 @@ export function CheckoutPage() {
           beginOrderTracking(card);
         }
       } catch (error) {
+        if (checkoutSequence !== checkoutSequenceRef.current || currentCheckoutFingerprintRef.current !== smokeRequestFingerprint) return;
         setCheckoutUiState('idle');
         setCheckoutError(error instanceof BillingApiError ? error.message : 'Não foi possível iniciar o smoke agora.');
       } finally {
-        setIsSubmitting(false);
+        if (checkoutRequestAbortRef.current === smokeRequestController) {
+          checkoutRequestAbortRef.current = null;
+          setIsSubmitting(false);
+        }
       }
       return;
     }
@@ -549,7 +783,10 @@ export function CheckoutPage() {
           documentNumber: cleanedDocument,
           ...(cleanedAccessNumbers.length ? { additionalAccessNumbers: cleanedAccessNumbers } : {}),
           creditCard: { holderName: cardName.trim(), number: cardDigits, expiryMonth, expiryYear, ccv: cardCvv },
-          creditCardHolderInfo: { cpfCnpj: cleanedDocument, postalCode, addressNumber: cardAddressNumber.trim() },
+          creditCardHolderInfo: {
+            name: name.trim(), email: email.trim(), cpfCnpj: cleanedDocument, postalCode,
+            addressNumber: cardAddressNumber.trim(), phone: cleanedPhone, mobilePhone: cleanedPhone,
+          },
         }
         : {
           ...baseRequest,
@@ -573,25 +810,62 @@ export function CheckoutPage() {
         : { ...baseRequest, paymentMethod };
     }
 
-    checkoutAttemptRef.current = createCheckoutAttempt(checkoutAttemptRef.current, requestBody, () => crypto.randomUUID());
+    const requestFingerprint = checkoutFingerprint;
+    activeCheckoutFingerprintRef.current = requestFingerprint;
+    const requestController = new AbortController();
+    checkoutRequestAbortRef.current = requestController;
+    checkoutAttemptRef.current = createCheckoutAttempt(
+      checkoutAttemptRef.current,
+      requestBody,
+      () => crypto.randomUUID(),
+      forceNewAttemptRef.current,
+    );
+    forceNewAttemptRef.current = false;
     setIsSubmitting(true);
     try {
-      const response = await postBillingCheckout(checkoutAttemptRef.current, requestBody);
-      if (checkoutSequence !== checkoutSequenceRef.current) return;
+      const response = await postBillingCheckout(checkoutAttemptRef.current, requestBody, fetch, { signal: requestController.signal });
+      if (checkoutSequence !== checkoutSequenceRef.current || currentCheckoutFingerprintRef.current !== requestFingerprint) return;
       const responseRoute = identifyBillingCheckoutResponse(response.data);
       if (responseRoute === 'pix') {
-        const pix = parsePixAutomaticCheckout(response.data);
-        if (!pix?.statusUrl) throw new BillingApiError('A resposta do Pix não informou o status da cobrança. Tente novamente.', { recoverable: false });
-        if (paymentMethod === 'credit_card') {
-          setPaymentMethod('pix_automatic');
-          setCheckoutNotice('Encontramos um Pix anterior ainda válido e retomamos esta cobrança.');
+        if (requestBody.paymentMethod !== 'pix') {
+          throw new BillingApiError('A Billing retornou um Pix para uma seleção de cartão. Nenhum pagamento anterior foi reutilizado; tente novamente.', { recoverable: false });
         }
-        setCheckoutResult({ kind: 'pix', ...toPixCheckoutDisplay(pix.pix), amount: displayPricing.grandTotal });
+        const pix = parsePixUpfrontCheckout(response.data);
+        if (!pix?.statusUrl) throw new BillingApiError('A resposta do Pix não informou o status da cobrança. Tente novamente.', { recoverable: false });
+        const pixDisplay = toPixCheckoutDisplay(pix.pix);
+        const trackedPixCheckout: PersistedPixUpfrontCheckout = {
+          orderId: pix.orderId,
+          statusUrl: pix.statusUrl,
+          checkoutControlToken: pix.checkoutControlToken,
+          paymentMethod: 'pix',
+          paymentFlow: 'PIX_UPFRONT',
+          fingerprint: requestFingerprint,
+          state: 'pending',
+          ...(pixDisplay.qrCodeSrc ? { qrCodeSrc: pixDisplay.qrCodeSrc } : {}),
+          ...(pixDisplay.pixPayload ? { pixPayload: pixDisplay.pixPayload } : {}),
+          ...(pixDisplay.expiresAt !== undefined ? { expiresAt: capPixExpirationAt24Hours(pixDisplay.expiresAt) } : {}),
+          amount: displayPricing.grandTotal,
+          abandonmentIdempotencyKey: createCheckoutAbandonmentIdempotencyKey(pix.orderId),
+        };
+        activePixCheckoutRef.current = trackedPixCheckout;
+        persistTrackedPixUpfrontCheckout(trackedPixCheckout);
+        setCheckoutTransitionState('idle');
+        setCheckoutResult({ kind: 'pix', ...pixDisplay, expiresAt: capPixExpirationAt24Hours(pixDisplay.expiresAt), amount: displayPricing.grandTotal });
         beginOrderTracking({ orderId: pix.orderId, statusUrl: pix.statusUrl });
         return;
       }
       if (responseRoute === 'boleto') {
-        throw new BillingApiError('Boleto indisponível no momento. Escolha Pix ou cartão.', { recoverable: false });
+        if (!isResumeMode) {
+          throw new BillingApiError('Boleto indisponível no momento. Escolha Pix ou cartão.', { recoverable: false });
+        }
+        const boleto = parseBoletoCheckout(response.data);
+        if (!boleto) throw new BillingApiError('A resposta do boleto não pôde ser validada. Tente novamente.', { recoverable: false });
+        // The returned order remains the authority. Its status is tracked by
+        // the same existing completion lifecycle; the Billing response owns
+        // the actual boleto details and no second checkout is created.
+        setCheckoutResult({ kind: 'boleto', ...(boleto.state === 'READY' ? { bankSlipUrl: boleto.bankSlipUrl } : {}) });
+        beginOrderTracking(boleto);
+        return;
       }
       if (responseRoute === 'transparent_card') {
         const transparent = parseTransparentCardCheckout(response.data, response.status);
@@ -609,19 +883,33 @@ export function CheckoutPage() {
       }
       throw new BillingApiError('A resposta do pagamento não pôde ser validada. Tente novamente.', { recoverable: false });
     } catch (error) {
+      if (checkoutSequence !== checkoutSequenceRef.current || currentCheckoutFingerprintRef.current !== requestFingerprint) return;
+      if (error instanceof BillingApiError && error.code === 'CHECKOUT_CONFIGURATION_CONFLICT' && activePixCheckoutRef.current) {
+        // A race can surface the conflict before the fingerprint effect gets
+        // to Billing. Reconcile the known order; never blindly retry checkout.
+        setCheckoutTransitionState('abandoning');
+        setCheckoutError('Atualizando sua forma de pagamento...');
+        abandonTrackedPixCheckout();
+        return;
+      }
       if (!pollingOrderRef.current) setCheckoutUiState('idle');
       setCheckoutError(error instanceof BillingApiError ? error.message : 'Não foi possível iniciar o pagamento agora. Tente novamente.');
     } finally {
-      setIsSubmitting(false);
+      if (checkoutRequestAbortRef.current === requestController) {
+        checkoutRequestAbortRef.current = null;
+        setIsSubmitting(false);
+      }
     }
   };
 
   const resumeErrorMessage: Record<string, string> = {
     RESUME_NOT_FOUND: 'Este link de assinatura não é válido. Solicite um novo link.',
+    RESUME_TOKEN_INVALID: 'Este link de assinatura não é válido. Solicite um novo link.',
     RESUME_EXPIRED: 'Este link de assinatura expirou. Solicite um novo link.',
     RESUME_TRIAL_STILL_ACTIVE: 'Seu período de teste ainda está ativo. Volte ao WhatsApp se precisar de ajuda.',
     RESUME_ALREADY_CONVERTED: 'Esta assinatura já foi concluída. Consulte seu acesso ou fale com o suporte.',
     RESUME_ALREADY_USED: 'Já existe uma assinatura em andamento para este link. Aguarde ou fale com o suporte.',
+    RESUME_EVENT_NOT_ELIGIBLE: 'Este checkout não está mais elegível. Solicite um novo link.',
     RESUME_UNAVAILABLE: 'Não foi possível abrir este checkout agora. Tente novamente em alguns instantes.',
   };
 
@@ -1053,13 +1341,13 @@ export function CheckoutPage() {
             {/* Payment Method Selection */}
             <div className="checkout-payment-methods mt-4 pt-6 border-t border-neutral-200">
               <label className="block text-base font-bold text-neutral-900 mb-4">Forma de pagamento (Asaas)</label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className={`grid grid-cols-2 gap-3 ${isResumeMode ? 'sm:grid-cols-3' : ''}`}>
                 <button
                   type="button"
-                  onClick={() => setPaymentMethod('pix_automatic')}
-                  aria-pressed={paymentMethod === 'pix_automatic'}
+                  onClick={() => setPaymentMethod('pix')}
+                  aria-pressed={paymentMethod === 'pix'}
                   className={`flex flex-col items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all ${
-                    paymentMethod === 'pix_automatic'
+                    paymentMethod === 'pix'
                       ? 'border-[#00a83e] bg-[#eafdf0] text-[#00a83e] shadow-md shadow-[#00a83e]/10'
                       : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 hover:bg-gray-50'
                   }`}
@@ -1080,6 +1368,19 @@ export function CheckoutPage() {
                   <CreditCard className="w-8 h-8" />
                   <span className="text-xs font-black uppercase tracking-wider text-center">Cartão</span>
                 </button>
+                {isResumeMode && <button
+                  type="button"
+                  onClick={() => setPaymentMethod('boleto')}
+                  aria-pressed={paymentMethod === 'boleto'}
+                  className={`flex flex-col items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all ${
+                    paymentMethod === 'boleto'
+                      ? 'border-amber-600 bg-amber-50 text-amber-700 shadow-md shadow-amber-600/10'
+                      : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className="text-lg font-black" aria-hidden="true">$</span>
+                  <span className="text-xs font-black uppercase tracking-wider text-center">Boleto</span>
+                </button>}
               </div>
 
               {/* Supported Card Flags */}
@@ -1224,7 +1525,21 @@ export function CheckoutPage() {
                 <Lock className="h-4 w-4 text-neutral-500" aria-hidden="true" />
                 <span>Pagamento seguro e processado pelo Asaas</span>
               </div>
-              {checkoutResult?.kind === 'pix' && trackedOrder && !showSuccessModal && (
+              {checkoutTransitionState !== 'idle' && (
+                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-left text-sm font-semibold text-amber-950" role="status">
+                  <p>{checkoutTransitionState === 'abandoning'
+                    ? 'Atualizando sua forma de pagamento...'
+                    : checkoutTransitionState === 'payment_confirmed'
+                      ? 'O pagamento anterior foi confirmado. Estamos liberando seu acesso.'
+                      : 'Estamos confirmando o cancelamento do pagamento anterior. Tente novamente em instantes.'}</p>
+                  {checkoutTransitionState === 'reconciliation_required' && (
+                    <button type="button" onClick={abandonTrackedPixCheckout} className="mt-2 text-xs font-extrabold underline">
+                      TENTAR NOVAMENTE
+                    </button>
+                  )}
+                </div>
+              )}
+              {checkoutTransitionState === 'idle' && checkoutResult?.kind === 'pix' && trackedOrder && !showSuccessModal && (
                 <button type="button" onClick={reopenPixModal} className="mt-4 w-full rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-extrabold text-[#007a2d] hover:bg-emerald-100">
                   VER PAGAMENTO PIX
                 </button>
@@ -1256,15 +1571,13 @@ export function CheckoutPage() {
 
           {/* Title */}
           <h2 className="text-2xl sm:text-3xl font-black text-[#0b1a30] tracking-tight mb-2 uppercase">
-            {checkoutResult?.kind === 'pix' ? (paymentState === 'awaiting_completion' ? 'Pagamento recebido' : 'Pague com Pix') : checkoutResult?.kind === 'card' ? 'Confirmando pagamento' : 'Pagamento iniciado'}
+             {checkoutTransitionState === 'payment_confirmed' ? 'Pagamento confirmado' : checkoutResult?.kind === 'pix' ? (paymentState === 'awaiting_completion' ? 'Pagamento recebido' : 'Pague com Pix') : checkoutResult?.kind === 'boleto' ? 'Pague o boleto' : checkoutResult?.kind === 'card' ? 'Confirmando pagamento' : 'Pagamento iniciado'}
           </h2>
           <p className="text-neutral-600 font-medium text-sm sm:text-base max-w-md mx-auto mb-6 leading-relaxed">
-            {checkoutResult?.kind === 'pix'
+             {checkoutTransitionState === 'payment_confirmed' ? 'O pagamento anterior foi confirmado. Estamos liberando seu acesso com segurança.' : checkoutResult?.kind === 'pix'
               ? (paymentState === 'awaiting_completion' ? 'Estamos liberando seu acesso com segurança.' : 'Escaneie o QR Code ou copie o código abaixo.')
-              : 'O pagamento foi recebido. Estamos confirmando seu acesso...'}
+              : checkoutResult?.kind === 'boleto' ? 'Abra o boleto para concluir o pagamento. A confirmação continuará sendo acompanhada.' : 'O pagamento foi recebido. Estamos confirmando seu acesso...'}
           </p>
-          {checkoutNotice && <p className="mx-auto mb-5 max-w-md rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900" role="status">{checkoutNotice}</p>}
-
           {checkoutResult?.kind === 'pix' && (
             <div className="mb-6 rounded-2xl border border-neutral-200 bg-neutral-50 p-4 sm:p-5">
               {paymentState === 'awaiting_completion' ? (
@@ -1300,6 +1613,11 @@ export function CheckoutPage() {
             <p className="mb-6 text-xs font-semibold text-emerald-900" role="status">
               {paymentPendingMessage}
             </p>
+          )}
+          {checkoutResult?.kind === 'boleto' && checkoutResult.bankSlipUrl && (
+            <a href={checkoutResult.bankSlipUrl} target="_blank" rel="noopener noreferrer" className="mb-6 inline-flex rounded-xl bg-[#007a2d] px-5 py-3 text-sm font-extrabold text-white">
+              ABRIR BOLETO
+            </a>
           )}
 
           {/* This information is intentionally secondary until payment confirmation. */}

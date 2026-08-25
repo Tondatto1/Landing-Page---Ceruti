@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   createCheckoutAttempt,
+  createCheckoutContractFingerprint,
   createSmokeCheckoutAttempt,
   buildCheckoutPayload,
   buildSmokeCheckoutPayloadBase,
@@ -25,15 +26,43 @@ function checkoutBody(addons: BillingCheckoutRequest['addons'] = []): BillingChe
       agentType: 'campo', frequency: 'monthly', accessQuantity: 1, customer,
       accessNumbers: [], addons: addons ?? [],
     }),
-    paymentMethod: 'pix_automatic',
+    paymentMethod: 'pix',
   };
 }
 
 describe('Ceruti Campo checkout contract', () => {
+  it('fingerprints every commercial/payment dimension that can change the order', () => {
+    const monthly = createCheckoutContractFingerprint({ agentType: 'campo', frequency: 'monthly', accessQuantity: 1, trainingPlatform: false, paymentMethod: 'pix' });
+    expect(createCheckoutContractFingerprint({ agentType: 'campo', frequency: 'semiannual', accessQuantity: 1, trainingPlatform: false, paymentMethod: 'pix' })).not.toBe(monthly);
+    expect(createCheckoutContractFingerprint({ agentType: 'campo', frequency: 'monthly', accessQuantity: 2, trainingPlatform: false, paymentMethod: 'pix' })).not.toBe(monthly);
+    expect(createCheckoutContractFingerprint({ agentType: 'campo', frequency: 'monthly', accessQuantity: 1, trainingPlatform: true, paymentMethod: 'pix' })).not.toBe(monthly);
+    expect(createCheckoutContractFingerprint({ agentType: 'campo', frequency: 'monthly', accessQuantity: 1, trainingPlatform: false, paymentMethod: 'credit_card' })).not.toBe(monthly);
+    expect(createCheckoutContractFingerprint({ agentType: 'campo', frequency: 'monthly', accessQuantity: 1, trainingPlatform: false, paymentMethod: 'pix' })).toBe(monthly);
+  });
+
+  it('forces a new idempotency attempt when returning to an abandoned old contract', () => {
+    const storage = new Map<string, string>();
+    vi.stubGlobal('window', {
+      location: { origin: 'https://lp.example.test' },
+      sessionStorage: {
+        getItem: (key: string) => storage.get(key) ?? null,
+        setItem: (key: string, value: string) => storage.set(key, value),
+        removeItem: (key: string) => storage.delete(key),
+      },
+    });
+    const monthly = checkoutBody();
+    const first = createCheckoutAttempt(null, monthly, () => 'monthly-old');
+    const semiannual = { ...monthly, frequency: 'semiannual' as const };
+    const second = createCheckoutAttempt(first, semiannual, () => 'semiannual-new');
+    const backToMonthly = createCheckoutAttempt(null, monthly, () => 'monthly-new', true);
+    expect(second.key).not.toBe(first.key);
+    expect(backToMonthly.key).toBe('checkout-monthly-new');
+    vi.unstubAllGlobals();
+  });
   it('routes checkout responses by Billing payment method and flow', () => {
-    expect(identifyBillingCheckoutResponse({ paymentMethod: 'PIX', paymentFlow: 'PIX_AUTOMATIC' })).toBe('pix');
+    expect(identifyBillingCheckoutResponse({ paymentMethod: 'PIX', paymentFlow: 'PIX_UPFRONT' })).toBe('pix');
     expect(identifyBillingCheckoutResponse({ paymentMethod: 'BOLETO', paymentFlow: 'ASAAS_SUBSCRIPTION' })).toBe('boleto');
-    expect(identifyBillingCheckoutResponse({ paymentMethod: 'CREDIT_CARD', paymentFlow: 'ASAAS_TRANSPARENT_SUBSCRIPTION' })).toBe('transparent_card');
+    expect(identifyBillingCheckoutResponse({ paymentMethod: 'CREDIT_CARD', paymentFlow: 'CREDIT_CARD_UPFRONT' })).toBe('transparent_card');
     expect(identifyBillingCheckoutResponse({ paymentMethod: 'CREDIT_CARD', paymentFlow: 'ASAAS_HOSTED_CHECKOUT' })).toBe('hosted_card');
     expect(identifyBillingCheckoutResponse({ paymentMethod: 'CREDIT_CARD', paymentFlow: 'PIX_AUTOMATIC' })).toBeNull();
   });
@@ -67,11 +96,21 @@ describe('Ceruti Campo checkout contract', () => {
     expect(typeof init?.body).toBe('string');
     expect(JSON.parse(String(init?.body))).toEqual({
       agentType: 'campo', frequency: 'monthly', accessQuantity: 1,
-      paymentMethod: 'pix_automatic', customer,
+      paymentMethod: 'pix', customer,
     });
   });
 
-  it.each(['pix', 'pix_automatic', 'boleto'] as const)('serializes real %s with the Billing enum and no optional placeholders', async (paymentMethod) => {
+  it('does not blindly retry CHECKOUT_CONFIGURATION_CONFLICT', async () => {
+    const body = checkoutBody();
+    const attempt = createCheckoutAttempt(null, body, () => 'conflict-test');
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ error: { code: 'CHECKOUT_CONFIGURATION_CONFLICT' } }), { status: 409 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 201 }));
+    await expect(postBillingCheckout(attempt, body, fetcher)).rejects.toMatchObject({ code: 'CHECKOUT_CONFIGURATION_CONFLICT', disposition: 'reconcile_same' });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['pix', 'boleto'] as const)('serializes real %s with the Billing enum and no optional placeholders', async (paymentMethod) => {
     const body = { ...checkoutBody(), paymentMethod };
     const attempt = createCheckoutAttempt(null, body, () => `${paymentMethod}-contract`);
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 201 }));

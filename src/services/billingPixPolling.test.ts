@@ -77,7 +77,7 @@ describe('order payment status polling', () => {
       statusUrl: `/billing/orders/order-card-${mode}/status`,
       reused: false,
       paymentMethod: 'CREDIT_CARD',
-      paymentFlow: 'ASAAS_TRANSPARENT_SUBSCRIPTION',
+      paymentFlow: 'CREDIT_CARD_UPFRONT',
       creditCard: { status: 'PROCESSING', hosted: false },
     }, 201);
 
