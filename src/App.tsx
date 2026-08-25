@@ -90,7 +90,7 @@ export default function App() {
               href="#planos" 
               className="bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white font-extrabold text-xs tracking-wider uppercase px-5 py-2.5 rounded-lg transition-all duration-300 shadow-md shadow-emerald-950/20 hover:shadow-emerald-600/30 active:scale-98 border-b-2 border-[#003813]"
             >
-              Quero ter acesso
+              ASSINAR AGORA
             </a>
           </div>
 
@@ -133,7 +133,7 @@ export default function App() {
                   onClick={() => setMobileMenuOpen(false)}
                   className="block w-full text-center bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] text-white py-2.5 rounded-lg font-extrabold text-xs tracking-wider uppercase transition-all duration-300 shadow-md shadow-emerald-950/20 border-b-2 border-[#003813]"
                 >
-                  Quero ter acesso
+                  ASSINAR AGORA
                 </a>
               </div>
             </motion.div>
@@ -184,13 +184,16 @@ export default function App() {
 
               {/* Action Button CTA */}
               <div className="order-4 lg:order-3 pt-0.5">
-                <a 
-                  href="#planos" 
-                  className="inline-flex items-center gap-3 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-lg shadow-emerald-950/25 hover:shadow-emerald-600/35 hover:scale-[1.01] active:scale-[0.99] border-b-[3px] border-[#003813]"
+                <button 
+                  type="button"
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('open-trial-widget'));
+                  }}
+                  className="inline-flex items-center gap-3 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-lg shadow-emerald-950/25 hover:shadow-emerald-600/35 hover:scale-[1.01] active:scale-[0.99] border-b-[3px] border-[#003813] cursor-pointer"
                 >
                   <MessageCircle className="w-5 h-5 text-current" />
-                  Quero ter acesso
-                </a>
+                  TESTAR GRÁTIS POR 7 DIAS
+                </button>
               </div>
 
               {/* Highlight Pillars (Clock, Bullseye, Increase Arrow) */}
@@ -1028,13 +1031,16 @@ export default function App() {
 
           {/* CTA Button */}
           <div className="flex justify-center mt-12 relative z-20">
-            <a 
-              href="#planos" 
-              className="inline-flex items-center gap-3 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-lg shadow-emerald-950/25 hover:shadow-emerald-600/35 hover:scale-[1.01] active:scale-[0.99] border-b-[3px] border-[#003813]"
+            <button 
+              type="button"
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('open-trial-widget'));
+              }}
+              className="inline-flex items-center gap-3 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-lg shadow-emerald-950/25 hover:shadow-emerald-600/35 hover:scale-[1.01] active:scale-[0.99] border-b-[3px] border-[#003813] cursor-pointer"
             >
               <MessageCircle className="w-5 h-5 text-current" />
-              Quero ter acesso
-            </a>
+              TESTAR GRÁTIS POR 7 DIAS
+            </button>
           </div>
 
         </div>
@@ -1291,13 +1297,16 @@ export default function App() {
 
           {/* CTA Action Button below the testimonials */}
           <div className="flex justify-center mt-12 relative z-20">
-            <a 
-              href="#planos" 
-              className="inline-flex items-center gap-3 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-lg shadow-emerald-950/25 hover:shadow-emerald-600/35 hover:scale-[1.01] active:scale-[0.99] border-b-[3px] border-[#003813]"
+            <button 
+              type="button"
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('open-trial-widget'));
+              }}
+              className="inline-flex items-center gap-3 bg-gradient-to-r from-[#004d1a] via-[#00a83e] to-[#00c853] hover:from-[#006020] hover:via-[#00b944] hover:to-[#05d95b] text-white px-8 py-4.5 rounded-xl font-extrabold text-sm tracking-widest uppercase transition-all shadow-lg shadow-emerald-950/25 hover:shadow-emerald-600/35 hover:scale-[1.01] active:scale-[0.99] border-b-[3px] border-[#003813] cursor-pointer"
             >
               <MessageCircle className="w-5 h-5 text-current" />
-              Quero ter acesso
-            </a>
+              TESTAR GRÁTIS POR 7 DIAS
+            </button>
           </div>
 
         </div>

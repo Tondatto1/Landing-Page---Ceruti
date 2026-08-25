@@ -223,13 +223,53 @@ export const WhatsAppWidget = () => {
     handleUrlTrigger();
     window.addEventListener('hashchange', handleUrlTrigger);
 
+    const handleOpenTrial = () => {
+      startTrialDirectly();
+    };
+    window.addEventListener('open-trial-widget', handleOpenTrial);
+
     return () => {
       window.removeEventListener('hashchange', handleUrlTrigger);
+      window.removeEventListener('open-trial-widget', handleOpenTrial);
       if (clickTimeoutRef.current) {
         clearTimeout(clickTimeoutRef.current);
       }
     };
-  }, []);
+  }, [signupStep]);
+
+  const startTrialDirectly = async () => {
+    setIsOpen(true);
+    setShowBalloon(false);
+
+    if (signupStep === 'idle') {
+      setInputError(null);
+      setUserInputText('');
+      setSignupStep('name');
+
+      const msg1: Message = {
+        id: '1',
+        sender: 'bot',
+        text: 'Olá! Sou o assistente do Ceruti. 🚀',
+        time: formatTime()
+      };
+
+      const userMsg: Message = {
+        id: Date.now().toString(),
+        sender: 'user',
+        text: 'Quero testar grátis por 7 dias',
+        time: formatTime()
+      };
+
+      const botMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        sender: 'bot',
+        text: 'Excelente escolha: o nosso agente Ceruti está pronto para capacitar seu time e fazê-lo vender mais.\n\nPara ativarmos e liberarmos o seu *Teste Grátis de 7 Dias*, preciso de 4 informações rápidas.\n\nPor favor, digite o seu *nome*:',
+        time: formatTime()
+      };
+
+      setMessages([msg1, userMsg, botMsg]);
+    }
+  };
 
   // Firebase auth sync states
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -395,7 +435,7 @@ export const WhatsAppWidget = () => {
       const botMsg: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
-        text: 'Excelente escolha: o nosso agente ceruti, está pronto para capacitar e impulsionar suas vendas através do WhatsApp.\n\nPara ativarmos e liberarmos o seu *Teste Grátis de 7 Dias*, preciso de 4 informações rápidas.\n\nPor favor, digite o seu *nome*:',
+        text: 'Excelente escolha: o nosso agente Ceruti está pronto para capacitar seu time e fazê-lo vender mais.\n\nPara ativarmos e liberarmos o seu *Teste Grátis de 7 Dias*, preciso de 4 informações rápidas.\n\nPor favor, digite o seu *nome*:',
         time: formatTime()
       };
       setMessages((prev) => [...prev, botMsg]);
