@@ -167,13 +167,13 @@ export default function App() {
             {/* Left Content Column */}
             <div className="lg:col-span-6 flex flex-col items-start gap-y-3.5 sm:gap-y-4 lg:gap-y-5 text-left">
 
-              {/* Badge Tag: Exclusivo para Agronegócios */}
+              {/* Badge Tag: Para vendedores do Agronegócio */}
               <div className="order-1 inline-flex items-center gap-2 px-4 py-1.5 bg-[#eafdf0] border-2 border-[#00a83e]/30 rounded-full text-[#00a83e] font-black text-xs sm:text-sm tracking-wider uppercase shadow-sm">
                 <span className="relative flex h-2.5 w-2.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00a83e] opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#00a83e]"></span>
                 </span>
-                <span>EXCLUSIVO PARA AGRONEGÓCIOS!</span>
+                <span>PARA VENDEDORES DO AGRONEGÓCIO!</span>
               </div>
 
               <h1 className="order-2 text-3xl sm:text-4xl lg:text-[44px] font-sans font-black text-neutral-900 leading-[1.2] sm:leading-[1.15] lg:leading-[1.1] tracking-tight sm:tracking-tighter lg:tracking-tighter pl-[1px]">
