@@ -1,7 +1,7 @@
 import { BILLING_API_BASE_URL, requireCerutiHttpsApiBase } from './apiBaseUrl';
 
-/** Exact public Billing enum. The current UI offers pix_automatic, card and boleto. */
-export type BillingPaymentMethod = 'pix' | 'pix_automatic' | 'credit_card' | 'boleto';
+/** Exact public Billing enum for the normal checkout. */
+export type BillingPaymentMethod = 'pix' | 'credit_card' | 'boleto';
 
 export type BillingAddon = 'training_platform';
 
@@ -56,9 +56,14 @@ export type ResumeCreditCardCheckoutRequest = Omit<ResumeCheckoutRequest, 'payme
   paymentMethod: 'credit_card';
   creditCard: CreditCardCheckoutRequest['creditCard'];
   creditCardHolderInfo: {
+    name: string;
+    email: string;
     cpfCnpj: string;
     postalCode: string;
     addressNumber: string;
+    addressComplement?: string;
+    phone: string;
+    mobilePhone?: string;
   };
 };
 
@@ -103,6 +108,25 @@ export type CheckoutCommercialInput = {
   accessNumbers: readonly string[];
   addons: readonly BillingAddon[];
 };
+
+export type CheckoutContractFingerprintInput = {
+  agentType: 'campo';
+  frequency: BillingCheckoutRequest['frequency'];
+  accessQuantity: number;
+  trainingPlatform: boolean;
+  paymentMethod: BillingPaymentMethod;
+};
+
+/** Identifies only the commercial/payment contract, never customer or card data. */
+export function createCheckoutContractFingerprint(input: CheckoutContractFingerprintInput): string {
+  return JSON.stringify({
+    agentType: input.agentType,
+    frequency: input.frequency,
+    accessQuantity: input.accessQuantity,
+    trainingPlatform: input.trainingPlatform,
+    paymentMethod: input.paymentMethod,
+  });
+}
 
 /**
  * Builds the commercial portion accepted by POST /billing/checkout.
@@ -157,6 +181,97 @@ export type SmokePixAutomaticCheckout = {
   pix: BillingPix;
 };
 
+/** One-time Pix checkout capability returned by the normal Billing checkout. */
+export type PixUpfrontCheckout = SmokePixAutomaticCheckout & {
+  checkoutControlToken: string;
+};
+
+export type CheckoutAbandonmentState =
+  | 'ABANDONED'
+  | 'ALREADY_TERMINAL'
+  | 'PAYMENT_CONFIRMED'
+  | 'RECONCILIATION_REQUIRED'
+  | 'STILL_PAYABLE';
+
+export type CheckoutAbandonmentResponse = {
+  state: CheckoutAbandonmentState;
+  canStartNewCheckout: boolean;
+  orderId: string;
+  statusUrl: string;
+};
+
+export type PersistedPixUpfrontCheckout = {
+  orderId: string;
+  statusUrl: string;
+  checkoutControlToken: string;
+  paymentMethod: 'pix';
+  paymentFlow: 'PIX_UPFRONT';
+  fingerprint: string;
+  state: 'pending' | 'abandoning' | 'reconciliation_required' | 'payment_confirmed';
+  qrCodeSrc?: string;
+  pixPayload?: string;
+  expiresAt?: number;
+  amount?: number;
+  abandonmentIdempotencyKey: string;
+};
+
+const checkoutControlTokenPattern = /^cc_[A-Za-z0-9_-]{43}$/;
+const checkoutIdempotencyKeyPattern = /^[A-Za-z0-9._:-]{8,128}$/;
+const TRACKED_PIX_CHECKOUT_STORAGE_KEY = 'ceruti.billing.tracked-pix-upfront';
+
+/** Stable for the order/configuration-change operation and safe to retry. */
+export function createCheckoutAbandonmentIdempotencyKey(orderId: string): string {
+  if (!/^[A-Za-z0-9._:-]{1,96}$/.test(orderId)) throw new Error('Invalid Billing order id.');
+  const key = `checkout-abandon:${orderId}:configuration-change`;
+  if (!checkoutIdempotencyKeyPattern.test(key)) throw new Error('Invalid abandonment idempotency key.');
+  return key;
+}
+
+function trackedCheckoutStorage(): Storage | null {
+  try { return typeof window === 'undefined' ? null : window.sessionStorage; } catch { return null; }
+}
+
+export function persistTrackedPixUpfrontCheckout(checkout: PersistedPixUpfrontCheckout): void {
+  try { trackedCheckoutStorage()?.setItem(TRACKED_PIX_CHECKOUT_STORAGE_KEY, JSON.stringify(checkout)); } catch {
+    // Persistence is a resume/reconciliation aid, never a prerequisite for Billing.
+  }
+}
+
+export function clearPersistedTrackedPixUpfrontCheckout(): void {
+  try { trackedCheckoutStorage()?.removeItem(TRACKED_PIX_CHECKOUT_STORAGE_KEY); } catch {
+    // Storage may be unavailable or user-cleared.
+  }
+}
+
+export function readPersistedTrackedPixUpfrontCheckout(): PersistedPixUpfrontCheckout | null {
+  try {
+    const raw = trackedCheckoutStorage()?.getItem(TRACKED_PIX_CHECKOUT_STORAGE_KEY);
+    if (!raw) return null;
+    const value = JSON.parse(raw) as Record<string, unknown>;
+    if (
+      typeof value.orderId !== 'string'
+      || !/^[A-Za-z0-9._:-]{1,96}$/.test(value.orderId)
+      || typeof value.statusUrl !== 'string'
+      || typeof value.checkoutControlToken !== 'string'
+      || !checkoutControlTokenPattern.test(value.checkoutControlToken)
+      || value.paymentMethod !== 'pix'
+      || value.paymentFlow !== 'PIX_UPFRONT'
+      || typeof value.fingerprint !== 'string'
+      || !['pending', 'abandoning', 'reconciliation_required', 'payment_confirmed'].includes(String(value.state))
+      || typeof value.abandonmentIdempotencyKey !== 'string'
+      || !checkoutIdempotencyKeyPattern.test(value.abandonmentIdempotencyKey)
+    ) return null;
+    resolveBillingStatusUrl(value.statusUrl, value.orderId);
+    if (value.qrCodeSrc !== undefined && typeof value.qrCodeSrc !== 'string') return null;
+    if (value.pixPayload !== undefined && typeof value.pixPayload !== 'string') return null;
+    if (value.expiresAt !== undefined && typeof value.expiresAt !== 'number') return null;
+    if (value.amount !== undefined && (typeof value.amount !== 'number' || !Number.isFinite(value.amount))) return null;
+    return value as unknown as PersistedPixUpfrontCheckout;
+  } catch {
+    return null;
+  }
+}
+
 export function toPixCheckoutDisplay(pix: Partial<BillingPix> | null | undefined): {
   qrCodeSrc: string | undefined;
   pixPayload: string;
@@ -183,6 +298,15 @@ export function parsePixExpirationDate(expirationDate: unknown): number | undefi
   }
   const parsed = Date.parse(normalized);
   return Number.isNaN(parsed) ? undefined : parsed;
+}
+
+/** The public checkout must never present a Pix validity window longer than 24h. */
+export function capPixExpirationAt24Hours(
+  expiresAt: number | undefined,
+  issuedAt = Date.now(),
+): number | undefined {
+  if (expiresAt === undefined || !Number.isFinite(expiresAt) || !Number.isFinite(issuedAt)) return expiresAt;
+  return Math.min(expiresAt, issuedAt + 24 * 60 * 60 * 1_000);
 }
 
 export type CheckoutErrorDisposition =
@@ -249,7 +373,7 @@ export type BillingCheckoutDiagnosticEvent = {
     | 'billing_checkout.retry_scheduled'
     | 'billing_checkout.response_accepted'
     | 'billing_checkout.failed';
-  paymentMethod: BillingPaymentMethod;
+  paymentMethod: BillingPaymentMethod | 'pix_automatic';
   apiOrigin: string;
   browserOrigin?: string;
   elapsedMs: number;
@@ -325,9 +449,9 @@ export type BillingCheckoutResponseRoute =
  */
 export function identifyBillingCheckoutResponse(value: unknown): BillingCheckoutResponseRoute | null {
   if (!isRecord(value)) return null;
-  if (value.paymentMethod === 'PIX' && value.paymentFlow === 'PIX_AUTOMATIC') return 'pix';
+  if (value.paymentMethod === 'PIX' && value.paymentFlow === 'PIX_UPFRONT') return 'pix';
   if (value.paymentMethod === 'BOLETO' && value.paymentFlow === 'ASAAS_SUBSCRIPTION') return 'boleto';
-  if (value.paymentMethod === 'CREDIT_CARD' && value.paymentFlow === 'ASAAS_TRANSPARENT_SUBSCRIPTION') {
+  if (value.paymentMethod === 'CREDIT_CARD' && value.paymentFlow === 'CREDIT_CARD_UPFRONT') {
     return 'transparent_card';
   }
   if (value.paymentMethod === 'CREDIT_CARD' && value.paymentFlow === 'ASAAS_HOSTED_CHECKOUT') {
@@ -409,6 +533,8 @@ const PUBLIC_ERROR_MESSAGES: Record<CheckoutErrorDisposition, string> = {
 };
 
 const PUBLIC_ERROR_MESSAGES_BY_CODE: Partial<Record<string, string>> = {
+  CHECKOUT_CONFIGURATION_CONFLICT:
+    'Existe um pagamento Pix anterior aguardando encerramento. Vamos confirmar essa troca antes de iniciar outro.',
   SMOKE_TEST_DISABLED: 'O modo de teste financeiro está desabilitado no momento.',
   SMOKE_TEST_IDENTITY_NOT_ALLOWED: 'Esses dados não estão autorizados para o smoke test.',
   SMOKE_IDEMPOTENCY_KEY_REQUIRED: 'Erro interno no identificador do teste. Recarregue a página e tente novamente.',
@@ -430,13 +556,19 @@ const PUBLIC_ERROR_MESSAGES_BY_CODE: Partial<Record<string, string>> = {
   RATE_LIMITED: 'Limite de tentativas de teste atingido. Aguarde alguns minutos.',
   INVALID_BRAZILIAN_PHONE:
     'O número de celular informado é inválido. Confira o DDD e o número e tente novamente.',
+  INVALID_DOCUMENT: 'Informe um CPF ou CNPJ válido.',
+  INVALID_FREQUENCY: 'A frequência escolhida não está disponível neste checkout.',
+  INVALID_ACCESS_QUANTITY: 'A quantidade de acessos informada não é permitida.',
+  DUPLICATE_ACCESS_NUMBER: 'Os números adicionais devem ser únicos e diferentes do telefone principal.',
   ACCESS_NUMBER_ALREADY_ACTIVE:
     'Este número de acesso já está ativo para este agente. Use outro número de acesso para continuar.',
   RESUME_NOT_FOUND: 'Este link de assinatura não é válido. Solicite um novo link.',
+  RESUME_TOKEN_INVALID: 'Este link de assinatura não é válido. Solicite um novo link.',
   RESUME_EXPIRED: 'Este link de assinatura expirou. Solicite um novo link.',
   RESUME_TRIAL_STILL_ACTIVE: 'Seu período de teste ainda está ativo.',
   RESUME_ALREADY_CONVERTED: 'Esta assinatura já foi concluída.',
   RESUME_ALREADY_USED: 'Já existe uma assinatura em andamento para este link.',
+  RESUME_EVENT_NOT_ELIGIBLE: 'Este checkout não está mais elegível. Solicite um novo link.',
 };
 
 type CheckoutRequest =
@@ -457,7 +589,7 @@ export function createCheckoutAttempt(
     return current;
   }
 
-  const persisted = body.paymentMethod === 'credit_card' || isResumeCheckoutRequest(body)
+  const persisted = forceNew || body.paymentMethod === 'credit_card' || isResumeCheckoutRequest(body)
     ? null
     : readPersistedAttempt(fingerprint);
   const attempt = persisted ?? {
@@ -648,7 +780,7 @@ export function parseTransparentCardCheckout(
     value.ok !== true ||
     value.status !== 'AWAITING_PAYMENT' ||
     value.paymentMethod !== 'CREDIT_CARD' ||
-    value.paymentFlow !== 'ASAAS_TRANSPARENT_SUBSCRIPTION' ||
+    value.paymentFlow !== 'CREDIT_CARD_UPFRONT' ||
     value.reused !== reused ||
     creditCard.status !== 'PROCESSING' ||
     creditCard.hosted !== false ||
@@ -810,7 +942,7 @@ export async function postBillingCheckout(
       });
     }
 
-    if (!retryDispositions.has(lastError.disposition)) {
+    if (lastError.code === 'CHECKOUT_CONFIGURATION_CONFLICT' || !retryDispositions.has(lastError.disposition)) {
       reportDiagnostic('billing_checkout.failed', {
         requestNumber,
         ...(lastError.status === undefined ? {} : { httpStatus: lastError.status }),
@@ -860,6 +992,56 @@ export async function postBillingCheckout(
   );
 }
 
+/** Explicitly releases a known pending PIX_UPFRONT order. */
+export async function postBillingAbandonPayment(
+  orderId: string,
+  checkoutControlToken: string,
+  idempotencyKey: string,
+  fetcher: typeof fetch = fetch,
+  signal?: AbortSignal,
+): Promise<CheckoutAbandonmentResponse> {
+  if (!/^[A-Za-z0-9._:-]{1,96}$/.test(orderId)
+    || !checkoutControlTokenPattern.test(checkoutControlToken)
+    || !checkoutIdempotencyKeyPattern.test(idempotencyKey)) {
+    throw createPublicBillingError(422, 'VALIDATION_ERROR', undefined, 'validation');
+  }
+  throwIfAborted(signal);
+  const base = requireCerutiHttpsApiBase(BILLING_API_BASE_URL);
+  const endpoint = new URL(`/billing/orders/${encodeURIComponent(orderId)}/abandon-payment`, base).toString();
+  let response: Response;
+  try {
+    response = await fetcher(endpoint, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-Checkout-Control-Token': checkoutControlToken,
+        'Idempotency-Key': idempotencyKey,
+      },
+      body: '{}',
+      signal,
+    });
+  } catch (error) {
+    if (signal?.aborted || (error instanceof DOMException && error.name === 'AbortError')) throw error;
+    throw new BillingApiError('Estamos confirmando o cancelamento do pagamento anterior. Tente novamente em instantes.', {
+      recoverable: true,
+      disposition: 'reconcile_same',
+    });
+  }
+  throwIfAborted(signal);
+  const data = await readJson(response);
+  if (!response.ok) throw toBillingApiError(response.status, data);
+  const parsed = parseCheckoutAbandonmentResponse(data, orderId);
+  if (!parsed) {
+    throw new BillingApiError('Estamos confirmando o cancelamento do pagamento anterior. Tente novamente em instantes.', {
+      recoverable: true,
+      disposition: 'reconcile_same',
+      status: response.status,
+    });
+  }
+  return parsed;
+}
+
 export async function postBillingSmokeCheckout(
   attempt: CheckoutAttempt,
   body: SmokeCheckoutRequest,
@@ -877,7 +1059,7 @@ export async function postBillingSmokeCheckout(
   }
 
   const base = requireCerutiHttpsApiBase(BILLING_API_BASE_URL);
-  const paymentMethod: BillingPaymentMethod = body.paymentMethod === 'PIX_AUTOMATIC'
+  const paymentMethod: BillingCheckoutDiagnosticEvent['paymentMethod'] = body.paymentMethod === 'PIX_AUTOMATIC'
     ? 'pix_automatic'
     : 'credit_card';
   const reportDiagnostic = (
@@ -1040,7 +1222,7 @@ function isPublicCheckoutRequest(value: Record<string, unknown>): value is Check
   if (!Object.keys(value).every((key) => allowedKeys.includes(key))
     || value.agentType !== 'campo'
     || !['monthly', 'semiannual', 'annual'].includes(String(value.frequency))
-    || !['pix', 'pix_automatic', 'boleto', 'credit_card'].includes(String(value.paymentMethod))
+  || !['pix', 'boleto', 'credit_card'].includes(String(value.paymentMethod))
     || !Number.isSafeInteger(value.accessQuantity)
     || (value.accessQuantity as number) < 1
     || (value.accessQuantity as number) > 500
@@ -1061,8 +1243,41 @@ function isPublicCheckoutRequest(value: Record<string, unknown>): value is Check
     && new Set(normalized).size === normalized.length;
 }
 
-/** Pix normal and smoke share the same public checkout response shape. */
-export const parsePixAutomaticCheckout = parseSmokePixAutomaticCheckout;
+/** Validates the one-time Pix response and its order-bound abandonment capability. */
+export function parsePixUpfrontCheckout(value: unknown): PixUpfrontCheckout | null {
+  if (
+    !isRecord(value)
+    || value.paymentFlow !== 'PIX_UPFRONT'
+    || typeof value.checkoutControlToken !== 'string'
+    || !checkoutControlTokenPattern.test(value.checkoutControlToken)
+  ) return null;
+  const parsed = parseSmokePixAutomaticCheckout({
+    ...value,
+    paymentFlow: 'PIX_AUTOMATIC',
+  });
+  return parsed ? { ...parsed, checkoutControlToken: value.checkoutControlToken } : null;
+}
+
+export function parseCheckoutAbandonmentResponse(
+  value: unknown,
+  expectedOrderId: string,
+): CheckoutAbandonmentResponse | null {
+  if (!isRecord(value)) return null;
+  if (value.ok !== undefined && value.ok !== true) return null;
+  if (
+    typeof value.state !== 'string'
+    || !['ABANDONED', 'ALREADY_TERMINAL', 'PAYMENT_CONFIRMED', 'RECONCILIATION_REQUIRED', 'STILL_PAYABLE'].includes(value.state)
+    || typeof value.canStartNewCheckout !== 'boolean'
+    || typeof value.orderId !== 'string'
+    || value.orderId !== expectedOrderId
+    || typeof value.statusUrl !== 'string'
+  ) return null;
+  try { resolveBillingStatusUrl(value.statusUrl, expectedOrderId); } catch { return null; }
+  const state = value.state as CheckoutAbandonmentState;
+  const canStartNewCheckout = value.canStartNewCheckout;
+  if (canStartNewCheckout !== (state === 'ABANDONED' || state === 'ALREADY_TERMINAL')) return null;
+  return { state, canStartNewCheckout, orderId: value.orderId, statusUrl: value.statusUrl };
+}
 
 function isResumeCheckoutRequest(value: CheckoutRequest): value is ResumeCheckoutRequest | ResumeCreditCardCheckoutRequest {
   return 'resumeToken' in value;
@@ -1080,7 +1295,7 @@ function isResumePublicCheckoutRequest(value: Record<string, unknown>): value is
     && Number.isSafeInteger(value.accessQuantity)
     && (value.accessQuantity as number) >= 1
     && (value.accessQuantity as number) <= 500
-    && ['pix', 'pix_automatic', 'boleto', 'credit_card'].includes(String(value.paymentMethod))
+    && ['pix', 'boleto', 'credit_card'].includes(String(value.paymentMethod))
     && typeof value.documentNumber === 'string'
     && /^\d{11,18}$/.test(value.documentNumber.replace(/\D/g, ''))
     && (additionalAccessNumbers === undefined || (
@@ -1096,15 +1311,18 @@ function isResumePublicCheckoutRequest(value: Record<string, unknown>): value is
   return isRecord(creditCard)
     && isRecord(holder)
     && hasExactKeys(creditCard, ['holderName', 'number', 'expiryMonth', 'expiryYear', 'ccv'])
-    && hasExactKeys(holder, ['cpfCnpj', 'postalCode', 'addressNumber'])
+    && Object.keys(holder).every((key) => ['name', 'email', 'cpfCnpj', 'postalCode', 'addressNumber', 'addressComplement', 'phone', 'mobilePhone'].includes(key))
     && typeof creditCard.holderName === 'string'
     && typeof creditCard.number === 'string'
     && typeof creditCard.expiryMonth === 'string'
     && typeof creditCard.expiryYear === 'string'
     && typeof creditCard.ccv === 'string'
+    && typeof holder.name === 'string'
+    && typeof holder.email === 'string'
     && holder.cpfCnpj === value.documentNumber
     && typeof holder.postalCode === 'string'
-    && typeof holder.addressNumber === 'string';
+    && typeof holder.addressNumber === 'string'
+    && typeof holder.phone === 'string';
 }
 
 function isTransparentCardRequest(value: Record<string, unknown>): value is CreditCardCheckoutRequest {
@@ -1303,7 +1521,7 @@ export function classifyCheckoutFailure(
   ) {
     return 'retry_same';
   }
-  if (code === 'CHECKOUT_IN_PROGRESS' || code === 'CHECKOUT_RECONCILIATION_REQUIRED') {
+  if (code === 'CHECKOUT_IN_PROGRESS' || code === 'CHECKOUT_RECONCILIATION_REQUIRED' || code === 'CHECKOUT_CONFIGURATION_CONFLICT') {
     return 'reconcile_same';
   }
   if (status === 409 && code === 'IDEMPOTENCY_CONFLICT') return 'idempotency_conflict';

@@ -45,10 +45,11 @@
       // synchronously, before any third-party tracking script can read the URL.
       (function () {
         var params = new URLSearchParams(window.location.search);
+        if (!params.has('resume')) return;
         var resumeToken = params.get('resume');
-        if (!resumeToken) return;
 
-        window.__CERUTI_CHECKOUT_RESUME_TOKEN__ = resumeToken;
+        window.__CERUTI_CHECKOUT_RESUME_REQUESTED__ = true;
+        window.__CERUTI_CHECKOUT_RESUME_TOKEN__ = resumeToken || '';
         params.delete('resume');
         var nextUrl = window.location.pathname
           + (params.toString() ? '?' + params.toString() : '')

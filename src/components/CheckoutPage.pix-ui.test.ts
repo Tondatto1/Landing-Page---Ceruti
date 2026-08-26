@@ -54,14 +54,14 @@ describe('Pix payment modal', () => {
   it('routes a reused Pix response by Billing method instead of the selected form', () => {
     expect(source).toContain('const responseRoute = identifyBillingCheckoutResponse(response.data);');
     expect(source).toContain("if (responseRoute === 'pix')");
-    expect(source).toContain('parsePixAutomaticCheckout(response.data)');
-    expect(source).toContain("setPaymentMethod('pix_automatic')");
-    expect(source).toContain('Encontramos um Pix anterior ainda válido e retomamos esta cobrança.');
+    expect(source).toContain('parsePixUpfrontCheckout(response.data)');
+    expect(source).toContain("requestBody.paymentMethod !== 'pix'");
+    expect(source).toContain('Nenhum pagamento anterior foi reutilizado');
     expect(source).toContain('beginOrderTracking({ orderId: pix.orderId, statusUrl: pix.statusUrl });');
     expect(source).toContain("if (responseRoute === 'transparent_card')");
     expect(source).toContain("Boleto indisponível no momento. Escolha Pix ou cartão.");
-    expect(source).not.toContain("setPaymentMethod('boleto')");
-    expect(source.match(/postBillingCheckout\(checkoutAttemptRef\.current, requestBody\)/g)?.length).toBe(1);
+    expect(source).toContain("setPaymentMethod('boleto')");
+    expect(source.match(/postBillingCheckout\(checkoutAttemptRef\.current, requestBody, fetch/g)?.length).toBe(1);
   });
 
 });

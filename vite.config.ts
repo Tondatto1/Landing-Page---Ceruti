@@ -12,8 +12,6 @@ export default defineConfig(() => {
       },
     },
     server: {
-      allowedHosts: ['modular-train-live-behalf.trycloudflare.com'],
-
       hmr: process.env.DISABLE_HMR !== 'true',
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {},

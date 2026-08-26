@@ -4,19 +4,19 @@ export type ResumeFrequency = 'monthly' | 'semiannual' | 'annual';
 
 export type CheckoutResumeContext = {
   agentType: 'campo';
-  customer: { name: string; email: string; phone: string };
+  prefill: { name: string; email: string; phone: string };
   allowedFrequencies: ResumeFrequency[];
-  defaultFrequency: ResumeFrequency;
   maxAccessQuantity: number;
-  defaultAccessQuantity: number;
 };
 
 export type CheckoutResumeErrorCode =
   | 'RESUME_NOT_FOUND'
+  | 'RESUME_TOKEN_INVALID'
   | 'RESUME_EXPIRED'
   | 'RESUME_TRIAL_STILL_ACTIVE'
   | 'RESUME_ALREADY_CONVERTED'
   | 'RESUME_ALREADY_USED'
+  | 'RESUME_EVENT_NOT_ELIGIBLE'
   | 'RESUME_UNAVAILABLE';
 
 export class CheckoutResumeApiError extends Error {
@@ -47,37 +47,24 @@ function readPositiveInteger(value: unknown): number | null {
 function parseContext(value: unknown): CheckoutResumeContext | null {
   if (!isRecord(value) || value.ok !== true || !isRecord(value.resume)) return null;
   const resume = value.resume;
-  const customer = isRecord(resume.customer) ? resume.customer : null;
+  const prefill = isRecord(resume.prefill) ? resume.prefill : null;
   const offer = isRecord(resume.offer) ? resume.offer : null;
-  if (!customer || !offer || resume.agentType !== 'campo') return null;
+  if (!prefill || !offer || resume.agentType !== 'campo') return null;
 
-  const name = readString(customer.name);
-  const email = readString(customer.email);
-  const phone = readString(customer.phone);
+  const name = readString(prefill.name);
+  const email = readString(prefill.email);
+  const phone = readString(prefill.phone);
   const allowedFrequencies = Array.isArray(offer.allowedFrequencies)
     ? offer.allowedFrequencies.map(readFrequency).filter((frequency): frequency is ResumeFrequency => frequency !== null)
     : [];
   const maxAccessQuantity = readPositiveInteger(offer.maxAccessQuantity);
-  const defaultAccessQuantity = readPositiveInteger(offer.defaultAccessQuantity) ?? 1;
-  const requestedDefaultFrequency = readFrequency(offer.defaultFrequency);
-  const defaultFrequency = requestedDefaultFrequency && allowedFrequencies.includes(requestedDefaultFrequency)
-    ? requestedDefaultFrequency
-    : allowedFrequencies.includes('monthly')
-      ? 'monthly'
-      : allowedFrequencies[0];
-
-  if (
-    !name || !email || !phone || !maxAccessQuantity || allowedFrequencies.length === 0
-    || defaultAccessQuantity > maxAccessQuantity
-  ) return null;
+  if (!name || !email || !phone || !maxAccessQuantity || !allowedFrequencies.includes('monthly')) return null;
 
   return {
     agentType: 'campo',
-    customer: { name, email, phone },
+    prefill: { name, email, phone },
     allowedFrequencies,
-    defaultFrequency,
     maxAccessQuantity,
-    defaultAccessQuantity,
   };
 }
 
@@ -85,10 +72,12 @@ function readErrorCode(value: unknown): CheckoutResumeErrorCode {
   const code = isRecord(value) && isRecord(value.error) ? value.error.code : undefined;
   switch (code) {
     case 'RESUME_NOT_FOUND':
+    case 'RESUME_TOKEN_INVALID':
     case 'RESUME_EXPIRED':
     case 'RESUME_TRIAL_STILL_ACTIVE':
     case 'RESUME_ALREADY_CONVERTED':
     case 'RESUME_ALREADY_USED':
+    case 'RESUME_EVENT_NOT_ELIGIBLE':
       return code;
     default:
       return 'RESUME_UNAVAILABLE';
@@ -138,10 +127,21 @@ export async function getCheckoutResumeContext(
 declare global {
   interface Window {
     __CERUTI_CHECKOUT_RESUME_TOKEN__?: string;
+    __CERUTI_CHECKOUT_RESUME_REQUESTED__?: boolean;
   }
 }
 
 export function getCapturedCheckoutResumeToken(): string | null {
   const token = typeof window === 'undefined' ? undefined : window.__CERUTI_CHECKOUT_RESUME_TOKEN__;
+  // Do not leave the bearer on window after React captures it. The component
+  // keeps it only in its in-memory ref for this screen's lifetime.
+  if (typeof window !== 'undefined') delete window.__CERUTI_CHECKOUT_RESUME_TOKEN__;
   return token && /^rsm_[A-Za-z0-9_-]{16,512}$/.test(token) ? token : null;
+}
+
+export function consumeCapturedCheckoutResumeRequest(): boolean {
+  if (typeof window === 'undefined') return false;
+  const requested = window.__CERUTI_CHECKOUT_RESUME_REQUESTED__ === true;
+  delete window.__CERUTI_CHECKOUT_RESUME_REQUESTED__;
+  return requested;
 }
