@@ -1,5 +1,13 @@
-import { describe, expect, it } from 'vitest';
-import { parseTransparentCardCheckout, pollOrderUntilCompletion } from './billingCheckout';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  clearPersistedTrackedCardCheckout,
+  createCheckoutRedirectGuard,
+  isCheckoutSuccessfullyCompleted,
+  parseTransparentCardCheckout,
+  persistTrackedCardCheckout,
+  pollOrderUntilCompletion,
+  readPersistedTrackedCardCheckout,
+} from './billingCheckout';
 
 const order = {
   orderId: 'order-pix-1',
@@ -33,6 +41,23 @@ describe('order payment status polling', () => {
       timeoutMs: 10_000,
     });
 
+    expect(result).toEqual({ kind: 'confirmed', redirectTo });
+  });
+
+  it('completes the transparent card lifecycle from awaiting payment to active', async () => {
+    const cardOrder = { orderId: 'order-card-1', statusUrl: '/billing/orders/order-card-1/status' };
+    const responses = [
+      statusResponse({ orderId: cardOrder.orderId, status: 'awaiting_payment', paid: false, canRedirect: false }),
+      statusResponse({ orderId: cardOrder.orderId, status: 'active', financialStatus: 'ACTIVE', checkoutProvisioningStatus: 'completed', redirectTo }),
+    ];
+    let now = 0;
+    const result = await pollOrderUntilCompletion(cardOrder, {
+      fetcher: async () => responses.shift()!,
+      now: () => now,
+      wait: async (delay) => { now += delay; },
+      intervalMs: 4_000,
+      timeoutMs: 10_000,
+    });
     expect(result).toEqual({ kind: 'confirmed', redirectTo });
   });
 
@@ -101,5 +126,83 @@ describe('order payment status polling', () => {
       fetcher: async () => statusResponse({ status: 'active', paid: false, canRedirect: true, redirectTo }),
     });
     expect(result).toEqual({ kind: 'confirmed', redirectTo });
+  });
+
+  it('recognizes the canonical Billing completion state independently of Asaas paid', async () => {
+    const state = statusResponse({
+      status: 'active',
+      paid: false,
+      financialStatus: 'ACTIVE',
+      checkoutProvisioningStatus: 'completed',
+      redirectTo,
+    });
+    const parsed = await state.json() as Record<string, unknown>;
+    expect(isCheckoutSuccessfullyCompleted(parsed as any)).toBe(true);
+    expect(isCheckoutSuccessfullyCompleted({ ...parsed, status: 'ACTIVE', financial_status: 'active', checkout_provisioning_status: 'COMPLETED' } as any)).toBe(true);
+    expect(isCheckoutSuccessfullyCompleted({ ...parsed, status: 'canceled', canRedirect: true } as any)).toBe(false);
+    await expect(pollOrderUntilCompletion(order, {
+      fetcher: async () => new Response(JSON.stringify(parsed), { status: 200 }),
+    })).resolves.toEqual({ kind: 'confirmed', redirectTo });
+  });
+
+  it.each([
+    { name: 'Asaas confirmed while provisioning is incomplete', asaasPaymentStatus: 'CONFIRMED', financialStatus: 'ACTIVE', checkoutProvisioningStatus: 'processing' },
+    { name: 'provisioning complete while financial state is pending', asaasPaymentStatus: 'CONFIRMED', financialStatus: 'PENDING', checkoutProvisioningStatus: 'completed' },
+  ])('does not redirect for $name', async (state) => {
+    let now = 0;
+    const result = await pollOrderUntilCompletion(order, {
+      fetcher: async () => statusResponse({ status: 'active', paid: true, canRedirect: false, ...state }),
+      now: () => now,
+      wait: async (delay) => { now += delay; },
+      intervalMs: 4_000,
+      timeoutMs: 5_000,
+    });
+    expect(result.kind).toBe('timeout');
+  });
+
+  it('recovers after a temporary polling error and then recognizes active', async () => {
+    const responses: Array<Response | Error> = [
+      new Error('temporary network failure'),
+      statusResponse({ status: 'active', financialStatus: 'ACTIVE', checkoutProvisioningStatus: 'completed', redirectTo }),
+    ];
+    const result = await pollOrderUntilCompletion(order, {
+      fetcher: async () => {
+        const next = responses.shift();
+        if (next instanceof Error) throw next;
+        return next!;
+      },
+      wait: async () => {},
+    });
+    expect(result).toEqual({ kind: 'confirmed', redirectTo });
+  });
+
+  it('claims a detected completion only once', () => {
+    const guard = createCheckoutRedirectGuard();
+    expect(guard.claim(order.orderId)).toBe(true);
+    expect(guard.claim(order.orderId)).toBe(false);
+    expect(guard.claim('another-order')).toBe(true);
+  });
+
+  it('persists only card order identity for reload recovery', () => {
+    const storage = new Map<string, string>();
+    vi.stubGlobal('window', {
+      sessionStorage: {
+        getItem: (key: string) => storage.get(key) ?? null,
+        setItem: (key: string, value: string) => storage.set(key, value),
+        removeItem: (key: string) => storage.delete(key),
+      },
+    });
+    persistTrackedCardCheckout({
+      orderId: 'order-card-reload',
+      statusUrl: '/billing/orders/order-card-reload/status',
+      paymentMethod: 'credit_card',
+      paymentFlow: 'CREDIT_CARD_UPFRONT',
+      fingerprint: 'checkout-fingerprint-card',
+    });
+    expect(readPersistedTrackedCardCheckout()).toMatchObject({ orderId: 'order-card-reload', paymentFlow: 'CREDIT_CARD_UPFRONT' });
+    expect(JSON.stringify([...storage.values()])).not.toContain('4111111111111111');
+    clearPersistedTrackedCardCheckout();
+    expect(readPersistedTrackedCardCheckout()).toBeNull();
+    vi.unstubAllGlobals();
   });
 });

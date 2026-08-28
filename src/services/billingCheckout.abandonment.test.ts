@@ -5,6 +5,9 @@ import {
   parseCheckoutAbandonmentResponse,
   persistTrackedPixUpfrontCheckout,
   postBillingAbandonPayment,
+  readPixCancelBlock,
+  persistPixCancelBlock,
+  clearPixCancelBlock,
   readPersistedTrackedPixUpfrontCheckout,
   type PersistedPixUpfrontCheckout,
 } from './billingCheckout';
@@ -12,10 +15,11 @@ import {
 const orderId = '692c71f5-5c9c-4e91-8b22-cfd4dea55ad8';
 const token = 'cc_1234567890123456789012345678901234567890123';
 
-function response(state: string, canStartNewCheckout: boolean) {
+function response(result: string, canStartNewCheckout: boolean) {
   return {
     ok: true,
-    state,
+    state: result === 'payment_already_completed' ? 'PAYMENT_CONFIRMED' : result === 'not_cancellable' ? 'NOT_CANCELLABLE' : 'ABANDONED',
+    result,
     canStartNewCheckout,
     orderId,
     statusUrl: `/billing/orders/${orderId}/status`,
@@ -23,6 +27,28 @@ function response(state: string, canStartNewCheckout: boolean) {
 }
 
 describe('safe PIX_UPFRONT abandonment contract', () => {
+  it('maps the body retryAfterSeconds before the exposed Retry-After header', async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ ok: false, error: { code: 'PAYMENT_CHANGE_RATE_LIMITED', retryAfterSeconds: 300 } }), { status: 429, headers: { 'Retry-After': '600' } }));
+    await expect(postBillingAbandonPayment(orderId, token, createCheckoutAbandonmentIdempotencyKey(orderId), fetcher)).rejects.toMatchObject({ code: 'PAYMENT_CHANGE_RATE_LIMITED', status: 429, retryAfterMs: 300_000 });
+  });
+
+  it('falls back to Retry-After and then to 600 seconds for the rate limit', async () => {
+    const withHeader = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ ok: false, error: { code: 'PAYMENT_CHANGE_RATE_LIMITED' } }), { status: 429, headers: { 'Retry-After': '300' } }));
+    await expect(postBillingAbandonPayment(orderId, token, createCheckoutAbandonmentIdempotencyKey(orderId), withHeader)).rejects.toMatchObject({ retryAfterMs: 300_000 });
+    const withoutHeader = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ ok: false, error: { code: 'PAYMENT_CHANGE_RATE_LIMITED' } }), { status: 429 }));
+    await expect(postBillingAbandonPayment(orderId, token, createCheckoutAbandonmentIdempotencyKey(orderId), withoutHeader)).rejects.toMatchObject({ retryAfterMs: 600_000 });
+  });
+
+  it('stores and removes only the UX block cache', () => {
+    const storage = new Map<string, string>();
+    vi.stubGlobal('window', { sessionStorage: { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => storage.set(key, value), removeItem: (key: string) => storage.delete(key) } });
+    const blockedUntil = Date.now() + 300_000;
+    persistPixCancelBlock(orderId, blockedUntil);
+    expect(readPixCancelBlock(orderId)).toBe(blockedUntil);
+    clearPixCancelBlock(orderId);
+    expect(readPixCancelBlock(orderId)).toBeNull();
+    vi.unstubAllGlobals();
+  });
   it('uses one deterministic key for every retry of an order operation', () => {
     const first = createCheckoutAbandonmentIdempotencyKey(orderId);
     expect(first).toBe(`checkout-abandon:${orderId}:configuration-change`);
@@ -30,17 +56,16 @@ describe('safe PIX_UPFRONT abandonment contract', () => {
   });
 
   it.each([
-    ['ABANDONED', true],
-    ['ALREADY_TERMINAL', true],
-    ['PAYMENT_CONFIRMED', false],
-    ['RECONCILIATION_REQUIRED', false],
-    ['STILL_PAYABLE', false],
-  ] as const)('accepts %s without changing Billing authority', (state, canStartNewCheckout) => {
-    expect(parseCheckoutAbandonmentResponse(response(state, canStartNewCheckout), orderId)).toMatchObject({ state, canStartNewCheckout, orderId });
+    ['canceled', true],
+    ['already_canceled', true],
+    ['payment_already_completed', false],
+    ['not_cancellable', false],
+  ] as const)('accepts %s without changing Billing authority', (result, canStartNewCheckout) => {
+    expect(parseCheckoutAbandonmentResponse(response(result, canStartNewCheckout), orderId)).toMatchObject({ result, canStartNewCheckout, orderId });
   });
 
   it('posts the exact order, opaque control header and same idempotency key', async () => {
-    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify(response('ABANDONED', true)), { status: 200 }));
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify(response('canceled', true)), { status: 200 }));
     const key = createCheckoutAbandonmentIdempotencyKey(orderId);
     await postBillingAbandonPayment(orderId, token, key, fetcher);
     const [url, init] = fetcher.mock.calls[0];
@@ -57,8 +82,8 @@ describe('safe PIX_UPFRONT abandonment contract', () => {
 
   it('retries the same logical abandonment with the same key', async () => {
     const fetcher = vi.fn<typeof fetch>()
-      .mockResolvedValueOnce(new Response(JSON.stringify(response('RECONCILIATION_REQUIRED', false)), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify(response('ABANDONED', true)), { status: 200 }));
+      .mockResolvedValueOnce(new Response(JSON.stringify(response('not_cancellable', false)), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(response('canceled', true)), { status: 200 }));
     const key = createCheckoutAbandonmentIdempotencyKey(orderId);
     await postBillingAbandonPayment(orderId, token, key, fetcher);
     await postBillingAbandonPayment(orderId, token, key, fetcher);
@@ -98,7 +123,7 @@ describe('safe PIX_UPFRONT abandonment contract', () => {
   });
 
   it('rejects a response for a different order or a mismatched canStartNewCheckout flag', () => {
-    expect(parseCheckoutAbandonmentResponse(response('ABANDONED', true), 'other-order')).toBeNull();
-    expect(parseCheckoutAbandonmentResponse(response('PAYMENT_CONFIRMED', true), orderId)).toBeNull();
+    expect(parseCheckoutAbandonmentResponse(response('canceled', true), 'other-order')).toBeNull();
+    expect(parseCheckoutAbandonmentResponse(response('payment_already_completed', true), orderId)).toBeNull();
   });
 });

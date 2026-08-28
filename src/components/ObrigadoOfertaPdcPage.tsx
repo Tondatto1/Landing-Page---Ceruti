@@ -15,6 +15,9 @@ export function ObrigadoOfertaPdcPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPlanName, setSelectedPlanName] = useState<string | undefined>();
   const [completionState, setCompletionState] = useState<'loading' | 'authorized' | 'invalid'>('loading');
+  const messageAdvice = `Não foi possível confirmar um pagamento válido para este acesso. Se você ainda não concluiu a assinatura, finalize o pagamento pelo checkout e aguarde a confirmação.
+
+Se já pagou, aguarde alguns instantes e tente novamente pelo mesmo navegador. Se o problema continuar, fale com o suporte.`;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -32,11 +35,14 @@ export function ObrigadoOfertaPdcPage() {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center px-4 font-sans">
         <div className="max-w-md rounded-3xl border border-neutral-200 bg-white p-8 text-center shadow-xl">
-          <p className="text-base font-bold text-neutral-800">
-            {completionState === 'loading'
-              ? 'Confirmando seu acesso com segurança...'
-              : 'Este conteúdo requer uma confirmação de pagamento válida.'}
-          </p>
+          {completionState === 'loading' ? (
+            <p className="text-base font-bold text-neutral-800">Confirmando seu acesso com segurança...</p>
+          ) : (
+            <div className="space-y-3 text-neutral-800">
+              <h2 className="text-lg font-black">Pagamento não confirmado</h2>
+              <p className="whitespace-pre-line text-sm font-medium leading-relaxed">{messageAdvice}</p>
+            </div>
+          )}
         </div>
       </div>
     );

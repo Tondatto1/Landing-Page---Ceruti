@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useLocation } from 'react-router-dom';
 import {
   MessageCircle,
   X,
@@ -26,6 +27,11 @@ import {
 import { trackMetaEvent } from '../lib/metaPixel';
 
 type TrialAgentType = 'campo';
+
+export const WHATSAPP_SUPPORT_NUMBER = '5567999034874';
+
+export const isCheckoutPathname = (pathname: string) =>
+  pathname === '/checkout' || pathname.startsWith('/checkout/');
 
 const TRIALS_API_BASE_URL =
   (import.meta as unknown as { env?: Record<string, string | undefined> }).env
@@ -150,6 +156,8 @@ interface Message {
 }
 
 export const WhatsAppWidget = () => {
+  const location = useLocation();
+  const isCheckout = isCheckoutPathname(location.pathname);
   const [isOpen, setIsOpen] = useState(false);
   const [showBalloon, setShowBalloon] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -273,9 +281,11 @@ export const WhatsAppWidget = () => {
   }, [showAdminModal, isCloudAdmin]);
 
 
-  // Show balloon with a 3-second delay when the chatbot is closed or on initial mount
+  // Keep the promotional balloon available outside checkout only.
   useEffect(() => {
-    if (!isOpen) {
+    if (isCheckout) {
+      setShowBalloon(false);
+    } else if (!isOpen) {
       const timer = setTimeout(() => {
         setShowBalloon(true);
       }, 3000);
@@ -283,10 +293,7 @@ export const WhatsAppWidget = () => {
     } else {
       setShowBalloon(false);
     }
-  }, [isOpen]);
-
-  // Default target number
-  const WHATSAPP_NUMBER = '5567981246558';
+  }, [isCheckout, isOpen]);
 
   const formatTime = () => {
     const now = new Date();
@@ -405,7 +412,7 @@ export const WhatsAppWidget = () => {
         time: formatTime(),
         cta: {
           text: 'Falar com Suporte no WhatsApp',
-          link: `https://wa.me/${WHATSAPP_NUMBER}?text=Olá. Venho através da página e gostaria de tirar uma dúvida.`,
+          link: `https://wa.me/${WHATSAPP_SUPPORT_NUMBER}?text=Olá. Venho através da página e gostaria de tirar uma dúvida.`,
         },
         options: [
           { text: '🔄 Voltar para o menu principal', action: 'reset' }
@@ -828,13 +835,13 @@ export const WhatsAppWidget = () => {
 
   return (
     <>
-      <div className="fixed bottom-6 right-6 z-50 font-sans pointer-events-none">
+      <div className={`fixed font-sans pointer-events-none ${isCheckout ? 'bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 sm:bottom-8 sm:right-8 z-40' : 'bottom-6 right-6 z-50'}`}>
         {/* Container for absolute overlays */}
         <div className="relative w-full h-full flex flex-col items-end pointer-events-auto">
 
           {/* 1. Pulse Promo Balloon */}
           <AnimatePresence>
-            {showBalloon && !isOpen && (
+            {showBalloon && !isOpen && !isCheckout && (
               <motion.div
                 initial={{ opacity: 0, y: 15, scale: 0.9 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -907,11 +914,11 @@ export const WhatsAppWidget = () => {
                     stroke="url(#metallic-blue-green)"
                     strokeWidth="4.5"
                     strokeLinecap="round"
-                    style={{ filter: "url(#glow-border)" }}
-                    animate={{
+                    style={isCheckout ? undefined : { filter: "url(#glow-border)" }}
+                    animate={isCheckout ? undefined : {
                       opacity: [0.75, 1, 0.75]
                     }}
-                    transition={{
+                    transition={isCheckout ? undefined : {
                       duration: 3,
                       ease: "easeInOut",
                       repeat: Infinity
@@ -931,13 +938,13 @@ export const WhatsAppWidget = () => {
                         title="Hana - assistente virtual"
                       >
                         <HanaAvatar className="w-full h-full" />
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[#008069] animate-pulse" />
+                        <div className={`absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[#008069] ${isCheckout ? '' : 'animate-pulse'}`} />
                       </div>
                       <div className="text-left">
                         <h4 className="font-bold text-xs sm:text-sm tracking-tight leading-tight text-white force-white">Hana - assistente virtual</h4>
                         <p className="text-[11px] text-[#b3dfd6] force-white flex items-center gap-1 font-medium font-sans select-none">
                           <span className="force-white">Online</span>
-                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping" />
+                          <span className={`inline-block w-1.5 h-1.5 rounded-full bg-emerald-300 ${isCheckout ? '' : 'animate-ping'}`} />
                         </p>
                       </div>
                     </div>
@@ -1025,8 +1032,10 @@ export const WhatsAppWidget = () => {
                                   onClick={() => handleOptionClick(opt.action, opt.text)}
                                   disabled={isSubmittingTrial && opt.action === 'activate_trial_final'}
                                   className={`text-left w-full transition-all duration-300 active:scale-98 rounded-xl disabled:opacity-60 disabled:cursor-not-allowed ${
-                                    isTestOption
+                                    isTestOption && !isCheckout
                                       ? "bg-gradient-to-r from-[#004d1a] to-[#00a83e] hover:from-[#006020] hover:to-[#00b944] text-white font-black text-xs sm:text-[13px] py-3.5 px-4 border-b-2 border-[#003813] shadow-[0_4px_15px_rgba(0,168,62,0.3)] animate-pulse cursor-pointer"
+                                      : isTestOption
+                                        ? "bg-gradient-to-r from-[#004d1a] to-[#00a83e] hover:from-[#006020] hover:to-[#00b944] text-white font-black text-xs sm:text-[13px] py-3.5 px-4 border-b-2 border-[#003813] shadow-[0_4px_15px_rgba(0,168,62,0.3)] cursor-pointer"
                                       : "bg-white hover:bg-teal-50 hover:text-[#008069] text-gray-700 font-semibold text-xs sm:text-[13px] py-2.5 px-3.5 border border-neutral-200 shadow-sm cursor-pointer"
                                   }`}
                                 >
@@ -1042,9 +1051,9 @@ export const WhatsAppWidget = () => {
                     {/* Simulated Typing */}
                     {isTyping && (
                       <div className="flex items-center gap-1.5 max-w-[40%] bg-white px-4 py-3 rounded-2xl rounded-tl-none shadow-sm mr-auto">
-                        <span className="w-1.5 h-1.5 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <span className="w-1.5 h-1.5 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <span className="w-1.5 h-1.5 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        <span className={`w-1.5 h-1.5 bg-neutral-400 rounded-full ${isCheckout ? '' : 'animate-bounce'}`} style={{ animationDelay: '0ms' }} />
+                        <span className={`w-1.5 h-1.5 bg-neutral-400 rounded-full ${isCheckout ? '' : 'animate-bounce'}`} style={{ animationDelay: '150ms' }} />
+                        <span className={`w-1.5 h-1.5 bg-neutral-400 rounded-full ${isCheckout ? '' : 'animate-bounce'}`} style={{ animationDelay: '300ms' }} />
                       </div>
                     )}
 
@@ -1145,12 +1154,14 @@ export const WhatsAppWidget = () => {
           <button
             onClick={toggleWidget}
             id="whatsapp_floating_button"
-            aria-label="Fale conosco no WhatsApp"
-            className={`flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full text-white shadow-[0_8px_30px_rgba(37,211,102,0.4)] transition-all duration-300 group border-2 border-white/90 cursor-pointer ${
-              isOpen ? 'bg-neutral-800 hover:bg-neutral-900 shadow-neutral-700/30 rotate-90' : 'bg-[#25D366] hover:bg-[#20ba5c] hover:scale-110'
+            aria-label="Falar com o suporte pelo WhatsApp"
+            className={`flex items-center justify-center rounded-full text-white transition-all duration-300 group border-2 border-white/90 cursor-pointer ${
+              isCheckout ? 'w-12 h-12 sm:w-14 sm:h-14 shadow-[0_4px_14px_rgba(37,211,102,0.28)]' : 'w-14 h-14 sm:w-16 sm:h-16 shadow-[0_8px_30px_rgba(37,211,102,0.4)]'
+            } ${
+              isOpen ? 'bg-neutral-800 hover:bg-neutral-900 shadow-neutral-700/30 rotate-90' : isCheckout ? 'bg-[#25D366] hover:bg-[#20ba5c]' : 'bg-[#25D366] hover:bg-[#20ba5c] hover:scale-110'
             }`}
           >
-            {!isOpen && (
+            {!isOpen && !isCheckout && (
               <>
                 <div className="absolute inset-0 rounded-full bg-[#25D366]/30 animate-pulse pointer-events-none -z-10 group-hover:scale-115 transition-transform duration-300" />
                 <div className="absolute inset-0 rounded-full bg-[#25D366]/20 animate-ping pointer-events-none -z-10" />
@@ -1161,7 +1172,7 @@ export const WhatsAppWidget = () => {
               <X className="w-7 h-7 stroke-[2.5]" />
             ) : (
               <svg
-                className="w-8 h-8 sm:w-9 sm:h-9 fill-current stroke-none drop-shadow-sm select-none"
+                className={`${isCheckout ? 'w-7 h-7 sm:w-8 sm:h-8' : 'w-8 h-8 sm:w-9 sm:h-9'} fill-current stroke-none drop-shadow-sm select-none`}
                 viewBox="0 0 24 24"
                 xmlns="http://www.w3.org/2000/svg"
               >
@@ -1169,7 +1180,7 @@ export const WhatsAppWidget = () => {
               </svg>
             )}
 
-            {!isOpen && (
+            {!isOpen && !isCheckout && (
               <span className="absolute right-18 sm:right-20 scale-0 bg-neutral-950 text-white font-sans text-xs font-semibold px-3 py-1.5 rounded-lg shadow-md transition-all duration-200 group-hover:scale-100 whitespace-nowrap shadow-black/20">
                 Teste de 7 Dias Grátis ⚡
               </span>
