@@ -186,15 +186,15 @@ export type PixUpfrontCheckout = SmokePixAutomaticCheckout & {
   checkoutControlToken: string;
 };
 
-export type CheckoutAbandonmentState =
-  | 'ABANDONED'
-  | 'ALREADY_TERMINAL'
-  | 'PAYMENT_CONFIRMED'
-  | 'RECONCILIATION_REQUIRED'
-  | 'STILL_PAYABLE';
+export type CheckoutAbandonmentResult =
+  | 'canceled'
+  | 'already_canceled'
+  | 'payment_already_completed'
+  | 'not_cancellable';
 
 export type CheckoutAbandonmentResponse = {
-  state: CheckoutAbandonmentState;
+  state: string;
+  result: CheckoutAbandonmentResult;
   canStartNewCheckout: boolean;
   orderId: string;
   statusUrl: string;
@@ -215,9 +215,20 @@ export type PersistedPixUpfrontCheckout = {
   abandonmentIdempotencyKey: string;
 };
 
+/** Card order identity only; never persist card or holder data. */
+export type PersistedCardCheckout = {
+  orderId: string;
+  statusUrl: string;
+  paymentMethod: 'credit_card';
+  paymentFlow: 'CREDIT_CARD_UPFRONT' | 'ASAAS_HOSTED_CHECKOUT';
+  fingerprint: string;
+};
+
 const checkoutControlTokenPattern = /^cc_[A-Za-z0-9_-]{43}$/;
 const checkoutIdempotencyKeyPattern = /^[A-Za-z0-9._:-]{8,128}$/;
 const TRACKED_PIX_CHECKOUT_STORAGE_KEY = 'ceruti.billing.tracked-pix-upfront';
+const TRACKED_CARD_CHECKOUT_STORAGE_KEY = 'ceruti.billing.tracked-card';
+const PIX_CANCEL_BLOCK_STORAGE_PREFIX = 'pix-cancel-block:';
 
 /** Stable for the order/configuration-change operation and safe to retry. */
 export function createCheckoutAbandonmentIdempotencyKey(orderId: string): string {
@@ -229,6 +240,37 @@ export function createCheckoutAbandonmentIdempotencyKey(orderId: string): string
 
 function trackedCheckoutStorage(): Storage | null {
   try { return typeof window === 'undefined' ? null : window.sessionStorage; } catch { return null; }
+}
+
+function pixCancelBlockStorageKey(orderId: string): string {
+  return `${PIX_CANCEL_BLOCK_STORAGE_PREFIX}${orderId}`;
+}
+
+export function persistPixCancelBlock(orderId: string, blockedUntil: number): void {
+  if (!/^[A-Za-z0-9._:-]{1,96}$/.test(orderId) || !Number.isFinite(blockedUntil)) return;
+  try { trackedCheckoutStorage()?.setItem(pixCancelBlockStorageKey(orderId), JSON.stringify({ blockedUntil })); } catch {
+    // UX cache only; Billing remains authoritative.
+  }
+}
+
+export function clearPixCancelBlock(orderId: string): void {
+  if (!/^[A-Za-z0-9._:-]{1,96}$/.test(orderId)) return;
+  try { trackedCheckoutStorage()?.removeItem(pixCancelBlockStorageKey(orderId)); } catch { /* best effort */ }
+}
+
+export function readPixCancelBlock(orderId: string): number | null {
+  if (!/^[A-Za-z0-9._:-]{1,96}$/.test(orderId)) return null;
+  try {
+    const raw = trackedCheckoutStorage()?.getItem(pixCancelBlockStorageKey(orderId));
+    if (!raw) return null;
+    const value = JSON.parse(raw) as Record<string, unknown>;
+    if (typeof value.blockedUntil !== 'number' || !Number.isFinite(value.blockedUntil)) return null;
+    if (value.blockedUntil <= Date.now()) {
+      clearPixCancelBlock(orderId);
+      return null;
+    }
+    return value.blockedUntil;
+  } catch { return null; }
 }
 
 export function persistTrackedPixUpfrontCheckout(checkout: PersistedPixUpfrontCheckout): void {
@@ -267,6 +309,39 @@ export function readPersistedTrackedPixUpfrontCheckout(): PersistedPixUpfrontChe
     if (value.expiresAt !== undefined && typeof value.expiresAt !== 'number') return null;
     if (value.amount !== undefined && (typeof value.amount !== 'number' || !Number.isFinite(value.amount))) return null;
     return value as unknown as PersistedPixUpfrontCheckout;
+  } catch {
+    return null;
+  }
+}
+
+export function persistTrackedCardCheckout(checkout: PersistedCardCheckout): void {
+  try { trackedCheckoutStorage()?.setItem(TRACKED_CARD_CHECKOUT_STORAGE_KEY, JSON.stringify(checkout)); } catch {
+    // Persistence is a reload recovery aid, never a prerequisite for Billing.
+  }
+}
+
+export function clearPersistedTrackedCardCheckout(): void {
+  try { trackedCheckoutStorage()?.removeItem(TRACKED_CARD_CHECKOUT_STORAGE_KEY); } catch {
+    // Storage may be unavailable or user-cleared.
+  }
+}
+
+export function readPersistedTrackedCardCheckout(): PersistedCardCheckout | null {
+  try {
+    const raw = trackedCheckoutStorage()?.getItem(TRACKED_CARD_CHECKOUT_STORAGE_KEY);
+    if (!raw) return null;
+    const value = JSON.parse(raw) as Record<string, unknown>;
+    if (
+      typeof value.orderId !== 'string'
+      || !/^[A-Za-z0-9._:-]{1,96}$/.test(value.orderId)
+      || typeof value.statusUrl !== 'string'
+      || value.paymentMethod !== 'credit_card'
+      || !['CREDIT_CARD_UPFRONT', 'ASAAS_HOSTED_CHECKOUT'].includes(String(value.paymentFlow))
+      || typeof value.fingerprint !== 'string'
+      || value.fingerprint.length === 0
+    ) return null;
+    resolveBillingStatusUrl(value.statusUrl, value.orderId);
+    return value as unknown as PersistedCardCheckout;
   } catch {
     return null;
   }
@@ -465,6 +540,12 @@ export type BillingOrderStatus = {
   orderId: string;
   status: string;
   paid: boolean;
+  financialStatus?: string | null;
+  financial_status?: string | null;
+  checkoutProvisioningStatus?: string | null;
+  checkout_provisioning_status?: string | null;
+  asaasPaymentStatus?: string | null;
+  asaas_payment_status?: string | null;
   authorizationStatus?: string;
   canRedirect?: boolean;
   redirectTo?: string;
@@ -478,6 +559,18 @@ export type OrderPollingResult =
   | { kind: 'confirmed'; redirectTo: string }
   | { kind: 'terminal'; status: BillingOrderStatus }
   | { kind: 'timeout' };
+
+/** Claims a checkout completion once for the lifetime of the mounted flow. */
+export function createCheckoutRedirectGuard() {
+  let redirectedOrderId: string | null = null;
+  return {
+    claim(orderId: string): boolean {
+      if (redirectedOrderId === orderId) return false;
+      redirectedOrderId = orderId;
+      return true;
+    },
+  };
+}
 
 /** @deprecated Use OrderPollingResult. */
 export type PixPaymentPollingResult = OrderPollingResult;
@@ -533,6 +626,9 @@ const PUBLIC_ERROR_MESSAGES: Record<CheckoutErrorDisposition, string> = {
 };
 
 const PUBLIC_ERROR_MESSAGES_BY_CODE: Partial<Record<string, string>> = {
+  PAYMENT_CHANGE_RATE_LIMITED: 'Você poderá alterar a forma de pagamento novamente em alguns minutos.',
+  INVALID_CPF: 'Informe um CPF válido. Confira os números e tente novamente.',
+  INVALID_CNPJ: 'Informe um CNPJ válido. Confira os números e tente novamente.',
   CHECKOUT_CONFIGURATION_CONFLICT:
     'Existe um pagamento Pix anterior aguardando encerramento. Vamos confirmar essa troca antes de iniciar outro.',
   SMOKE_TEST_DISABLED: 'O modo de teste financeiro está desabilitado no momento.',
@@ -1030,7 +1126,7 @@ export async function postBillingAbandonPayment(
   }
   throwIfAborted(signal);
   const data = await readJson(response);
-  if (!response.ok) throw toBillingApiError(response.status, data);
+  if (!response.ok) throw toBillingApiError(response.status, data, response.headers, 600, 600_000);
   const parsed = parseCheckoutAbandonmentResponse(data, orderId);
   if (!parsed) {
     throw new BillingApiError('Estamos confirmando o cancelamento do pagamento anterior. Tente novamente em instantes.', {
@@ -1266,17 +1362,19 @@ export function parseCheckoutAbandonmentResponse(
   if (value.ok !== undefined && value.ok !== true) return null;
   if (
     typeof value.state !== 'string'
-    || !['ABANDONED', 'ALREADY_TERMINAL', 'PAYMENT_CONFIRMED', 'RECONCILIATION_REQUIRED', 'STILL_PAYABLE'].includes(value.state)
+    || typeof value.result !== 'string'
+    || !['canceled', 'already_canceled', 'payment_already_completed', 'not_cancellable'].includes(value.result)
     || typeof value.canStartNewCheckout !== 'boolean'
     || typeof value.orderId !== 'string'
     || value.orderId !== expectedOrderId
     || typeof value.statusUrl !== 'string'
   ) return null;
   try { resolveBillingStatusUrl(value.statusUrl, expectedOrderId); } catch { return null; }
-  const state = value.state as CheckoutAbandonmentState;
+  const state = value.state;
+  const result = value.result as CheckoutAbandonmentResult;
   const canStartNewCheckout = value.canStartNewCheckout;
-  if (canStartNewCheckout !== (state === 'ABANDONED' || state === 'ALREADY_TERMINAL')) return null;
-  return { state, canStartNewCheckout, orderId: value.orderId, statusUrl: value.statusUrl };
+  if (canStartNewCheckout !== (result === 'canceled' || result === 'already_canceled')) return null;
+  return { state, result, canStartNewCheckout, orderId: value.orderId, statusUrl: value.statusUrl };
 }
 
 function isResumeCheckoutRequest(value: CheckoutRequest): value is ResumeCheckoutRequest | ResumeCreditCardCheckoutRequest {
@@ -1528,7 +1626,7 @@ export function classifyCheckoutFailure(
   if (status === 429 || code === 'CARD_RATE_LIMITED' || code === 'RATE_LIMITED') {
     return 'wait_same';
   }
-  if (status === 422 || code === 'VALIDATION_ERROR') return 'validation';
+  if (status === 422 || code === 'VALIDATION_ERROR' || code === 'INVALID_CPF' || code === 'INVALID_CNPJ') return 'validation';
   if (status === 409 || status >= 500) return 'hold_unknown';
   return 'definitive';
 }
@@ -1549,11 +1647,60 @@ export function classifyCardFinancialState(status: BillingOrderStatus): CardFina
   return 'awaiting_confirmation';
 }
 
+type NormalizedStatusField = { present: boolean; value: string };
+
+function readNormalizedStatusField(
+  order: BillingOrderStatus,
+  camelKey: 'financialStatus' | 'checkoutProvisioningStatus' | 'asaasPaymentStatus',
+  snakeKey: 'financial_status' | 'checkout_provisioning_status' | 'asaas_payment_status',
+): NormalizedStatusField {
+  const record = order as unknown as Record<string, unknown>;
+  const key = Object.prototype.hasOwnProperty.call(record, camelKey)
+    ? camelKey
+    : Object.prototype.hasOwnProperty.call(record, snakeKey)
+      ? snakeKey
+      : null;
+  return key
+    ? { present: true, value: typeof record[key] === 'string' ? record[key].trim().toLowerCase() : '' }
+    : { present: false, value: '' };
+}
+
+/**
+ * Single frontend completion rule. The public Billing response currently
+ * projects its internal financial/provisioning gate as `canRedirect`; if a
+ * response includes the canonical fields, those fields are preferred and
+ * Asaas status alone can never complete checkout.
+ */
+export function isCheckoutSuccessfullyCompleted(order: BillingOrderStatus): boolean {
+  const status = order.status.trim().toLowerCase();
+  const financial = readNormalizedStatusField(order, 'financialStatus', 'financial_status');
+  const provisioning = readNormalizedStatusField(order, 'checkoutProvisioningStatus', 'checkout_provisioning_status');
+  const asaas = readNormalizedStatusField(order, 'asaasPaymentStatus', 'asaas_payment_status');
+  const terminalValues = new Set(['failed', 'failure', 'payment_failed', 'canceled', 'cancelled', 'expired', 'refunded', 'chargeback']);
+  if (terminalValues.has(status) || terminalValues.has(financial.value) || terminalValues.has(asaas.value)) return false;
+  if (financial.present || provisioning.present) {
+    return status === 'active'
+      && financial.value === 'active'
+      && provisioning.value === 'completed';
+  }
+  return order.canRedirect === true;
+}
+
+export function getCheckoutStatusDiagnostics(status: BillingOrderStatus): Record<string, unknown> {
+  const financial = readNormalizedStatusField(status, 'financialStatus', 'financial_status');
+  const provisioning = readNormalizedStatusField(status, 'checkoutProvisioningStatus', 'checkout_provisioning_status');
+  const asaas = readNormalizedStatusField(status, 'asaasPaymentStatus', 'asaas_payment_status');
+  return {
+    order_id: status.orderId,
+    order_status: status.status,
+    financial_status: financial.present ? financial.value : undefined,
+    provisioning_status: provisioning.present ? provisioning.value : undefined,
+    asaas_payment_status: asaas.present ? asaas.value : undefined,
+  };
+}
+
 export function getConfirmedCompletionRedirect(status: BillingOrderStatus): string | null {
-  // `canRedirect` is Billing's fail-closed completion authority. `paid` is
-  // informative only: provisioning can lag payment, and the inverse must not
-  // make the landing page second-guess an explicit redirect authorization.
-  return status.canRedirect === true
+  return isCheckoutSuccessfullyCompleted(status)
     && typeof status.redirectTo === 'string'
     && completionRedirectPattern.test(status.redirectTo)
     ? status.redirectTo
@@ -1561,8 +1708,11 @@ export function getConfirmedCompletionRedirect(status: BillingOrderStatus): stri
 }
 
 function isTerminalPixStatus(status: BillingOrderStatus): boolean {
+  const orderStatus = status.status.trim().toLowerCase();
+  const financial = readNormalizedStatusField(status, 'financialStatus', 'financial_status');
   return ['failed', 'failure', 'payment_failed', 'canceled', 'cancelled', 'expired', 'refunded', 'chargeback']
-    .includes(status.status.trim().toLowerCase());
+    .includes(orderStatus)
+    || (financial.present && ['failed', 'canceled', 'cancelled', 'expired', 'refunded', 'chargeback'].includes(financial.value));
 }
 
 export async function pollOrderUntilCompletion(
@@ -1757,20 +1907,28 @@ function isBillingOrderStatus(value: unknown): value is BillingOrderStatus {
     value.ok === true &&
     typeof value.orderId === 'string' &&
     typeof value.status === 'string' &&
-    typeof value.paid === 'boolean'
+    typeof value.paid === 'boolean' &&
+    ['financialStatus', 'financial_status', 'checkoutProvisioningStatus', 'checkout_provisioning_status', 'asaasPaymentStatus', 'asaas_payment_status']
+      .every((key) => value[key] === undefined || value[key] === null || typeof value[key] === 'string')
   );
 }
 
-function toBillingApiError(status: number, value: unknown): BillingApiError {
+function toBillingApiError(status: number, value: unknown, headers?: Headers, retryAfterFallbackSeconds?: number, retryAfterCapMs = CARD_ATTEMPT_WALL_CLOCK_LIMIT_MS): BillingApiError {
   const error = isRecord(value) && isRecord(value.error) ? value.error : undefined;
   const code = typeof error?.code === 'string' ? error.code : undefined;
   const requestId = typeof error?.requestId === 'string' ? error.requestId : undefined;
-  const retryAfterSeconds = typeof error?.details === 'object'
+  const bodyRetryAfterSeconds = typeof error?.retryAfterSeconds === 'number'
+    ? error.retryAfterSeconds
+    : typeof error?.details === 'object'
     && error.details !== null
     && typeof (error.details as Record<string, unknown>).retryAfterSeconds === 'number'
     ? (error.details as Record<string, number>).retryAfterSeconds
     : undefined;
-  return createPublicBillingError(status, code, requestId, classifyCheckoutFailure(status, code), retryAfterSeconds);
+  const headerValue = headers?.get('Retry-After');
+  const headerRetryAfterSeconds = headerValue && /^\d+(?:\.\d+)?$/.test(headerValue) ? Number(headerValue) : undefined;
+  const retryAfterSeconds = bodyRetryAfterSeconds ?? headerRetryAfterSeconds
+    ?? (status === 429 && code === 'PAYMENT_CHANGE_RATE_LIMITED' ? retryAfterFallbackSeconds : undefined);
+  return createPublicBillingError(status, code, requestId, classifyCheckoutFailure(status, code), retryAfterSeconds, retryAfterCapMs);
 }
 
 function createPublicBillingError(
@@ -1779,6 +1937,7 @@ function createPublicBillingError(
   requestId: string | undefined,
   disposition: CheckoutErrorDisposition,
   retryAfterSeconds?: number,
+  retryAfterCapMs = CARD_ATTEMPT_WALL_CLOCK_LIMIT_MS,
 ): BillingApiError {
   const recoverable =
     disposition === 'refresh_capabilities' ||
@@ -1795,7 +1954,7 @@ function createPublicBillingError(
     recoverable,
     status,
     retryAfterMs: typeof retryAfterSeconds === 'number' && retryAfterSeconds >= 0
-      ? Math.min(retryAfterSeconds * 1_000, CARD_ATTEMPT_WALL_CLOCK_LIMIT_MS)
+      ? Math.min(retryAfterSeconds * 1_000, retryAfterCapMs)
       : undefined,
   });
 }

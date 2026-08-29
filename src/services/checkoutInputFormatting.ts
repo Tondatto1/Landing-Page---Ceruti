@@ -14,6 +14,22 @@ export function formatCpfCnpjInput(value: string): string {
   return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
 }
 
+/** Validates the CPF check digits without changing the accepted CNPJ flow. */
+export function isValidCpf(value: string): boolean {
+  const digits = value.replace(/\D/g, '');
+  if (digits.length !== 11 || /^([0-9])\1{10}$/.test(digits)) return false;
+
+  let firstSum = 0;
+  for (let index = 0; index < 9; index += 1) firstSum += Number(digits[index]) * (10 - index);
+  const firstCheckDigit = (firstSum * 10) % 11 % 10;
+  if (firstCheckDigit !== Number(digits[9])) return false;
+
+  let secondSum = 0;
+  for (let index = 0; index < 10; index += 1) secondSum += Number(digits[index]) * (11 - index);
+  const secondCheckDigit = (secondSum * 10) % 11 % 10;
+  return secondCheckDigit === Number(digits[10]);
+}
+
 export function normalizeCardAddressNumber(value: string): string {
   return value.replace(/\D/g, '').slice(0, 6);
 }

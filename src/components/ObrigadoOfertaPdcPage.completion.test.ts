@@ -7,6 +7,10 @@ describe('/obrigado completion guard', () => {
     const source = readFileSync(resolve(process.cwd(), 'src/components/ObrigadoOfertaPdcPage.tsx'), 'utf8');
     expect(source).toContain('getBillingCompletion(controller.signal)');
     expect(source).toContain("completionState !== 'authorized'");
+    expect(source).toContain('Pagamento não confirmado');
+    expect(source).toContain('Não foi possível confirmar um pagamento válido para este acesso.');
+    expect(source).toContain('finalize o pagamento pelo checkout e aguarde a confirmação.');
+    expect(source).toContain('Se já pagou, aguarde alguns instantes e tente novamente pelo mesmo navegador.');
     expect(source).not.toContain('localStorage');
   });
 });
